@@ -157,6 +157,14 @@ function validateEmail(email) {
   return re.test(String(email).toLowerCase());
 }
 
+// Hamburger Menu Toggle Functionality
+const menuToggle = document.getElementById('menu-toggle');
+const navLinks = document.querySelector('.nav-links');
+
+menuToggle.addEventListener('click', () => {
+  navLinks.classList.toggle('active'); // Toggle the 'active' class to show/hide the menu
+});
+
 // Initialize on Load
 window.addEventListener('load', () => {
   updateGreeting();

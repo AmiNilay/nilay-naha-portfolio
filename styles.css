@@ -5,6 +5,7 @@
   box-sizing: border-box;
   transition: all 0.3s ease;
 }
+
 body {
   font-family: 'Inter', sans-serif;
   line-height: 1.6;
@@ -12,17 +13,21 @@ body {
   background-color: #fff;
   scroll-behavior: smooth;
 }
+
 body.dark-mode {
   background-color: #121212;
   color: #e0e0e0;
 }
+
 a {
   text-decoration: none;
   color: inherit;
 }
+
 ul {
   list-style: none;
 }
+
 .btn {
   display: inline-block;
   padding: 10px 20px;
@@ -34,6 +39,7 @@ ul {
   overflow: hidden;
   z-index: 1;
 }
+
 .btn::after {
   content: '';
   position: absolute;
@@ -46,9 +52,11 @@ ul {
   transition: transform 0.3s ease;
   z-index: -1;
 }
+
 .btn:hover::after {
   transform: translateX(0);
 }
+
 .btn:hover {
   background-color: #0056b3;
 }
@@ -114,6 +122,8 @@ nav.dark-mode.shrink {
   cursor: pointer;
   color: #fff;
 }
+
+/* Custom Hamburger Icon */
 #menu-toggle {
   display: none; /* Hidden by default */
   background: none;
@@ -123,9 +133,8 @@ nav.dark-mode.shrink {
   height: 24px;
   position: relative;
   z-index: 1000;
-  margin-left: auto;
-  margin-right: 1rem;
 }
+
 .hamburger-icon,
 .hamburger-icon::before,
 .hamburger-icon::after {
@@ -137,37 +146,45 @@ nav.dark-mode.shrink {
   border-radius: 2px;
   transition: all 0.3s ease;
 }
+
 .hamburger-icon {
   top: 50%;
   left: 0;
   transform: translateY(-50%);
 }
+
 .hamburger-icon::before {
   content: '';
   top: -8px;
 }
+
 .hamburger-icon::after {
   content: '';
   top: 8px;
 }
+
+/* Animation for Hamburger Icon */
 .nav-links.active + #menu-toggle .hamburger-icon {
   background-color: transparent;
 }
+
 .nav-links.active + #menu-toggle .hamburger-icon::before {
   top: 0;
   transform: rotate(45deg);
 }
+
 .nav-links.active + #menu-toggle .hamburger-icon::after {
   top: 0;
   transform: rotate(-45deg);
 }
 
+/* Responsive Navbar */
 @media (max-width: 768px) {
   #menu-toggle {
-    display: block;
+    display: block; /* Show on smaller screens */
   }
   .nav-links {
-    display: none;
+    display: none; /* Hidden by default */
     flex-direction: column;
     background-color: rgba(0, 123, 255, 0.9);
     position: absolute;
@@ -178,7 +195,7 @@ nav.dark-mode.shrink {
     z-index: 1000;
   }
   .nav-links.active {
-    display: flex;
+    display: flex; /* Show when toggled */
   }
 }
 
@@ -194,35 +211,38 @@ nav.dark-mode.shrink {
   position: relative;
   overflow: hidden;
 }
+
 .hero.dark-mode {
   background: linear-gradient(135deg, #4a4a4a, #2a2a2a);
 }
+
 .hero-content {
   position: relative;
   z-index: 1;
-  max-width: 90%;
-  margin: 0 auto;
 }
+
 .hero h1 {
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
   font-size: 3rem;
   margin-bottom: 1rem;
   animation: float 3s ease-in-out infinite;
-  word-wrap: break-word;
 }
+
 .hero p {
   font-family: 'Inter', sans-serif;
   font-size: 1.2rem;
   margin-bottom: 2rem;
-  word-wrap: break-word;
 }
+
 .hero .btn {
   box-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
 }
+
 .hero .btn:hover {
   box-shadow: 0 0 20px rgba(255, 204, 0, 1);
 }
+
 @keyframes float {
   0% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
@@ -240,10 +260,12 @@ nav.dark-mode.shrink {
   border-right: 2px solid #fff;
   animation: typing 3s steps(30, end) forwards, blink-caret 0.75s step-end infinite;
 }
+
 @keyframes typing {
   from { width: 0; }
   to { width: 100%; }
 }
+
 @keyframes blink-caret {
   from, to { border-color: transparent; }
   50% { border-color: #fff; }
@@ -257,10 +279,12 @@ nav.dark-mode.shrink {
   transform: translateY(50px);
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
+
 .section.visible {
   opacity: 1;
   transform: translateY(0);
 }
+
 .section h2 {
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
@@ -276,25 +300,30 @@ nav.dark-mode.shrink {
   gap: 2rem;
   flex-wrap: wrap;
 }
+
 .profile-pic {
   border-radius: 50%;
   width: 200px;
   height: 200px;
   object-fit: cover;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Shadow for light mode */
 }
+
 body:not(.dark-mode) .profile-pic {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Ensure shadow in light mode only */
 }
+
 body.dark-mode .profile-pic {
-  box-shadow: none;
+  box-shadow: none; /* Remove shadow in dark mode */
 }
+
 .about-text {
   max-width: 600px;
   text-align: left;
   line-height: 1.8;
   font-size: 1rem;
 }
+
 .about-text p {
   margin-bottom: 1rem;
 }
@@ -306,6 +335,7 @@ body.dark-mode .profile-pic {
   gap: 2rem;
   margin-top: 2rem;
 }
+
 .skill-card {
   background-color: #f9f9f9;
   padding: 1.5rem;
@@ -313,12 +343,15 @@ body.dark-mode .profile-pic {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
 }
+
 .skill-card.dark-mode {
   background-color: #1e1e1e;
 }
+
 .skill-card:hover {
   transform: translateY(-10px);
 }
+
 .skill-bar {
   width: 100%;
   background-color: #ddd;
@@ -328,15 +361,19 @@ body.dark-mode .profile-pic {
   height: 10px;
   position: relative;
 }
+
 .skill-level {
   height: 100%;
   background-color: #007bff;
   width: 0;
   transition: width 1s ease;
 }
+
+/* Tooltip */
 .tooltip {
   position: relative;
 }
+
 .tooltip .tooltiptext {
   visibility: hidden;
   width: 120px;
@@ -353,6 +390,7 @@ body.dark-mode .profile-pic {
   opacity: 0;
   transition: opacity 0.3s;
 }
+
 .tooltip:hover .tooltiptext {
   visibility: visible;
   opacity: 1;
@@ -360,12 +398,13 @@ body.dark-mode .profile-pic {
 
 /* Projects Section */
 .projects-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  justify-content: center; /* Center align cards */
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
   margin-top: 2rem;
 }
+
 .project-card {
   background-color: #f9f9f9;
   border-radius: 10px;
@@ -373,16 +412,20 @@ body.dark-mode .profile-pic {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   position: relative;
   perspective: 1000px;
-  width: 100%;
-  max-width: 350px;
-  height: auto;
+  width: 300px;
+  height: 350px;
 }
+
+.project-card.dark-mode {
+  background-color: #1e1e1e;
+}
+
 .project-card:hover {
   transform: translateY(-10px);
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
 }
-.card-front,
-.card-back {
+
+.card-front, .card-back {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -395,21 +438,64 @@ body.dark-mode .profile-pic {
   justify-content: center;
   align-items: center;
 }
+
 .card-front {
   background-color: #f9f9f9;
   z-index: 2;
 }
+
+.card-front.dark-mode {
+  background-color: #1e1e1e;
+}
+
+.card-front h3 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-front p {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: #333;
+}
+
+.card-front.dark-mode p {
+  color: #e0e0e0;
+}
+
 .card-back {
   background-color: #007bff;
   color: #fff;
   transform: rotateY(180deg);
 }
+
+.card-back.dark-mode {
+  background-color: #ffcc00;
+  color: #121212;
+}
+
+.card-back h3 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-back p {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+}
+
 .project-card:hover .card-front {
   transform: rotateY(-180deg);
 }
+
 .project-card:hover .card-back {
   transform: rotateY(0);
 }
+
 .project-card img {
   width: 100%;
   height: 150px;
@@ -426,9 +512,11 @@ body.dark-mode .profile-pic {
   max-width: 500px;
   margin: 0 auto;
 }
+
 .input-field {
   position: relative;
 }
+
 .input-field input,
 .input-field textarea {
   padding: 10px;
@@ -438,11 +526,13 @@ body.dark-mode .profile-pic {
   outline: none;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
+
 .input-field input:focus,
 .input-field textarea:focus {
   border-color: #007bff;
   box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
 }
+
 .input-field label {
   position: absolute;
   top: 10px;
@@ -451,6 +541,7 @@ body.dark-mode .profile-pic {
   transition: all 0.3s ease;
   color: #666;
 }
+
 .input-field input:focus + label,
 .input-field textarea:focus + label,
 .input-field input:not(:placeholder-shown) + label,
@@ -460,29 +551,36 @@ body.dark-mode .profile-pic {
   font-size: 0.8rem;
   color: #007bff;
 }
+
 #contact-form button {
   box-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
 }
+
 #contact-form button:hover {
   box-shadow: 0 0 20px rgba(255, 204, 0, 1);
 }
+
 .social-media {
   margin-top: 2rem;
 }
+
 .social-icons {
   display: flex;
   justify-content: center;
   gap: 1.5rem;
 }
+
 .social-icons a {
   color: #007bff;
   font-size: 1.5rem;
   transition: color 0.3s ease, transform 0.3s ease;
 }
+
 .social-icons a:hover {
   color: #ffcc00;
   transform: scale(1.2);
 }
+
 body.dark-mode .social-icons a {
   color: #fff;
 }
@@ -509,11 +607,13 @@ body.dark-mode .social-icons a {
   transform: translateY(20px);
   transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
 }
+
 #back-to-top-btn.visible {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
+
 #back-to-top-btn:hover {
   background-color: #0056b3;
 }
@@ -525,6 +625,7 @@ footer {
   background-color: #007bff;
   color: #fff;
 }
+
 footer.dark-mode {
   background-color: #1c1c1c;
 }
@@ -533,6 +634,7 @@ footer.dark-mode {
 .shake {
   animation: shake 0.5s;
 }
+
 @keyframes shake {
   0% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
@@ -545,16 +647,24 @@ footer.dark-mode {
   .hero h1 {
     font-size: 2rem;
   }
+
   .hero p {
     font-size: 1rem;
   }
+
+  .nav-links {
+    display: none; /* Assumes hamburger menu implementation */
+  }
+
   .about-content {
     flex-direction: column;
     text-align: center;
   }
+
   .about-text {
     text-align: center;
   }
+
   .project-card {
     width: 100%;
     max-width: 300px;
@@ -565,19 +675,23 @@ footer.dark-mode {
 body.dark-mode .skill-bar {
   background-color: #333;
 }
+
 body.dark-mode .skill-level {
   background-color: #ffcc00;
 }
+
 body.dark-mode #contact-form input,
 body.dark-mode #contact-form textarea {
   background-color: #1e1e1e;
   color: #e0e0e0;
   border-color: #555;
 }
+
 body.dark-mode #contact-form button {
   background-color: #ffcc00;
   color: #121212;
 }
+
 body.dark-mode #contact-form button:hover {
   background-color: #e6b800;
 }

@@ -463,85 +463,48 @@ body.dark-mode .profile-pic {
   border-radius: 5px;
   margin-bottom: 1rem;
 }
+
 /* Contact Section */
+#contact {
+  text-align: center;
+  margin-top: 4rem;
+}
+
+#contact h2 {
+  margin-bottom: 2rem;
+}
+
 #contact-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 500px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
 .input-field {
-  position: relative;
+  margin-bottom: 1rem;
 }
 
 .input-field input,
 .input-field textarea {
+  width: 100%;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
-  width: 100%;
   outline: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.input-field input:focus,
-.input-field textarea:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
-}
-
-.input-field label {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  pointer-events: none;
-  transition: all 0.3s ease;
-  color: #666;
-}
-
-.input-field input:focus + label,
-.input-field textarea:focus + label,
-.input-field input:not(:placeholder-shown) + label,
-.input-field textarea:not(:placeholder-shown) + label {
-  top: -10px;
-  left: 10px;
-  font-size: 0.8rem;
-  color: #007bff;
 }
 
 #contact-form button {
-  box-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
+  width: 100%;
+  padding: 10px;
+  background-color: #ffcc00;
+  color: #000;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 1rem;
 }
 
 #contact-form button:hover {
-  box-shadow: 0 0 20px rgba(255, 204, 0, 1);
-}
-
-.social-media {
-  margin-top: 2rem;
-}
-
-.social-icons {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-}
-
-.social-icons a {
-  color: #007bff;
-  font-size: 1.5rem;
-  transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.social-icons a:hover {
-  color: #ffcc00;
-  transform: scale(1.2);
-}
-
-body.dark-mode .social-icons a {
-  color: #fff;
+  background-color: #e6a800;
 }
 
 /* Back to Top Button */

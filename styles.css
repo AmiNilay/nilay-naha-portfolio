@@ -62,6 +62,7 @@ ul {
 }
 
 /* Navbar */
+/* Navbar */
 nav {
   display: flex;
   justify-content: space-between;
@@ -75,38 +76,31 @@ nav {
   z-index: 1000;
   transition: padding 0.3s ease, background-color 0.3s ease;
 }
-
 nav.shrink {
   padding: 0.5rem 2rem;
   background-color: rgba(0, 123, 255, 0.9);
 }
-
 nav.dark-mode {
   background-color: #1c1c1c;
 }
-
 nav.dark-mode.shrink {
   background-color: rgba(28, 28, 28, 0.9);
 }
-
 .logo {
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
   font-size: 1.5rem;
 }
-
 .nav-links {
   display: flex;
   gap: 1rem;
 }
-
 .nav-links a {
   color: #fff;
   transition: color 0.3s ease;
   position: relative;
   padding-bottom: 2px;
 }
-
 .nav-links a::after {
   content: '';
   position: absolute;
@@ -119,17 +113,45 @@ nav.dark-mode.shrink {
   transform-origin: left;
   transition: transform 0.3s ease;
 }
-
 .nav-links a:hover::after {
   transform: scaleX(1);
 }
-
 #theme-toggle {
   background: none;
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
   color: #fff;
+}
+
+/* Hamburger Menu */
+#menu-toggle {
+  display: none; /* Hidden by default */
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  #menu-toggle {
+    display: block; /* Show on smaller screens */
+  }
+  .nav-links {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    background-color: rgba(0, 123, 255, 0.9);
+    position: absolute;
+    top: 60px;
+    right: 0;
+    width: 100%;
+    padding: 1rem;
+    z-index: 1000;
+  }
+  .nav-links.active {
+    display: flex; /* Show when toggled */
+  }
 }
 
 /* Hero Section */

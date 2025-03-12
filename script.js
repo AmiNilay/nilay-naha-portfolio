@@ -128,19 +128,6 @@ document.getElementById("back-to-top-btn").addEventListener("click", () => {
   });
 });
 
-// Animated Progress Bars
-function animateProgressBars() {
-  const skillLevels = document.querySelectorAll(".skill-level");
-  skillLevels.forEach((level) => {
-    const width = level.getAttribute("data-width");
-    level.style.width = width;
-  });
-}
-
-window.addEventListener("load", () => {
-  animateProgressBars();
-});
-
 // Form Validation and Submission
 document.getElementById("contact-form").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -176,99 +163,7 @@ menuToggle.addEventListener("click", () => {
   navLinks.classList.toggle("active");
 });
 
-// Dynamic Projects Section
-const projects = [
-  {
-    title: "Portfolio Website",
-    description: "A responsive portfolio website built with HTML, CSS, and JavaScript.",
-    image: "Images/portfolio.png",
-    link: "https://aminilay.github.io/nilay-naha-portfolio/",
-  },
-  {
-    title: "Tic-Tac-Toe Game",
-    description: "A Tic-Tac-Toe game with an AI opponent using Python.",
-    image: "Images/tic-tac-toe.png",
-    link: "https://drive.google.com/file/d/1y5oieLIDpappdMr--xcNXnprVZ9oYCBn/view?usp=drive_link",
-  },
-  {
-    title: "SmartCalculator",
-    description: "A feature-rich calculator app with advanced scientific functions and a history tracker.",
-    image: "Images/smartcalculator.png",
-    link: "https://drive.google.com/file/d/1WMj7qymk7zceD5FVSPgBUgaJ3fFVvZg1/view?usp=drive_link",
-  },
-  // Add more projects here
-];
-
-function renderProjects() {
-  const projectsGrid = document.getElementById("projects-grid");
-  if (!projectsGrid) return;
-
-  projects.forEach((project) => {
-    const card = `
-      <div class="project-card">
-        <div class="card-front">
-          <img src="${project.image}" alt="${project.title}">
-          <h3>${project.title}</h3>
-          <p>${project.description}</p>
-        </div>
-        <div class="card-back">
-          <h3>Details</h3>
-          <a href="${project.link}" class="btn" target="_blank">View Project</a>
-        </div>
-      </div>
-    `;
-    projectsGrid.innerHTML += card;
-  });
-}
-
-// Dynamic Gallery Section
-const galleryImages = [
-  { src: "Images/gallery1.jpg", alt: "Gallery Image 1" },
-  { src: "Images/gallery2.jpg", alt: "Gallery Image 2" },
-  { src: "Images/gallery3.jpg", alt: "Gallery Image 3" },
-  // Add more images here
-];
-
-function renderGallery() {
-  const galleryGrid = document.getElementById("gallery-grid");
-  if (!galleryGrid) return;
-
-  galleryImages.forEach((image) => {
-    const img = `
-      <div class="gallery-item">
-        <img src="${image.src}" alt="${image.alt}">
-      </div>
-    `;
-    galleryGrid.innerHTML += img;
-  });
-}
-
-// Dynamic Certificates Section
-const certificates = [
-  { src: "Images/certificate1.jpg", alt: "Certificate 1" },
-  { src: "Images/certificate2.jpg", alt: "Certificate 2" },
-  { src: "Images/certificate3.jpg", alt: "Certificate 3" },
-  // Add more certificates here
-];
-
-function renderCertificates() {
-  const certificatesGrid = document.getElementById("certificates-grid");
-  if (!certificatesGrid) return;
-
-  certificates.forEach((certificate) => {
-    const cert = `
-      <div class="certificate-item">
-        <img src="${certificate.src}" alt="${certificate.alt}">
-      </div>
-    `;
-    certificatesGrid.innerHTML += cert;
-  });
-}
-
 // Initialize Everything on Page Load
 window.addEventListener("load", () => {
   updateGreeting();
-  renderProjects();
-  renderGallery();
-  renderCertificates();
 });

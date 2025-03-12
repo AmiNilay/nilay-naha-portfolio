@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nilay Naha | AI & Tech</title>
+  <title> Nilay Naha | AI & Tech</title>
   <link rel="stylesheet" href="styles.css">
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Poppins:wght@500&family=Inter:wght@400&family=JetBrains+Mono&display=swap" rel="stylesheet">
@@ -24,10 +25,10 @@
     <button id="theme-toggle">🌙</button>
   </nav>
 
-<!-- Hero Section -->
-<section id="home" class="hero">
+  <!-- Hero Section -->
+  <section id="home" class="hero">
     <div class="hero-content">
-      <h1 id="greeting">Hi, I'm Nilay Naha</h1>
+      <h1 id="greeting"></h1>
       <p>A passionate developer specializing in AI and software development.</p>
       <a href="#projects" class="btn">View My Work</a>
     </div>
@@ -37,7 +38,7 @@
   <section id="about" class="section">
     <h2>About Me</h2>
     <div class="about-content">
-      <img src="https://via.placeholder.com/200" alt="Nilay Naha" class="profile-pic">
+      <img src="images/profile.jpg" alt="Nilay Naha" class="profile-pic">
       <div class="about-text">
         <p>I’m <strong>Nilay Naha</strong>, a <strong>Computer Science and Engineering (AIML)</strong> student at <strong>Siliguri Institute of Technology</strong>, passionate about <strong>AI</strong>, <strong>software development</strong>, and <strong>problem-solving</strong>. I enjoy building user-centric applications and continuously improving my coding skills.</p>
         <p>Beyond tech, I am keen on <strong>finance</strong>, <strong>fitness</strong>, and <strong>self-growth</strong>, drawing inspiration from discipline and resilience. I am always eager to learn and innovate, striving to blend technology with real-world impact.</p>
@@ -50,51 +51,103 @@
   <section id="skills" class="section">
     <h2>Skills</h2>
     <div class="skills-grid">
-      <div class="skill-card">
+      <div class="skill-card tooltip">
         <h3>HTML & CSS</h3>
         <p>Building responsive and pixel-perfect designs.</p>
+        <div class="skill-bar">
+          <div class="skill-level" data-width="90%"></div>
+        </div>
+        <span class="tooltiptext">Web Design</span>
       </div>
-      <div class="skill-card">
+      <div class="skill-card tooltip">
         <h3>JavaScript</h3>
         <p>Creating interactive and dynamic web applications.</p>
+        <div class="skill-bar">
+          <div class="skill-level" data-width="80%"></div>
+        </div>
+        <span class="tooltiptext">Frontend Development</span>
       </div>
-      <div class="skill-card">
-        <h3>React</h3>
-        <p>Developing single-page applications with React.</p>
+      <div class="skill-card tooltip">
+        <h3>Python</h3>
+        <p>Game Development, AI Opponent, Minimax Algorithm.</p>
+        <div class="skill-bar">
+          <div class="skill-level" data-width="70%"></div>
+        </div>
+        <span class="tooltiptext">Single-Page Apps</span>
       </div>
-      <div class="skill-card">
+      <div class="skill-card tooltip">
         <h3>Node.js</h3>
         <p>Building scalable server-side applications.</p>
+        <div class="skill-bar">
+          <div class="skill-level" data-width="60%"></div>
+        </div>
+        <span class="tooltiptext">Backend Development</span>
       </div>
     </div>
   </section>
 
-  <!-- Projects Section -->
-  <section id="projects" class="section">
-    <h2>Projects</h2>
-    <div class="projects-grid">
-      <div class="project-card">
-        <h3>Project 1</h3>
+<!-- Projects Section -->
+<section id="projects" class="section">
+  <h2>Projects</h2>
+  <div class="projects-grid">
+    <!-- Portfolio Website Card -->
+    <div class="project-card">
+      <div class="card-front">
+        <img src="images/portfolio.png" alt="Portfolio Website"> <!-- Updated Image -->
+        <h3>Portfolio Website</h3>
         <p>A responsive portfolio website built with HTML, CSS, and JavaScript.</p>
       </div>
-      <div class="project-card">
-        <h3>Project 2</h3>
-        <p>A task management app using React and Firebase.</p>
-      </div>
-      <div class="project-card">
-        <h3>Project 3</h3>
-        <p>An e-commerce platform built with Node.js and MongoDB.</p>
+      <div class="card-back">
+        <h3>Details</h3>
+        <p>Technologies: HTML, CSS, JavaScript</p>
+        <a href="https://aminilay.github.io/nilay-naha-portfolio/" class="btn" target="_blank">View Project</a> <!-- Updated Link -->
       </div>
     </div>
-  </section>
+    <!-- Tic-Tac-Toe Game -->
+    <div class="project-card">
+      <div class="card-front">
+        <img src="images/Tic-Tac-Toe.png" alt="Task Manager">
+        <h3>Tic-Tac-Toe Game</h3>
+        <p>A Tic-Tac-Toe game with an AI opponent using Python.</p>
+      </div>
+      <div class="card-back">
+        <h3>Details</h3>
+        <p>Technologies: Python, Minimax Algorithm</p>
+        <a href="https://drive.google.com/file/d/1y5oieLIDpappdMr--xcNXnprVZ9oYCBn/view?usp=drive_link" class="btn" target="_blank">Download Playable Game</a> <!-- Updated Link -->
+      </div>
+    </div>
+    <!-- E-commerce Platform Card -->
+    <div class="project-card">
+      <div class="card-front">
+        <img src="images/SmartCalculator.png" alt="E-commerce Platform">
+        <h3>SmartCalculator</h3>
+        <p>A feature-rich calculator app with advanced scientific functions and a history tracker.</p>
+      </div>
+      <div class="card-back">
+        <h3>Details</h3>
+        <p>Technologies: Python, Tkinter</p>
+        <a href="https://drive.google.com/file/d/1WMj7qymk7zceD5FVSPgBUgaJ3fFVvZg1/view?usp=drive_link" class="btn" target="_blank">Download File</a> <!-- Updated Link -->
+      </div>
+    </div>
+  </div>
+</section>
 
   <!-- Contact Section -->
   <section id="contact" class="section">
     <h2>Contact Me</h2>
     <form id="contact-form">
-      <input type="text" placeholder="Your Name" required>
-      <input type="email" placeholder="Your Email" required>
-      <textarea placeholder="Your Message" required></textarea>
+      <div class="input-field">
+        <input type="text" id="name" placeholder=" " required>
+        <label for="name">Your Name</label>
+      </div>
+      <div class="input-field">
+        <input type="email" id="email" placeholder=" " required>
+        <label for="email">Your Email</label>
+      </div>
+      <div class="input-field">
+        <textarea id="message" placeholder=" " required></textarea>
+        <label for="message">Your Message</label>
+      </div>
       <button type="submit" class="btn">Send Message</button>
     </form>
     <div class="social-media">
@@ -108,9 +161,12 @@
     </div>
   </section>
 
+  <!-- Back to Top Button -->
+  <button id="back-to-top-btn" title="Go to top">↑</button>
+
   <!-- Footer -->
   <footer>
-    <p>&copy; 2025 Nilay Naha. All rights reserved.</p>
+    <p>© 2025 Nilay Naha. All rights reserved.</p>
   </footer>
 
   <script src="script.js"></script>

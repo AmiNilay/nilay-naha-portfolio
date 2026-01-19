@@ -1,133 +1,91 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
-import { Save, Loader2, Upload } from "lucide-react";
-import Toast from "@/components/ui/Toast"; 
+export const dynamic = "force-dynamic"; // FIX: Forces dynamic rendering for Vercel
 
-export default function EditHeroPage() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+import { useState, useEffect } from "react";
+import { ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 
-  // Form State
-  const [tagline, setTagline] = useState("");
-  const [headline, setHeadline] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>("");
+// Import your sections
+import Hero from "@/components/sections/Hero";
+import FeaturedProjects from "@/components/sections/FeaturedProjects";
+import AboutPreview from "@/components/sections/AboutPreview";
+
+export default function Home() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    { id: "hero", component: <Hero /> },
+    { id: "projects", component: <FeaturedProjects /> },
+    { id: "about", component: <AboutPreview /> },
+  ];
+
+  const totalSlides = slides.length;
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+  };
 
   useEffect(() => {
-    fetch("/api/hero")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && !data.error) {
-          setTagline(data.tagline || "");
-          setHeadline(data.headline || "");
-          setDescription(data.description || "");
-          setPreview(data.image || "");
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    
-    const formData = new FormData();
-    formData.append("tagline", tagline);
-    formData.append("headline", headline);
-    formData.append("description", description);
-    if (imageFile) formData.append("image", imageFile);
-
-    try {
-      const res = await fetch("/api/hero", { method: "PUT", body: formData });
-      if (res.ok) {
-        setToast({ message: "Home page updated!", type: "success" });
-      } else {
-        setToast({ message: "Update failed.", type: "error" });
-      }
-    } catch (err) {
-      setToast({ message: "Network error.", type: "error" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) return <div className="p-20 flex justify-center"><Loader2 className="animate-spin" /></div>;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") nextSlide();
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") prevSlide();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [totalSlides]);
 
   return (
-    <div className="p-8 max-w-4xl mx-auto relative">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-
-      <h1 className="text-3xl font-bold mb-8">Edit Home / Hero</h1>
-      <form onSubmit={handleSubmit} className="space-y-8 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-200 dark:border-gray-800">
-        
-        {/* Profile Image */}
-        <div className="flex items-center gap-6">
-          <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-100 relative group">
-            {preview ? (
-              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">No Img</div>
-            )}
-          </div>
-          <div className="flex-1">
-             <label className="block text-sm font-bold uppercase mb-2">Profile Picture</label>
-             <input type="file" accept="image/*" onChange={handleImageChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" />
-             <p className="text-xs text-gray-400 mt-2">Uploading a new image will automatically delete the old one from GitHub.</p>
-          </div>
+    <main className="h-screen w-full overflow-hidden bg-background relative flex flex-col pt-16">
+      
+      <div className="flex-1 w-full h-full relative">
+        <div className="absolute inset-0 w-full h-full animate-in fade-in slide-in-from-right-4 duration-500">
+           <div className="w-full h-full overflow-y-auto no-scrollbar flex items-center justify-center">
+              {slides[currentSlide].component}
+           </div>
         </div>
+      </div>
 
-        {/* Tagline */}
-        <div>
-          <label className="font-bold block mb-2 uppercase text-sm text-green-600">Tagline (Green Text)</label>
-          <input 
-            value={tagline} 
-            onChange={(e) => setTagline(e.target.value)} 
-            placeholder="Full Stack Engineer"
-            className="w-full p-3 rounded-xl border dark:bg-black focus:ring-2 focus:ring-primary outline-none" 
-          />
-        </div>
+      <div className="absolute bottom-8 right-8 z-50 flex items-center gap-4">
+        <span className="text-xs font-mono text-gray-400 uppercase tracking-widest animate-pulse mr-2 hidden md:block">
+          {currentSlide === 0 ? "Start Tour" : "Navigate"}
+        </span>
 
-        {/* Headline */}
-        <div>
-          <label className="font-bold block mb-2 uppercase text-sm">Main Headline (Allows HTML)</label>
-          <p className="text-xs text-gray-500 mb-2">Use &lt;br /&gt; for line breaks and &lt;span class=&quot;text-gray-500&quot;&gt; for gray text.</p>
-          <textarea 
-            rows={3}
-            value={headline} 
-            onChange={(e) => setHeadline(e.target.value)} 
-            placeholder='Building digital <br /> experiences that <span class="text-gray-500">matter.</span>'
-            className="w-full p-3 rounded-xl border dark:bg-black font-mono text-sm focus:ring-2 focus:ring-primary outline-none" 
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="font-bold block mb-2 uppercase text-sm">Description</label>
-          <textarea 
-            rows={4}
-            value={description} 
-            onChange={(e) => setDescription(e.target.value)} 
-            placeholder="I'm Nilay, a developer specializing in..."
-            className="w-full p-3 rounded-xl border dark:bg-black focus:ring-2 focus:ring-primary outline-none" 
-          />
-        </div>
-
-        <button type="submit" disabled={saving} className="w-full bg-primary text-white py-4 rounded-xl font-bold flex justify-center gap-2 hover:opacity-90 shadow-lg shadow-primary/25">
-          {saving ? <Loader2 className="animate-spin"/> : <><Save/> Save Changes</>}
+        <button
+          onClick={prevSlide}
+          className="p-3 rounded-full border border-gray-300 dark:border-gray-700 bg-background/50 backdrop-blur-md hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 group"
+          aria-label="Previous Slide"
+        >
+          <ChevronLeft className="w-6 h-6" />
         </button>
-      </form>
-    </div>
+
+        <div className="text-sm font-bold font-mono w-12 text-center">
+          {currentSlide + 1} / {totalSlides}
+        </div>
+
+        <button
+          onClick={nextSlide}
+          className="p-3 rounded-full border border-gray-300 dark:border-gray-700 bg-background/50 backdrop-blur-md hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 group shadow-lg"
+          aria-label="Next Slide"
+        >
+           {currentSlide === totalSlides - 1 ? (
+             <ArrowRight className="w-6 h-6" /> 
+           ) : (
+             <ChevronRight className="w-6 h-6" />
+           )}
+        </button>
+      </div>
+
+      {/* FIX: Removed direct style={{width}} to fix the Edge Tools warning. 
+          We use a CSS variable instead which is more standard. */}
+      <div 
+        className="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500" 
+        style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` } as React.CSSProperties}
+      />
+
+    </main>
   );
 }

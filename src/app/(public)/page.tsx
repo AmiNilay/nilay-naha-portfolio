@@ -17,22 +17,19 @@ export default function Home() {
 
   const totalSlides = 3;
 
-  // FIX: This ensures ONLY the correct component is ever created in memory
-  const renderActiveSlide = () => {
-    switch (currentSlide) {
-      case 0: return <Hero key="hero-main" />;
-      case 1: return <FeaturedProjects key="projects-main" />;
-      case 2: return <AboutPreview key="about-main" />;
-      default: return null;
-    }
-  };
-
+  // --- NAVIGATION WITH GUARDS ---
   const paginate = (newDirection: number) => {
+    // Prevent going left/backwards if already on the first slide (Home)
+    if (currentSlide === 0 && newDirection === -1) return;
+    
+    // Prevent going right/forwards if already on the last slide
+    if (currentSlide === totalSlides - 1 && newDirection === 1) return;
+
     setDirection(newDirection);
-    setCurrentSlide((prev) => (prev + newDirection + totalSlides) % totalSlides);
+    setCurrentSlide((prev) => prev + newDirection);
   };
 
-  // PC & Mobile Listeners...
+  // PC: Keyboard Controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") paginate(1);
@@ -40,56 +37,61 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [currentSlide]); // Re-run effect when slide changes to check guards
 
+  // Mobile: Swipe Logic
   const handleTouchStart = (e: React.TouchEvent) => (touchStart.current = e.targetTouches[0].clientX);
   const handleTouchMove = (e: React.TouchEvent) => (touchEnd.current = e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
     if (!touchStart.current || !touchEnd.current) return;
     const distance = touchStart.current - touchEnd.current;
-    if (distance > 50) paginate(1);
-    if (distance < -50) paginate(-1);
+    
+    // Swipe Left (Goes to Next)
+    if (distance > 50) paginate(1); 
+    // Swipe Right (Goes to Previous)
+    if (distance < -50) paginate(-1); 
+
     touchStart.current = null;
     touchEnd.current = null;
   };
 
   return (
     <main 
-      className="h-screen w-full overflow-hidden bg-background relative flex flex-col"
+      className="h-screen w-full overflow-hidden bg-background text-foreground relative" 
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="flex-1 w-full h-full relative overflow-hidden bg-background">
-        {/* CRITICAL: mode="wait" kills the "Demo" ghosting immediately */}
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.div
-            key={currentSlide}
-            custom={direction}
-            initial={{ opacity: 0, x: direction > 0 ? 300 : -300 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction > 0 ? -300 : 300 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="absolute inset-0 w-full h-full flex items-center justify-center pt-16 px-4 bg-background z-10"
-          >
-            <div className="w-full h-full overflow-y-auto no-scrollbar">
-              {renderActiveSlide()}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      <AnimatePresence initial={false} custom={direction} mode="wait">
+        <motion.div
+          key={currentSlide}
+          custom={direction}
+          initial={{ opacity: 0, x: direction > 0 ? "20%" : "-20%" }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: direction > 0 ? "-20%" : "20%" }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="absolute inset-0 w-full h-full bg-background z-10 flex items-center justify-center pt-16"
+        >
+          <div className="w-full h-full overflow-y-auto no-scrollbar">
+            {currentSlide === 0 && <Hero />}
+            {currentSlide === 1 && <FeaturedProjects />}
+            {currentSlide === 2 && <AboutPreview />}
+          </div>
+        </motion.div>
+      </AnimatePresence>
 
+      {/* Hero-specific Down Arrow */}
       {currentSlide === 0 && (
         <button 
           onClick={() => paginate(1)}
-          aria-label="Scroll to projects"
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce p-2 bg-white/10 dark:bg-black/20 rounded-full z-50"
+          aria-label="Scroll down"
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce p-2 bg-foreground/5 dark:bg-white/10 rounded-full z-50"
         >
           <ChevronDown className="w-6 h-6 text-primary" />
         </button>
       )}
 
-      {/* Clean UI Bar */}
+      {/* Progress Bar (Dynamic Width) */}
       <div 
         className="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500 z-50" 
         style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` } as React.CSSProperties}

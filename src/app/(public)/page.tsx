@@ -1,105 +1,99 @@
 ﻿"use client";
 
-// FIX 1: Add this to prevent prerendering errors on Vercel
-export const dynamic = "force-dynamic"; 
+export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
-import { BookOpen, Cpu, Loader2, AlertCircle } from "lucide-react";
-import SkillKeyboard from "@/components/ui/SkillKeyboard";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Hero from "@/components/sections/Hero";
+import FeaturedProjects from "@/components/sections/FeaturedProjects";
+import AboutPreview from "@/components/sections/AboutPreview";
+import { ChevronDown } from "lucide-react";
 
-interface AboutData {
-  bio: string;
-  skills: string[];
-  education: Array<{ degree: string; institution: string; year: string }>;
-}
+export default function Home() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const touchStart = useRef<number | null>(null);
+  const touchEnd = useRef<number | null>(null);
 
-export default function AboutPage() {
-  const [data, setData] = useState<AboutData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const totalSlides = 3;
 
+  // FIX: Force a clean re-render by using a function that returns the component
+  const renderActiveSlide = () => {
+    switch (currentSlide) {
+      case 0: return <Hero />;
+      case 1: return <FeaturedProjects />;
+      case 2: return <AboutPreview />;
+      default: return <Hero />;
+    }
+  };
+
+  const paginate = (newDirection: number) => {
+    setDirection(newDirection);
+    setCurrentSlide((prev) => (prev + newDirection + totalSlides) % totalSlides);
+  };
+
+  // Keyboard and Touch listeners...
   useEffect(() => {
-    // Fetches your data from MongoDB via your API route
-    fetch("/api/about")
-      .then((res) => res.json())
-      .then((resData) => {
-        if (resData && (resData.bio || resData.education?.length > 0)) {
-          setData(resData);
-        } else {
-          setData(null);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Fetch error:", err);
-        setLoading(false);
-      });
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") paginate(1);
+      if (e.key === "ArrowLeft") paginate(-1);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary w-8 h-8" />
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl flex flex-col items-center justify-center text-center">
-        <AlertCircle className="w-16 h-16 text-gray-300 mb-4" />
-        <h1 className="text-3xl font-bold mb-2">About Section Not Setup</h1>
-        <p className="text-gray-500">Please add your bio in the Admin Panel.</p>
-      </div>
-    );
-  }
+  const handleTouchStart = (e: React.TouchEvent) => (touchStart.current = e.targetTouches[0].clientX);
+  const handleTouchMove = (e: React.TouchEvent) => (touchEnd.current = e.targetTouches[0].clientX);
+  const handleTouchEnd = () => {
+    if (!touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    if (distance > 50) paginate(1);
+    if (distance < -50) paginate(-1);
+    touchStart.current = null;
+    touchEnd.current = null;
+  };
 
   return (
-    <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl">
-      
-      {/* Bio Section */}
-      <div className="max-w-4xl mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold mb-8">About Me</h1>
-        <div 
-          className="prose dark:prose-invert max-w-none text-lg text-gray-600 dark:text-gray-300 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: data.bio || "<p>No bio added yet.</p>" }}
-        />
+    <main 
+      className="h-screen w-full overflow-hidden bg-background relative flex flex-col"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="flex-1 w-full h-full relative overflow-hidden bg-background">
+        {/* FIX: mode="wait" ensures the old slide is GONE before the new one appears */}
+        <AnimatePresence initial={false} custom={direction} mode="wait">
+          <motion.div
+            key={currentSlide}
+            custom={direction}
+            initial={{ opacity: 0, x: direction > 0 ? 300 : -300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction > 0 ? -300 : 100 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            // FIX: Added bg-background and z-index to isolate the layer
+            className="absolute inset-0 w-full h-full flex items-center justify-center pt-16 px-4 bg-background z-10"
+          >
+            <div className="w-full h-full overflow-y-auto no-scrollbar">
+              {renderActiveSlide()}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* --- TECHNICAL ARSENAL --- */}
-      <div className="mb-20">
-        <h2 className="text-2xl font-bold mb-8 flex items-center">
-          <Cpu className="w-6 h-6 mr-2 text-primary" /> Technical Arsenal
-        </h2>
-        {/* FIX 2: Pass the database skills to the interactive keyboard */}
-        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-gray-200 dark:border-gray-800 p-4">
-          <SkillKeyboard activeSkills={data.skills} />
-        </div>
-      </div>
+      {currentSlide === 0 && (
+        <button 
+          onClick={() => paginate(1)}
+          aria-label="Scroll to projects"
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce p-2 bg-white/10 dark:bg-black/20 rounded-full z-50"
+        >
+          <ChevronDown className="w-6 h-6 text-primary" />
+        </button>
+      )}
 
-      {/* --- EDUCATION --- */}
-      <div>
-        <h2 className="text-2xl font-bold mb-6 flex items-center">
-          <BookOpen className="w-6 h-6 mr-2 text-primary" /> Education
-        </h2>
-        
-        {(!data.education || data.education.length === 0) ? (
-          <p className="text-gray-500 italic">No education details added yet.</p>
-        ) : (
-          <div className="space-y-8 border-l-2 border-gray-200 dark:border-gray-800 ml-3 pl-8 relative">
-            {data.education.map((edu, idx) => (
-              <div key={idx} className="relative">
-                <span 
-                  className={`absolute -left-[41px] top-1 h-5 w-5 rounded-full border-4 border-background ${idx === 0 ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"}`}
-                ></span>
-                <h3 className="font-bold text-lg">{edu.degree}</h3>
-                <p className="text-gray-500">{edu.institution}</p>
-                <span className="text-sm text-gray-400">{edu.year}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-    </div>
+      <div 
+        className="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500 z-50" 
+        style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` } as React.CSSProperties}
+      />
+    </main>
   );
 }

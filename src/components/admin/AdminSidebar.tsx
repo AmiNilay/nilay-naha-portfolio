@@ -2,56 +2,64 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  FileText, 
-  User, 
-  Home, 
-  LogOut 
-} from "lucide-react";
+import { LayoutDashboard, FolderKanban, FileText, Home, User, LogOut } from "lucide-react";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
-  const isActive = (path: string) => pathname === path;
+
+  // Added "Home Page" and "About Page" to the navigation items
+  const navItems = [
+    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { name: "Projects", href: "/admin/projects", icon: FolderKanban },
+    { name: "Blog Posts", href: "/admin/blog", icon: FileText },
+    { name: "Home Page", href: "/admin/home", icon: Home },
+    { name: "About Page", href: "/admin/about", icon: User },
+  ];
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 fixed left-0 top-0 bottom-0 z-50 flex flex-col">
-      <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-         <h2 className="text-xl font-bold text-primary">Admin Panel</h2>
+    <aside className="w-64 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col fixed left-0 top-0 z-40">
+      
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+          Dev.Admin
+        </h2>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-        <Link href="/admin/dashboard" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive("/admin/dashboard") ? "bg-primary/10 text-primary" : "text-gray-600 hover:bg-gray-100"}`}>
-           <LayoutDashboard size={20} /> Dashboard
-        </Link>
-
-        {/* THESE ARE THE NEW LINKS */}
-        <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-400 uppercase">Pages</div>
-        
-        <Link href="/admin/home" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive("/admin/home") ? "bg-primary/10 text-primary" : "text-gray-600 hover:bg-gray-100"}`}>
-           <Home size={20} /> Edit Home
-        </Link>
-
-        <Link href="/admin/about" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive("/admin/about") ? "bg-primary/10 text-primary" : "text-gray-600 hover:bg-gray-100"}`}>
-           <User size={20} /> Edit About
-        </Link>
-
-        <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-400 uppercase">Content</div>
-        
-        <Link href="/admin/projects" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive("/admin/projects") ? "bg-primary/10 text-primary" : "text-gray-600 hover:bg-gray-100"}`}>
-           <FolderKanban size={20} /> Projects
-        </Link>
-
-        <Link href="/admin/blog" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive("/admin/blog") ? "bg-primary/10 text-primary" : "text-gray-600 hover:bg-gray-100"}`}>
-           <FileText size={20} /> Blog Posts
-        </Link>
+      {/* Navigation Links */}
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {navItems.map((item) => {
+          const isActive = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-primary/10 text-primary border-r-2 border-primary"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              <item.icon size={20} />
+              {item.name}
+            </Link>
+          );
+        })}
       </nav>
 
+      {/* Logout Button */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <Link href="/" className="flex items-center gap-3 text-red-500 hover:bg-red-50 w-full px-4 py-3 rounded-lg">
-           <LogOut size={20} /> Logout
-        </Link>
+        <button
+          onClick={() => {
+            // Clear admin cookie and redirect
+            document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+            window.location.href = "/admin/login";
+          }}
+          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+        >
+          <LogOut size={20} />
+          Sign Out
+        </button>
       </div>
     </aside>
   );

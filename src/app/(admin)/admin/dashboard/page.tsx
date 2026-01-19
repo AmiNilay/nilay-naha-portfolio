@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { FolderKanban, FileText, Home, User } from "lucide-react";
+import { FolderKanban, FileText, Home, User, ExternalLink } from "lucide-react";
 
 export default function AdminDashboard() {
   return (
     <div>
-      {/* Fixed: Adaptive Title Color */}
-      <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-        Dashboard Overview
-      </h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Dashboard Overview
+        </h1>
+        <Link 
+          href="/" 
+          target="_blank" 
+          className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        >
+          View Live Site <ExternalLink size={16} />
+        </Link>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
@@ -20,10 +28,10 @@ export default function AdminDashboard() {
         >
           <div className="flex flex-col items-center gap-4">
             <FolderKanban className="w-12 h-12 text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors" />
-            {/* Fixed: Adaptive Text Color */}
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Manage Projects
             </h2>
+            <p className="text-sm text-gray-500 text-center">Add, edit, or remove portfolio projects.</p>
           </div>
         </Link>
 
@@ -37,6 +45,7 @@ export default function AdminDashboard() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Manage Blog Posts
             </h2>
+            <p className="text-sm text-gray-500 text-center">Write and publish articles.</p>
           </div>
         </Link>
 
@@ -50,6 +59,7 @@ export default function AdminDashboard() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Edit Home Page
             </h2>
+            <p className="text-sm text-gray-500 text-center">Update Hero section, headlines, and profile pic.</p>
           </div>
         </Link>
 
@@ -63,6 +73,7 @@ export default function AdminDashboard() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Edit About Page
             </h2>
+            <p className="text-sm text-gray-500 text-center">Update bio, skills, and education history.</p>
           </div>
         </Link>
 

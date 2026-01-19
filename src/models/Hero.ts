@@ -1,11 +1,14 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, model, models } from "mongoose";
 
-const HeroSchema = new mongoose.Schema({
-  tagline: String,
-  headline: String,
-  subheadline: String,
-  description: String,
-}, { timestamps: true });
+const HeroSchema = new Schema(
+  {
+    tagline: String,     // The Green Text
+    headline: String,    // The Main Big Text (supports HTML)
+    description: String, // The Paragraph
+    image: String,       // GitHub Image URL
+  },
+  { timestamps: true }
+);
 
-// Prevent recompilation error
-export default mongoose.models.Hero || mongoose.model("Hero", HeroSchema);
+const Hero = models.Hero || model("Hero", HeroSchema);
+export default Hero;

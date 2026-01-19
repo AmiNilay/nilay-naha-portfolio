@@ -1,10 +1,21 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, model, models } from "mongoose";
 
-const AboutSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  skills: [String], // Array of strings for skills
-  imageUrl: String,
-}, { timestamps: true });
+const AboutSchema = new Schema(
+  {
+    title: { type: String },
+    bio: { type: String },
+    skills: { type: [String], default: [] },
+    image: { type: String },
+    education: [
+      {
+        degree: { type: String },
+        institution: { type: String },
+        year: { type: String },
+      }
+    ]
+  },
+  { timestamps: true }
+);
 
-export default mongoose.models.About || mongoose.model("About", AboutSchema);
+const About = models.About || model("About", AboutSchema);
+export default About;

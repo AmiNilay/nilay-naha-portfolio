@@ -17,13 +17,13 @@ export default function Home() {
 
   const totalSlides = 3;
 
-  // FIX: Force a clean re-render by using a function that returns the component
+  // FIX: This ensures ONLY the correct component is ever created in memory
   const renderActiveSlide = () => {
     switch (currentSlide) {
-      case 0: return <Hero />;
-      case 1: return <FeaturedProjects />;
-      case 2: return <AboutPreview />;
-      default: return <Hero />;
+      case 0: return <Hero key="hero-main" />;
+      case 1: return <FeaturedProjects key="projects-main" />;
+      case 2: return <AboutPreview key="about-main" />;
+      default: return null;
     }
   };
 
@@ -32,7 +32,7 @@ export default function Home() {
     setCurrentSlide((prev) => (prev + newDirection + totalSlides) % totalSlides);
   };
 
-  // Keyboard and Touch listeners...
+  // PC & Mobile Listeners...
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") paginate(1);
@@ -61,16 +61,15 @@ export default function Home() {
       onTouchEnd={handleTouchEnd}
     >
       <div className="flex-1 w-full h-full relative overflow-hidden bg-background">
-        {/* FIX: mode="wait" ensures the old slide is GONE before the new one appears */}
+        {/* CRITICAL: mode="wait" kills the "Demo" ghosting immediately */}
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={currentSlide}
             custom={direction}
             initial={{ opacity: 0, x: direction > 0 ? 300 : -300 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction > 0 ? -300 : 100 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            // FIX: Added bg-background and z-index to isolate the layer
+            exit={{ opacity: 0, x: direction > 0 ? -300 : 300 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="absolute inset-0 w-full h-full flex items-center justify-center pt-16 px-4 bg-background z-10"
           >
             <div className="w-full h-full overflow-y-auto no-scrollbar">
@@ -90,6 +89,7 @@ export default function Home() {
         </button>
       )}
 
+      {/* Clean UI Bar */}
       <div 
         className="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500 z-50" 
         style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` } as React.CSSProperties}

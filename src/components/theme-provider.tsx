@@ -3,8 +3,8 @@
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
-// FIX: Instead of importing "ThemeProviderProps", we infer it directly from the component.
-// This prevents the "Cannot find module" error.
+// FIX: We remove the broken import and infer props directly from the component.
+// This works on ALL versions of next-themes.
 export function ThemeProvider({ 
   children, 
   ...props 

@@ -1,0 +1,100 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Mode Colors */
+    --background: #ffffff;      /* Pure white for best contrast */
+    --foreground: #111827;      /* Very dark gray (almost black) for text */
+    --primary: #0F766E;         /* Teal */
+    --muted: #4B5563;           /* Darker gray for secondary text */
+  }
+
+  .dark {
+    /* Dark Mode Colors */
+    --background: #0B0F14;      /* Deep black/blue */
+    --foreground: #F9FAFB;      /* Bright white for text */
+    --primary: #F59E0B;         /* Amber */
+    --muted: #9CA3AF;           /* Lighter gray for secondary text */
+  }
+
+  /* --- 1. GLOBAL CONTRAST FIX --- */
+  /* This forces all text to use your high-contrast colors automatically */
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Force headings to be bold and darkest color */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-gray-900 dark:text-white font-bold;
+  }
+
+  /* Force paragraphs to be darker (Fixing the "Too much gray" issue) */
+  p, span, li, div {
+    @apply text-gray-800 dark:text-gray-200;
+  }
+  
+  /* Make links pop */
+  a {
+    @apply hover:text-primary transition-colors;
+  }
+}
+
+/* --- 2. SCROLL SNAP UTILITIES --- */
+/* Apply .snap-container to your <main> tag in page.tsx */
+.snap-container {
+  scroll-snap-type: y mandatory; /* Forces snapping */
+  overflow-y: scroll;            /* Enables scrolling */
+  height: 100vh;                 /* Locks to screen height */
+  scroll-behavior: smooth;
+  
+  /* Hide scrollbar by default for cleaner "App" feel */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Apply .snap-section to your <section> tags */
+.snap-section {
+  scroll-snap-align: start;      /* Snaps top of section to top of screen */
+  height: 100vh;                 /* Full screen height */
+  width: 100%;
+  position: relative;
+  /* Ensure content doesn't get cut off on small screens */
+  overflow-y: auto; 
+}
+
+/* Hide scrollbar for Chrome/Safari/Opera inside the snap container */
+.snap-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- 3. GLOBAL SCROLLBAR (For internal scrolling if needed) --- */
+/* This styles scrollbars that DO appear (like inside a long text box) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary);
+}
+
+/* Utility to hide scrollbar but allow functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

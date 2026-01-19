@@ -1,91 +1,105 @@
 ﻿"use client";
 
-export const dynamic = "force-dynamic"; // FIX: Forces dynamic rendering for Vercel
+// FIX 1: Add this to prevent prerendering errors on Vercel
+export const dynamic = "force-dynamic"; 
 
 import { useState, useEffect } from "react";
-import { ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
+import { BookOpen, Cpu, Loader2, AlertCircle } from "lucide-react";
+import SkillKeyboard from "@/components/ui/SkillKeyboard";
 
-// Import your sections
-import Hero from "@/components/sections/Hero";
-import FeaturedProjects from "@/components/sections/FeaturedProjects";
-import AboutPreview from "@/components/sections/AboutPreview";
+interface AboutData {
+  bio: string;
+  skills: string[];
+  education: Array<{ degree: string; institution: string; year: string }>;
+}
 
-export default function Home() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  const slides = [
-    { id: "hero", component: <Hero /> },
-    { id: "projects", component: <FeaturedProjects /> },
-    { id: "about", component: <AboutPreview /> },
-  ];
-
-  const totalSlides = slides.length;
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % totalSlides);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
-  };
+export default function AboutPage() {
+  const [data, setData] = useState<AboutData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") nextSlide();
-      if (e.key === "ArrowLeft" || e.key === "ArrowUp") prevSlide();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [totalSlides]);
+    // Fetches your data from MongoDB via your API route
+    fetch("/api/about")
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData && (resData.bio || resData.education?.length > 0)) {
+          setData(resData);
+        } else {
+          setData(null);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary w-8 h-8" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl flex flex-col items-center justify-center text-center">
+        <AlertCircle className="w-16 h-16 text-gray-300 mb-4" />
+        <h1 className="text-3xl font-bold mb-2">About Section Not Setup</h1>
+        <p className="text-gray-500">Please add your bio in the Admin Panel.</p>
+      </div>
+    );
+  }
 
   return (
-    <main className="h-screen w-full overflow-hidden bg-background relative flex flex-col pt-16">
+    <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl">
       
-      <div className="flex-1 w-full h-full relative">
-        <div className="absolute inset-0 w-full h-full animate-in fade-in slide-in-from-right-4 duration-500">
-           <div className="w-full h-full overflow-y-auto no-scrollbar flex items-center justify-center">
-              {slides[currentSlide].component}
-           </div>
+      {/* Bio Section */}
+      <div className="max-w-4xl mb-16">
+        <h1 className="text-4xl md:text-5xl font-bold mb-8">About Me</h1>
+        <div 
+          className="prose dark:prose-invert max-w-none text-lg text-gray-600 dark:text-gray-300 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: data.bio || "<p>No bio added yet.</p>" }}
+        />
+      </div>
+
+      {/* --- TECHNICAL ARSENAL --- */}
+      <div className="mb-20">
+        <h2 className="text-2xl font-bold mb-8 flex items-center">
+          <Cpu className="w-6 h-6 mr-2 text-primary" /> Technical Arsenal
+        </h2>
+        {/* FIX 2: Pass the database skills to the interactive keyboard */}
+        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-gray-200 dark:border-gray-800 p-4">
+          <SkillKeyboard activeSkills={data.skills} />
         </div>
       </div>
 
-      <div className="absolute bottom-8 right-8 z-50 flex items-center gap-4">
-        <span className="text-xs font-mono text-gray-400 uppercase tracking-widest animate-pulse mr-2 hidden md:block">
-          {currentSlide === 0 ? "Start Tour" : "Navigate"}
-        </span>
-
-        <button
-          onClick={prevSlide}
-          className="p-3 rounded-full border border-gray-300 dark:border-gray-700 bg-background/50 backdrop-blur-md hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 group"
-          aria-label="Previous Slide"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-
-        <div className="text-sm font-bold font-mono w-12 text-center">
-          {currentSlide + 1} / {totalSlides}
-        </div>
-
-        <button
-          onClick={nextSlide}
-          className="p-3 rounded-full border border-gray-300 dark:border-gray-700 bg-background/50 backdrop-blur-md hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 group shadow-lg"
-          aria-label="Next Slide"
-        >
-           {currentSlide === totalSlides - 1 ? (
-             <ArrowRight className="w-6 h-6" /> 
-           ) : (
-             <ChevronRight className="w-6 h-6" />
-           )}
-        </button>
+      {/* --- EDUCATION --- */}
+      <div>
+        <h2 className="text-2xl font-bold mb-6 flex items-center">
+          <BookOpen className="w-6 h-6 mr-2 text-primary" /> Education
+        </h2>
+        
+        {(!data.education || data.education.length === 0) ? (
+          <p className="text-gray-500 italic">No education details added yet.</p>
+        ) : (
+          <div className="space-y-8 border-l-2 border-gray-200 dark:border-gray-800 ml-3 pl-8 relative">
+            {data.education.map((edu, idx) => (
+              <div key={idx} className="relative">
+                <span 
+                  className={`absolute -left-[41px] top-1 h-5 w-5 rounded-full border-4 border-background ${idx === 0 ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"}`}
+                ></span>
+                <h3 className="font-bold text-lg">{edu.degree}</h3>
+                <p className="text-gray-500">{edu.institution}</p>
+                <span className="text-sm text-gray-400">{edu.year}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* FIX: Removed direct style={{width}} to fix the Edge Tools warning. 
-          We use a CSS variable instead which is more standard. */}
-      <div 
-        className="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500" 
-        style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` } as React.CSSProperties}
-      />
-
-    </main>
+    </div>
   );
 }

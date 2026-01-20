@@ -4,10 +4,15 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// --- IMPORTS ---
 import Hero from "@/components/sections/Hero";
-import FeaturedProjects from "@/components/sections/FeaturedProjects";
-import AboutPreview from "@/components/sections/AboutPreview";
-import { ChevronDown } from "lucide-react";
+
+// 👇 IMPORTING YOUR REAL PAGES DIRECTLY
+import ProjectsPage from "./projects/page"; 
+import BlogPage from "./blog/page";
+import AboutPage from "./about/page";
+import ContactPage from "./contact/page";
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -15,21 +20,17 @@ export default function Home() {
   const touchStart = useRef<number | null>(null);
   const touchEnd = useRef<number | null>(null);
 
-  const totalSlides = 3;
+  // 5 Slides: Hero -> Projects -> Blog -> About -> Contact
+  const totalSlides = 5;
 
-  // --- NAVIGATION WITH GUARDS ---
   const paginate = (newDirection: number) => {
-    // Prevent going left/backwards if already on the first slide (Home)
     if (currentSlide === 0 && newDirection === -1) return;
-    
-    // Prevent going right/forwards if already on the last slide
     if (currentSlide === totalSlides - 1 && newDirection === 1) return;
 
     setDirection(newDirection);
     setCurrentSlide((prev) => prev + newDirection);
   };
 
-  // PC: Keyboard Controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") paginate(1);
@@ -37,19 +38,16 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentSlide]); // Re-run effect when slide changes to check guards
+  }, [currentSlide]);
 
-  // Mobile: Swipe Logic
   const handleTouchStart = (e: React.TouchEvent) => (touchStart.current = e.targetTouches[0].clientX);
   const handleTouchMove = (e: React.TouchEvent) => (touchEnd.current = e.targetTouches[0].clientX);
   const handleTouchEnd = () => {
     if (!touchStart.current || !touchEnd.current) return;
     const distance = touchStart.current - touchEnd.current;
     
-    // Swipe Left (Goes to Next)
-    if (distance > 50) paginate(1); 
-    // Swipe Right (Goes to Previous)
-    if (distance < -50) paginate(-1); 
+    if (distance > 50) paginate(1);   // Swipe Left -> Next
+    if (distance < -50) paginate(-1); // Swipe Right -> Prev
 
     touchStart.current = null;
     touchEnd.current = null;
@@ -73,27 +71,29 @@ export default function Home() {
           className="absolute inset-0 w-full h-full bg-background z-10 flex items-center justify-center pt-16"
         >
           <div className="w-full h-full overflow-y-auto no-scrollbar">
+            
+            {/* Slide 0: Hero */}
             {currentSlide === 0 && <Hero />}
-            {currentSlide === 1 && <FeaturedProjects />}
-            {currentSlide === 2 && <AboutPreview />}
+            
+            {/* Slide 1: Real Projects Page */}
+            {currentSlide === 1 && <ProjectsPage />}
+
+            {/* Slide 2: Real Blog Page */}
+            {currentSlide === 2 && <BlogPage />}
+
+            {/* Slide 3: Real About Page */}
+            {currentSlide === 3 && <AboutPage />}
+
+            {/* Slide 4: Real Contact Page */}
+            {currentSlide === 4 && <ContactPage />}
+
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Hero-specific Down Arrow */}
-      {currentSlide === 0 && (
-        <button 
-          onClick={() => paginate(1)}
-          aria-label="Scroll down"
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce p-2 bg-foreground/5 dark:bg-white/10 rounded-full z-50"
-        >
-          <ChevronDown className="w-6 h-6 text-primary" />
-        </button>
-      )}
-
-      {/* Progress Bar (Dynamic Width) */}
+      {/* Progress Bar */}
       <div 
-        className="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500 z-50" 
+        className="absolute bottom-0 left-0 h-1.5 bg-primary transition-all duration-500 z-50 shadow-[0_0_10px_rgba(var(--primary),0.5)]" 
         style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` } as React.CSSProperties}
       />
     </main>

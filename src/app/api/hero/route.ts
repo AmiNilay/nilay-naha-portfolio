@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import Hero from "@/models/Hero";
+// ✅ CORRECT IMPORT (Points to your existing file)
 import { uploadToGithub, deleteFromGithub } from "@/lib/githubUpload";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
-  try {
-    await connectToDB();
-    // Simply get the first document found. No IDs needed.
-    const hero = await Hero.findOne();
-    return NextResponse.json(hero || {});
-  } catch (error) {
-    console.error("GET Hero Error:", error);
-    return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
-  }
+  await connectToDB();
+  const hero = await Hero.findOne();
+  return NextResponse.json(hero || {}, {
+    headers: { "Cache-Control": "no-store, no-cache" }
+  });
 }
 
 export async function PUT(req: Request) {
@@ -20,39 +20,53 @@ export async function PUT(req: Request) {
     await connectToDB();
     const formData = await req.formData();
     
-    // Prepare update data
+    // 1. Fetch CURRENT data (needed to find old files to delete)
+    let currentHero = await Hero.findOne();
+    if (!currentHero) currentHero = new Hero({});
+
     const updateData: any = {};
-
-    if (formData.has("tagline")) updateData.tagline = formData.get("tagline");
-    if (formData.has("headline")) updateData.headline = formData.get("headline");
-    if (formData.has("description")) updateData.description = formData.get("description");
+    const textFields = ["badge", "title", "subtitle", "socialGithub", "socialLinkedin"];
     
-    // Handle Image Upload
-    const imageFile = formData.get("image") as File;
-    if (imageFile && typeof imageFile !== "string" && imageFile.name !== "undefined") {
-      // 1. Get existing data to find old image URL
-      const currentHero = await Hero.findOne();
-      
-      // 2. If old image exists on GitHub, delete it
-      if (currentHero?.image && currentHero.image.includes("githubusercontent")) {
-        await deleteFromGithub(currentHero.image);
-      }
+    textFields.forEach((field) => {
+      if (formData.has(field)) updateData[field] = formData.get(field);
+    });
 
-      // 3. Upload NEW image
+    // 2. IMAGE UPLOAD logic
+    const imageFile = formData.get("image") as File;
+    if (imageFile && imageFile.size > 0) {
+      console.log(">> Uploading Image...");
       const newUrl = await uploadToGithub(imageFile);
-      if (newUrl) updateData.image = newUrl;
+      
+      if (newUrl) {
+        updateData.profilePic = newUrl;
+        // Delete old ONLY if new upload worked
+        if (currentHero.profilePic) await deleteFromGithub(currentHero.profilePic);
+      }
     }
 
-    // Update the FIRST document found. If none exists, create one (upsert: true).
+    // 3. RESUME UPLOAD logic
+    const resumeFile = formData.get("resume") as File;
+    if (resumeFile && resumeFile.size > 0) {
+      console.log(">> Uploading Resume...");
+      const newUrl = await uploadToGithub(resumeFile);
+      
+      if (newUrl) {
+        updateData.resumeUrl = newUrl;
+        // Delete old ONLY if new upload worked
+        if (currentHero.resumeUrl) await deleteFromGithub(currentHero.resumeUrl);
+      }
+    }
+
+    // 4. Update MongoDB
     const updatedHero = await Hero.findOneAndUpdate(
-      {}, // Empty filter = match any document
+      {}, 
       { $set: updateData },
-      { new: true, upsert: true } // Create if doesn't exist
+      { new: true, upsert: true }
     );
 
     return NextResponse.json(updatedHero);
   } catch (error) {
-    console.error("Hero Update Error:", error);
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    console.error("API Error:", error);
+    return NextResponse.json({ error: "Update Failed" }, { status: 500 });
   }
 }

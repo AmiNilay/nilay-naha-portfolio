@@ -2,10 +2,13 @@ import mongoose, { Schema, model, models } from "mongoose";
 
 const HeroSchema = new Schema(
   {
-    tagline: String,     // The Green Text
-    headline: String,    // The Main Big Text (supports HTML)
-    description: String, // The Paragraph
-    image: String,       // GitHub Image URL
+    badge: String,          // Top Badge (e.g., Software Developer)
+    title: String,          // Main Headline
+    subtitle: String,       // Description
+    profilePic: String,     // GitHub Image URL
+    resumeUrl: String,      // GitHub PDF URL
+    socialGithub: String,   // GitHub Profile Link
+    socialLinkedin: String, // LinkedIn Profile Link
   },
   { timestamps: true }
 );

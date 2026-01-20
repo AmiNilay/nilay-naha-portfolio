@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { connectToDB } from "@/lib/connectToDB";
+import { connectToDB } from "@/lib/connectToDB"; // Keeping your import path
 import About from "@/models/About";
-// We don't need githubUpload here unless you are actively uploading new images in this step
 
 export async function GET() {
   try {
     await connectToDB();
-    // Simply get the first document found. No IDs needed.
     const about = await About.findOne();
     return NextResponse.json(about || {});
   } catch (error) {
@@ -18,34 +16,25 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     await connectToDB();
-    const formData = await req.formData();
-    const updateData: any = {};
 
-    // 1. Extract Data
-    if (formData.has("bio")) updateData.bio = formData.get("bio");
+    // FIX: Parse as JSON because the frontend sends "Content-Type: application/json"
+    const body = await req.json();
     
-    // 2. Handle Skills
-    if (formData.has("skills")) {
-      const skillsString = formData.get("skills") as string;
-      updateData.skills = skillsString ? skillsString.split(",").filter(s => s.trim() !== "") : [];
-    }
+    // Destructure the fields directly. 
+    // Since we sent arrays from the frontend, we don't need to JSON.parse() them here.
+    const { bio, skills, education } = body;
 
-    // 3. Handle Education
-    if (formData.has("education")) {
-      try {
-        const eduString = formData.get("education") as string;
-        updateData.education = JSON.parse(eduString);
-      } catch (e) {
-        console.error("JSON Error:", e);
-        updateData.education = [];
-      }
-    }
-
-    // 4. Update the FIRST document found. If none exists, create one (upsert: true).
+    // Update the FIRST document found (or create if missing)
     const updatedAbout = await About.findOneAndUpdate(
-      {}, // Empty filter = match any document
-      { $set: updateData },
-      { new: true, upsert: true } // Create if doesn't exist
+      {}, 
+      { 
+        $set: { 
+          bio, 
+          skills,      // Saved directly as an array
+          education    // Saved directly as an array of objects
+        } 
+      },
+      { new: true, upsert: true }
     );
 
     return NextResponse.json(updatedAbout);

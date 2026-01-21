@@ -24,24 +24,6 @@ export default function ProjectsSection() {
     fetchProjects();
   }, []);
 
-  // 🟢 FIXED: Manually decodes the symbols causing your issue
-  const stripHtml = (html: string) => {
-    if (!html) return "";
-
-    // 1. Replace encoded brackets (This is likely the main culprit)
-    let text = html
-      .replace(/&lt;/g, "<")  // Turn &lt; back into <
-      .replace(/&gt;/g, ">")  // Turn &gt; back into >
-      .replace(/&nbsp;/g, " ") // Turn &nbsp; into space
-      .replace(/&amp;/g, "&"); // Turn &amp; into &
-
-    // 2. Remove all HTML tags (<p>, <div>, <br>, etc.)
-    text = text.replace(/<[^>]*>?/gm, " ");
-
-    // 3. Clean up extra spaces
-    return text.replace(/\s+/g, " ").trim();
-  };
-
   if (loading) return <div className="h-full flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
 
   return (
@@ -65,12 +47,9 @@ export default function ProjectsSection() {
                 )}
               </div>
               <div className="p-6">
-                <h2 className="text-xl font-bold mb-2">{project.title}</h2>
+                <h2 className="text-xl font-bold mb-4">{project.title}</h2>
                 
-                {/* 🟢 Clean Preview Text */}
-                <p className="text-gray-500 text-sm line-clamp-3 mb-4">
-                  {project.description ? stripHtml(project.description) : "No description available."}
-                </p>
+                {/* 🔴 REMOVED DESCRIPTION: No more text issues here. */}
 
                 <span className="text-primary font-bold inline-flex items-center gap-2">
                   View Details <ArrowRight size={16} />

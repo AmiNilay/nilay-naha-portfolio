@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { connectToDB } from "@/lib/connectToDB"; // Keeping your import path
+import { connectToDB } from "@/lib/connectToDB";
 import About from "@/models/About";
 
 export async function GET() {
@@ -17,22 +17,17 @@ export async function PUT(req: Request) {
   try {
     await connectToDB();
 
-    // FIX: Parse as JSON because the frontend sends "Content-Type: application/json"
     const body = await req.json();
-    
-    // Destructure the fields directly. 
-    // Since we sent arrays from the frontend, we don't need to JSON.parse() them here.
     const { bio, skills, education } = body;
 
-    // Update the FIRST document found (or create if missing)
     const updatedAbout = await About.findOneAndUpdate(
-      {}, 
-      { 
-        $set: { 
-          bio, 
-          skills,      // Saved directly as an array
-          education    // Saved directly as an array of objects
-        } 
+      {},
+      {
+        $set: {
+          bio,
+          skills,
+          education
+        }
       },
       { new: true, upsert: true }
     );

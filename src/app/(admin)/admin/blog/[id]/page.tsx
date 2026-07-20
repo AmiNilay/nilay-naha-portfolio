@@ -2,49 +2,48 @@
 
 import { useState, useEffect, useMemo, ChangeEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Save, Loader2, Upload } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Upload, Calendar } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import Toast from "@/components/ui/Toast";
-
-// 🟢 Import Quill Styles
 import "react-quill/dist/quill.snow.css";
 
-// 🟢 Dynamic Import for Editor
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 export default function EditBlogPostPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id;
+  const isNew = id === "new";
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [formData, setFormData] = useState({
-    title: "",
-    slug: "",
-    excerpt: "",
-    content: "",
-    existingImage: "",
+    title: "", slug: "", excerpt: "", content: "", existingImage: "",
     image: null as File | null,
+    publishDate: "", 
   });
 
-  // 🟢 MS WORD-LIKE TOOLBAR CONFIGURATION
   const modules = useMemo(() => ({
     toolbar: [
       [{ 'header': [1, 2, 3, false] }],
       ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{ 'color': [] }, { 'background': [] }], // Colors
-      [{ 'align': [] }], // Text Alignment
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'image', 'video', 'clean'], // Media & Clean
+      ['link', 'image', 'video', 'clean'],
     ],
   }), []);
 
   useEffect(() => {
+    if (isNew) {
+      setFormData(prev => ({ ...prev, publishDate: new Date().toISOString().slice(0, 16) }));
+      return;
+    }
+
     if (!id) return;
     const fetchPost = async () => {
       try {
@@ -53,13 +52,12 @@ export default function EditBlogPostPage() {
         const data = await res.json();
         if (data.post) {
           const p = data.post;
+          const formattedDate = p.publishDate ? new Date(p.publishDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
+
           setFormData({
-            title: p.title || "",
-            slug: p.slug || "",
-            excerpt: p.excerpt || "",
-            content: p.content || "",
-            existingImage: p.coverImage || "",
-            image: null,
+            title: p.title || "", slug: p.slug || "", excerpt: p.excerpt || "",
+            content: p.content || "", existingImage: p.coverImage || "", image: null,
+            publishDate: formattedDate
           });
           setImagePreview(p.coverImage || null);
         }
@@ -70,7 +68,7 @@ export default function EditBlogPostPage() {
       }
     };
     fetchPost();
-  }, [id]);
+  }, [id, isNew]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -92,7 +90,10 @@ export default function EditBlogPostPage() {
     data.append("slug", formData.slug);
     data.append("excerpt", formData.excerpt);
     data.append("content", formData.content);
+    data.append("publishDate", formData.publishDate); 
     
+    if (!isNew && id) data.append("id", id as string);
+
     if (formData.image) {
       data.append("image", formData.image);
     } else {
@@ -100,7 +101,7 @@ export default function EditBlogPostPage() {
     }
 
     try {
-      const res = await fetch(`/api/blog/${id}`, { method: "PUT", body: data });
+      const res = await fetch(`/api/blog`, { method: isNew ? "POST" : "PUT", body: data });
       if (res.ok) {
         setToast({ message: "Blog post updated successfully!", type: "success" });
         setTimeout(() => router.push("/admin/blog"), 1500);
@@ -121,49 +122,36 @@ export default function EditBlogPostPage() {
     <div className="p-8 max-w-5xl mx-auto pb-32">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <Link href="/admin/blog" className="flex items-center gap-2 text-gray-500 mb-6 hover:text-primary transition-colors" title="Back to blog list">
+      <Link href="/admin/blog" className="flex items-center gap-2 text-gray-500 mb-6 hover:text-primary transition-colors">
         <ArrowLeft size={20} /> Back
       </Link>
 
-      <h1 className="text-3xl font-bold mb-8">Edit Blog Post</h1>
+      <h1 className="text-3xl font-bold mb-8">{isNew ? "Create Post" : "Edit Post"}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Top Section */}
         <div className="grid md:grid-cols-2 gap-6 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
           <div className="space-y-2">
             <label htmlFor="title" className="font-bold text-sm uppercase text-gray-500">Title</label>
-            <input 
-              id="title" required 
-              value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} 
-              className="w-full p-3 border rounded-xl dark:bg-black" 
-              placeholder="Post Title"
-            />
+            <input id="title" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-black" />
           </div>
           <div className="space-y-2">
             <label htmlFor="slug" className="font-bold text-sm uppercase text-gray-500">Slug</label>
-            <input 
-              id="slug" required 
-              value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} 
-              className="w-full p-3 border rounded-xl dark:bg-black font-mono text-sm" 
-              placeholder="url-slug"
-            />
+            <input id="slug" required value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-black font-mono text-sm" />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="font-bold text-sm uppercase text-gray-500 flex items-center gap-1"><Calendar size={14}/> Schedule / Publish Date</label>
+            <input type="datetime-local" value={formData.publishDate} onChange={(e) => setFormData({ ...formData, publishDate: e.target.value })} className="w-full p-3 rounded-lg border bg-background text-sm max-w-sm" />
           </div>
         </div>
 
-        {/* Excerpt & Image */}
         <div className="grid md:grid-cols-2 gap-6">
            <div className="space-y-2 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
              <label htmlFor="excerpt" className="font-bold text-sm uppercase text-gray-500">Short Excerpt</label>
-             <textarea 
-               id="excerpt" rows={5}
-               value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})}
-               className="w-full p-3 border rounded-xl dark:bg-black leading-relaxed"
-               placeholder="Brief summary for the card view..."
-             />
+             <textarea id="excerpt" rows={5} value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} className="w-full p-3 border rounded-xl dark:bg-black leading-relaxed" />
            </div>
 
            <div className="space-y-2 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col">
-             <label className="font-bold text-sm uppercase text-gray-500 mb-2">Cover Image</label>
+             <label className="font-bold text-sm uppercase text-gray-500 mb-2">Cover Image (JPG, PNG, GIF)</label>
              <div className="flex-1 border-2 border-dashed rounded-xl flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-black/20">
                 {imagePreview ? (
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
@@ -173,36 +161,20 @@ export default function EditBlogPostPage() {
                     <span className="text-xs">Upload Cover</span>
                   </div>
                 )}
-                <input 
-                  type="file" accept="image/*" onChange={handleImageChange} 
-                  className="absolute inset-0 opacity-0 cursor-pointer" 
-                />
+                <input type="file" accept=".jpg,.jpeg,.png,.gif,image/*" onChange={handleImageChange} className="absolute inset-0 opacity-0 cursor-pointer" />
              </div>
            </div>
         </div>
 
-        {/* Editor Section */}
         <div className="space-y-2 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
           <label className="font-bold text-sm uppercase text-gray-500">Content</label>
           <div className="bg-white text-black rounded-xl overflow-hidden border border-gray-300 [&_*]:!text-black">
-            <ReactQuill 
-              theme="snow" 
-              value={formData.content} 
-              onChange={c => setFormData({...formData, content: c})} 
-              modules={modules} 
-              className="h-96 mb-12" 
-              placeholder="Write your story..." 
-            />
+            <ReactQuill theme="snow" value={formData.content} onChange={c => setFormData({...formData, content: c})} modules={modules} className="h-96 mb-12" />
           </div>
         </div>
 
-        {/* 🟢 FIXED BUTTON: Black background in Light Mode, White background in Dark Mode */}
-        <button 
-          type="submit" 
-          disabled={saving} 
-          className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
-        >
-          {saving ? <Loader2 className="animate-spin" /> : <><Save size={20} /> Update Post</>}
+        <button type="submit" disabled={saving} className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg">
+          {saving ? <Loader2 className="animate-spin" /> : <><Save size={20} /> Save Post</>}
         </button>
       </form>
     </div>

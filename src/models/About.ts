@@ -11,6 +11,9 @@ const AboutSchema = new Schema(
         degree: { type: String },
         institution: { type: String },
         year: { type: String },
+        relevantCoursework: { type: [String], default: [] },
+        cgpa: { type: String },
+        percentage: { type: String },
       }
     ]
   },

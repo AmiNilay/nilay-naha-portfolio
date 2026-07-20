@@ -12,17 +12,13 @@ export default function CustomCursor() {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
 
-  // Small dot (fast)
   const dotSpring = useSpring(cursorX, { damping: 30, stiffness: 700 });
   const dotSpringY = useSpring(cursorY, { damping: 30, stiffness: 700 });
-
-  // Ring (delayed / smoother)
   const ringSpring = useSpring(cursorX, { damping: 25, stiffness: 150 });
   const ringSpringY = useSpring(cursorY, { damping: 25, stiffness: 150 });
 
   useEffect(() => {
     setIsMounted(true);
-    // Detect touch device — hide cursor on mobile/tablet
     const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     setIsTouchDevice(isTouch);
     if (isTouch) return;
@@ -35,7 +31,6 @@ export default function CustomCursor() {
     const handleMouseDown = () => setIsClicking(true);
     const handleMouseUp = () => setIsClicking(false);
 
-    // Delegated hover detection (works with dynamically added elements)
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (
@@ -64,16 +59,12 @@ export default function CustomCursor() {
     document.addEventListener("mouseover", handleMouseOver);
     document.addEventListener("mouseout", handleMouseOut);
 
-    // Hide the default cursor
-    document.body.style.cursor = "none";
-
     return () => {
       window.removeEventListener("mousemove", moveCursor);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("mouseover", handleMouseOver);
       document.removeEventListener("mouseout", handleMouseOut);
-      document.body.style.cursor = "";
     };
   }, [cursorX, cursorY]);
 
@@ -81,7 +72,6 @@ export default function CustomCursor() {
 
   return (
     <>
-      {/* Outer Ring */}
       <motion.div
         className="fixed top-0 left-0 pointer-events-none z-[9998] rounded-full border-2 border-primary mix-blend-difference"
         style={{
@@ -98,7 +88,6 @@ export default function CustomCursor() {
         transition={{ type: "spring", damping: 20, stiffness: 300 }}
       />
 
-      {/* Center Dot */}
       <motion.div
         className="fixed top-0 left-0 pointer-events-none z-[9999] rounded-full bg-primary mix-blend-difference"
         style={{

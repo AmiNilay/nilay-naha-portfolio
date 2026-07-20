@@ -2,14 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --- KaTeX Import for Math Formulas --- */
+@import 'katex/dist/katex.min.css';
+
+/* --- Highlight.js theme for code blocks --- */
+@import 'highlight.js/styles/github-dark.css';
+
 @layer base {
   :root {
     /* Light Mode Colors */
-    --background: #FAFAFA;         /* Soft off-white, easier on eyes */
-    --foreground: #111827;         /* Very dark gray for text */
-    --card: #FFFFFF;               /* Cards stay pure white to pop */
+    --background: #FAFAFA;
+    --foreground: #111827;
+    --card: #FFFFFF;
     --card-foreground: #111827;
-    --primary: #0F766E;            /* Teal */
+    --primary: #0F766E;
     --primary-foreground: #FFFFFF;
     --primary-hover: #0D5F58;
     --muted: #F3F4F6;
@@ -27,7 +33,7 @@
     --foreground: #F9FAFB;
     --card: #111827;
     --card-foreground: #F9FAFB;
-    --primary: #F59E0B;            /* Amber */
+    --primary: #F59E0B;
     --primary-foreground: #0B0F14;
     --primary-hover: #D97706;
     --muted: #1F2937;
@@ -104,4 +110,118 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* --- Reading Progress Bar --- */
+.reading-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), #a855f7);
+  z-index: 100;
+  transition: width 0.1s ease-out;
+  box-shadow: 0 0 10px rgba(15, 118, 110, 0.5);
+}
+
+/* --- Enhanced Prose Styling for Blog Content --- */
+.blog-content {
+  font-size: 1.125rem;
+  line-height: 1.8;
+}
+
+.blog-content h2 {
+  @apply text-3xl font-bold mt-14 mb-5 pb-3 border-b border-gray-200 dark:border-gray-800 scroll-mt-24;
+  color: var(--foreground);
+  position: relative;
+}
+
+.blog-content h2::before {
+  content: '';
+  position: absolute;
+  left: -1rem;
+  top: 0.5rem;
+  bottom: 1rem;
+  width: 3px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+.blog-content h3 {
+  @apply text-2xl font-semibold mt-10 mb-4 scroll-mt-24;
+  color: var(--foreground);
+}
+
+.blog-content h4 {
+  @apply text-xl font-semibold mt-8 mb-3 scroll-mt-24;
+  color: var(--foreground);
+}
+
+.blog-content p {
+  @apply mb-6 text-gray-700 dark:text-gray-300;
+  line-height: 1.8;
+}
+
+.blog-content a {
+  @apply font-medium underline underline-offset-4 transition-all;
+  color: var(--primary);
+  text-decoration-color: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.blog-content a:hover {
+  text-decoration-color: var(--primary);
+}
+
+.blog-content ul, .blog-content ol {
+  @apply my-6 ml-6 space-y-2 text-gray-700 dark:text-gray-300;
+}
+
+.blog-content ul { @apply list-disc; }
+.blog-content ol { @apply list-decimal; }
+
+.blog-content blockquote {
+  @apply pl-6 py-3 my-8 italic text-gray-700 dark:text-gray-300 rounded-r-lg;
+  border-left: 4px solid var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.blog-content code:not(pre code) {
+  @apply bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-sm font-mono;
+  color: var(--primary);
+  font-size: 0.9em;
+}
+
+.blog-content pre {
+  @apply my-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-lg;
+  background: #0d1117 !important;
+}
+
+.blog-content pre code {
+  @apply block p-5 overflow-x-auto text-sm leading-relaxed;
+  background: transparent !important;
+}
+
+.blog-content img {
+  @apply my-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 w-full;
+}
+
+.blog-content hr {
+  @apply my-12 border-gray-200 dark:border-gray-800;
+}
+
+.blog-content table {
+  @apply w-full my-8 border-collapse rounded-lg overflow-hidden;
+}
+
+.blog-content th {
+  @apply bg-gray-100 dark:bg-gray-800 p-3 text-left font-semibold border border-gray-200 dark:border-gray-700;
+}
+
+.blog-content td {
+  @apply p-3 border border-gray-200 dark:border-gray-700;
+}
+
+/* KaTeX Sizing */
+.blog-content .katex-display {
+  @apply my-6 overflow-x-auto py-2;
 }

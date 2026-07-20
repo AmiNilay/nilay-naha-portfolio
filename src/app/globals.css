@@ -5,72 +5,80 @@
 @layer base {
   :root {
     /* Light Mode Colors */
-    --background: #ffffff;      /* Pure white for best contrast */
-    --foreground: #111827;      /* Very dark gray (almost black) for text */
-    --primary: #0F766E;         /* Teal */
-    --muted: #4B5563;           /* Darker gray for secondary text */
+    --background: #FAFAFA;         /* Soft off-white, easier on eyes */
+    --foreground: #111827;         /* Very dark gray for text */
+    --card: #FFFFFF;               /* Cards stay pure white to pop */
+    --card-foreground: #111827;
+    --primary: #0F766E;            /* Teal */
+    --primary-foreground: #FFFFFF;
+    --primary-hover: #0D5F58;
+    --muted: #F3F4F6;
+    --muted-foreground: #6B7280;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #0F766E;
+    --accent: #F3F4F6;
+    --accent-foreground: #111827;
   }
 
   .dark {
     /* Dark Mode Colors */
-    --background: #0B0F14;      /* Deep black/blue */
-    --foreground: #F9FAFB;      /* Bright white for text */
-    --primary: #F59E0B;         /* Amber */
-    --muted: #9CA3AF;           /* Lighter gray for secondary text */
+    --background: #0B0F14;
+    --foreground: #F9FAFB;
+    --card: #111827;
+    --card-foreground: #F9FAFB;
+    --primary: #F59E0B;            /* Amber */
+    --primary-foreground: #0B0F14;
+    --primary-hover: #D97706;
+    --muted: #1F2937;
+    --muted-foreground: #9CA3AF;
+    --border: #1F2937;
+    --input: #1F2937;
+    --ring: #F59E0B;
+    --accent: #1F2937;
+    --accent-foreground: #F9FAFB;
   }
 
-  /* --- 1. GLOBAL CONTRAST FIX --- */
-  /* This forces all text to use your high-contrast colors automatically */
   body {
     @apply bg-background text-foreground;
   }
 
-  /* Force headings to be bold and darkest color */
   h1, h2, h3, h4, h5, h6 {
     @apply text-gray-900 dark:text-white font-bold;
   }
 
-  /* Force paragraphs to be darker (Fixing the "Too much gray" issue) */
   p, span, li, div {
     @apply text-gray-800 dark:text-gray-200;
   }
-  
-  /* Make links pop */
+
   a {
     @apply hover:text-primary transition-colors;
   }
 }
 
-/* --- 2. SCROLL SNAP UTILITIES --- */
-/* Apply .snap-container to your <main> tag in page.tsx */
+/* --- SCROLL SNAP UTILITIES --- */
 .snap-container {
-  scroll-snap-type: y mandatory; /* Forces snapping */
-  overflow-y: scroll;            /* Enables scrolling */
-  height: 100vh;                 /* Locks to screen height */
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  height: 100vh;
   scroll-behavior: smooth;
-  
-  /* Hide scrollbar by default for cleaner "App" feel */
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Apply .snap-section to your <section> tags */
 .snap-section {
-  scroll-snap-align: start;      /* Snaps top of section to top of screen */
-  height: 100vh;                 /* Full screen height */
+  scroll-snap-align: start;
+  height: 100vh;
   width: 100%;
   position: relative;
-  /* Ensure content doesn't get cut off on small screens */
-  overflow-y: auto; 
+  overflow-y: auto;
 }
 
-/* Hide scrollbar for Chrome/Safari/Opera inside the snap container */
 .snap-container::-webkit-scrollbar {
   display: none;
 }
 
-/* --- 3. GLOBAL SCROLLBAR (For internal scrolling if needed) --- */
-/* This styles scrollbars that DO appear (like inside a long text box) */
+/* --- SCROLLBAR --- */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -90,7 +98,6 @@
   background-color: var(--primary);
 }
 
-/* Utility to hide scrollbar but allow functionality */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

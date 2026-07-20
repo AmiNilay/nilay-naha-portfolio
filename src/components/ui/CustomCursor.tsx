@@ -1,64 +1,118 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 
 export default function CustomCursor() {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
+  const [isClicking, setIsClicking] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // 1. Track Mouse Movement
+  const cursorX = useMotionValue(-100);
+  const cursorY = useMotionValue(-100);
+
+  // Small dot (fast)
+  const dotSpring = useSpring(cursorX, { damping: 30, stiffness: 700 });
+  const dotSpringY = useSpring(cursorY, { damping: 30, stiffness: 700 });
+
+  // Ring (delayed / smoother)
+  const ringSpring = useSpring(cursorX, { damping: 25, stiffness: 150 });
+  const ringSpringY = useSpring(cursorY, { damping: 25, stiffness: 150 });
+
   useEffect(() => {
-    const updateCursor = (e: MouseEvent) => {
-      setPosition({ x: e.clientX, y: e.clientY });
+    setIsMounted(true);
+    // Detect touch device — hide cursor on mobile/tablet
+    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    setIsTouchDevice(isTouch);
+    if (isTouch) return;
+
+    const moveCursor = (e: MouseEvent) => {
+      cursorX.set(e.clientX);
+      cursorY.set(e.clientY);
     };
 
-    // 2. Check if hovering over clickable elements
+    const handleMouseDown = () => setIsClicking(true);
+    const handleMouseUp = () => setIsClicking(false);
+
+    // Delegated hover detection (works with dynamically added elements)
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (
-        target.tagName === "BUTTON" ||
-        target.tagName === "A" ||
-        target.closest("button") ||
-        target.closest("a")
+        target.closest(
+          'a, button, [data-cursor-hover], input, textarea, select, [role="button"]'
+        )
       ) {
         setIsHovering(true);
-      } else {
+      }
+    };
+
+    const handleMouseOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.closest(
+          'a, button, [data-cursor-hover], input, textarea, select, [role="button"]'
+        )
+      ) {
         setIsHovering(false);
       }
     };
 
-    window.addEventListener("mousemove", updateCursor);
-    window.addEventListener("mouseover", handleMouseOver);
+    window.addEventListener("mousemove", moveCursor);
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mouseover", handleMouseOver);
+    document.addEventListener("mouseout", handleMouseOut);
+
+    // Hide the default cursor
+    document.body.style.cursor = "none";
 
     return () => {
-      window.removeEventListener("mousemove", updateCursor);
-      window.removeEventListener("mouseover", handleMouseOver);
+      window.removeEventListener("mousemove", moveCursor);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mouseover", handleMouseOver);
+      document.removeEventListener("mouseout", handleMouseOut);
+      document.body.style.cursor = "";
     };
-  }, []);
+  }, [cursorX, cursorY]);
+
+  if (!isMounted || isTouchDevice) return null;
 
   return (
     <>
-      {/* Main Cursor (Small Dot) */}
-      <div
-        className="fixed top-0 left-0 w-3 h-3 bg-primary rounded-full pointer-events-none z-[9999] mix-blend-difference transition-transform duration-0"
-        // eslint-disable-next-line
+      {/* Outer Ring */}
+      <motion.div
+        className="fixed top-0 left-0 pointer-events-none z-[9998] rounded-full border-2 border-primary mix-blend-difference"
         style={{
-          transform: `translate3d(${position.x - 6}px, ${position.y - 6}px, 0) scale(${
-            isHovering ? 1.5 : 1
-          })`,
+          x: ringSpring,
+          y: ringSpringY,
+          translateX: "-50%",
+          translateY: "-50%",
         }}
+        animate={{
+          width: isHovering ? 60 : 36,
+          height: isHovering ? 60 : 36,
+          opacity: isClicking ? 0.4 : 1,
+        }}
+        transition={{ type: "spring", damping: 20, stiffness: 300 }}
       />
 
-      {/* Trailing Ring (Larger Circle) */}
-      <div
-        className="fixed top-0 left-0 w-8 h-8 border border-primary rounded-full pointer-events-none z-[9998] transition-transform duration-100 ease-out"
-        // eslint-disable-next-line
+      {/* Center Dot */}
+      <motion.div
+        className="fixed top-0 left-0 pointer-events-none z-[9999] rounded-full bg-primary mix-blend-difference"
         style={{
-          transform: `translate3d(${position.x - 16}px, ${position.y - 16}px, 0) scale(${
-            isHovering ? 1.5 : 1
-          })`,
-          opacity: isHovering ? 0.5 : 1,
+          x: dotSpring,
+          y: dotSpringY,
+          translateX: "-50%",
+          translateY: "-50%",
         }}
+        animate={{
+          width: isHovering ? 8 : 6,
+          height: isHovering ? 8 : 6,
+          scale: isClicking ? 0.5 : 1,
+        }}
+        transition={{ type: "spring", damping: 25, stiffness: 500 }}
       />
     </>
   );

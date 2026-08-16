@@ -2,6 +2,7 @@
 import { connectToDB } from "@/lib/connectToDB";
 import Project from "@/models/Project";
 import { uploadToGithub } from "@/lib/githubUpload";
+import { sanitizeHtml } from "@/lib/sanitize"; // ✅ Imported the sanitizer
 
 // 1. GET
 export async function GET(req: Request) {
@@ -38,13 +39,16 @@ export async function POST(req: Request) {
     
     const title = formData.get("title") as string;
     const slug = formData.get("slug") as string;
-    const description = formData.get("description") as string;
+    const rawDescription = formData.get("description") as string;
     const githubLink = formData.get("githubLink") as string;
     const liveLink = formData.get("liveLink") as string;
     const appLink = formData.get("appLink") as string;
     const tagsString = formData.get("tags") as string;
     const publishDate = formData.get("publishDate") as string; // 🟢 Get Date
     const imageFile = formData.get("image") as File;
+
+    // ✅ Sanitize the rich text description
+    const description = sanitizeHtml(rawDescription);
 
     let imageUrl = "";
 
@@ -81,9 +85,16 @@ export async function PUT(req: Request) {
 
     if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+    const rawDescription = formData.get("description") as string;
+
     project.title = formData.get("title") || project.title;
     project.slug = formData.get("slug") || project.slug;
-    project.description = formData.get("description") || project.description;
+    
+    // ✅ Sanitize the rich text description before updating
+    if (rawDescription) {
+      project.description = sanitizeHtml(rawDescription);
+    }
+
     project.githubLink = formData.get("githubLink") || project.githubLink;
     project.liveLink = formData.get("liveLink") || project.liveLink;
     project.appLink = formData.get("appLink") || project.appLink;

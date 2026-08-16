@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2, Save, Upload, FileText, ExternalLink, FileUp, Bold, Italic, Palette, WrapText, PaintBucket, X, Check, ZoomIn } from "lucide-react";
+import { 
+  Loader2, Save, Upload, FileText, ExternalLink, 
+  Github, Linkedin, Twitter, Mail, X, Check, ZoomIn, Eye, Trash2, Clock
+} from "lucide-react";
 import Image from "next/image";
 import Toast from "@/components/ui/Toast";
-import Cropper from "react-easy-crop"; 
-import { Point, Area } from "react-easy-crop";
+import Cropper, { Point, Area } from "react-easy-crop"; 
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
 
-// --- HELPER: Create Image from URL ---
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+
+// --- HELPERS FOR CROPPER ---
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new window.Image();
@@ -17,61 +23,48 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
-// --- HELPER: Generate Cropped Image Blob ---
 async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-
   if (!ctx) throw new Error("No 2d context");
-
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
-
-  ctx.drawImage(
-    image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
-    0,
-    0,
-    pixelCrop.width,
-    pixelCrop.height
-  );
-
+  ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error("Canvas is empty"));
-        return;
-      }
-      resolve(blob);
+      if (!blob) reject(new Error("Canvas is empty"));
+      else resolve(blob);
     }, "image/jpeg", 1);
   });
 }
 
-// --- RICH TOOLBAR COMPONENT ---
-const RichToolbar = ({ targetId, onInsert }: { targetId: string; onInsert: (start: string, end: string) => void }) => {
-  return (
-    <div className="flex flex-wrap items-center gap-1 mb-2 p-1.5 bg-muted/50 rounded-lg border w-fit shadow-sm">
-      <button type="button" onClick={() => onInsert("<b>", "</b>")} className="p-1.5 hover:bg-background hover:text-foreground rounded transition-colors text-xs font-bold border border-transparent hover:border-border" title="Bold"><Bold className="w-3.5 h-3.5" /></button>
-      <button type="button" onClick={() => onInsert("<i>", "</i>")} className="p-1.5 hover:bg-background hover:text-foreground rounded transition-colors text-xs italic border border-transparent hover:border-border" title="Italic"><Italic className="w-3.5 h-3.5" /></button>
-      <button type="button" onClick={() => onInsert("<br />", "")} className="p-1.5 hover:bg-background hover:text-foreground rounded transition-colors text-xs font-bold border border-transparent hover:border-border" title="Line Break"><WrapText className="w-3.5 h-3.5" /></button>
-      <div className="w-px h-4 bg-border mx-1" />
-      <button type="button" onClick={() => onInsert('<span class="text-gray-500 dark:text-gray-400 font-medium">', "</span>")} className="p-1.5 hover:bg-background hover:text-foreground rounded transition-colors text-xs text-gray-500 font-bold border border-transparent hover:border-border flex items-center gap-1"><Palette className="w-3.5 h-3.5" /> Gray</button>
-      <button type="button" onClick={() => onInsert('<span class="text-blue-600 dark:text-yellow-400">', "</span>")} className="p-1.5 hover:bg-background hover:text-foreground rounded transition-colors text-xs text-blue-600 dark:text-yellow-400 font-bold border border-transparent hover:border-border flex items-center gap-1"><PaintBucket className="w-3.5 h-3.5" /> Color</button>
-    </div>
-  );
-};
-
 export default function AdminHome() {
+  // --- STRUCTURED STATE ---
   const [formData, setFormData] = useState({
-    badge: "", title: "", subtitle: "", resumeUrl: "", socialGithub: "", socialLinkedin: "", profilePic: ""
+    badgeText: "Software Developer (Python)",
+    showAvailability: true,
+    line1Bold: "Build",
+    line1Accent: "clean backends",
+    line2Bold: "ship",
+    line2Accent: "real products",
+    bio: "",
+    socialGithub: "",
+    socialLinkedin: "",
+    socialTwitter: "",
+    socialEmail: "",
+    profilePic: "",
+    resumeUrl: "",
+    techStack: "Python, FastAPI, Docker, PostgreSQL, MongoDB",
+    stat1Value: "5+", stat1Label: "Projects Built",
+    stat2Value: "100%", stat2Label: "Open Source",
+    stat3Value: "AIML", stat3Label: "Class of 2026",
+    portfolioLastUpdated: "",
   });
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0); // ✅ ACTUAL PROGRESS STATE
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -88,31 +81,32 @@ export default function AdminHome() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isCropping, setIsCropping] = useState(false);
 
-  const handleInsertTag = (field: keyof typeof formData, startTag: string, endTag: string) => {
-    const inputId = `input-${field}`;
-    const input = document.getElementById(inputId) as HTMLInputElement | HTMLTextAreaElement;
-    if (!input) return;
-    const startPos = input.selectionStart || 0;
-    const endPos = input.selectionEnd || 0;
-    const currentVal = formData[field];
-    const newVal = currentVal.substring(0, startPos) + startTag + currentVal.substring(startPos, endPos) + endTag + currentVal.substring(endPos);
-    setFormData({ ...formData, [field]: newVal });
-  };
-
   useEffect(() => {
     fetch("/api/hero", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data) {
-          setFormData({
-            badge: data.badge || "",
-            title: data.title || "",
-            subtitle: data.subtitle || "",
-            resumeUrl: data.resumeUrl || "",
+          setFormData(prev => ({
+            ...prev,
+            bio: data.subtitle || "",
             socialGithub: data.socialGithub || "",
             socialLinkedin: data.socialLinkedin || "",
-            profilePic: data.profilePic || ""
-          });
+            socialTwitter: data.socialTwitter || "",
+            socialEmail: data.socialEmail || "",
+            profilePic: data.profilePic || "",
+            resumeUrl: data.resumeUrl || "",
+            badgeText: data.badgeText || prev.badgeText,
+            showAvailability: data.showAvailability ?? prev.showAvailability,
+            line1Bold: data.line1Bold || prev.line1Bold,
+            line1Accent: data.line1Accent || prev.line1Accent,
+            line2Bold: data.line2Bold || prev.line2Bold,
+            line2Accent: data.line2Accent || prev.line2Accent,
+            techStack: data.techStack || prev.techStack,
+            stat1Value: data.stat1Value || prev.stat1Value, stat1Label: data.stat1Label || prev.stat1Label,
+            stat2Value: data.stat2Value || prev.stat2Value, stat2Label: data.stat2Label || prev.stat2Label,
+            stat3Value: data.stat3Value || prev.stat3Value, stat3Label: data.stat3Label || prev.stat3Label,
+            portfolioLastUpdated: data.portfolioLastUpdated || prev.portfolioLastUpdated,
+          }));
           if (data.profilePic) setPreviewUrl(data.profilePic);
         }
         setLoading(false);
@@ -124,17 +118,12 @@ export default function AdminHome() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setCropSrc(reader.result as string);
-        setIsCropping(true);
-      };
+      reader.onload = () => { setCropSrc(reader.result as string); setIsCropping(true); };
       reader.readAsDataURL(file);
     }
   };
 
-  const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
+  const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => setCroppedAreaPixels(croppedAreaPixels), []);
 
   const handleCropSave = async () => {
     if (!cropSrc || !croppedAreaPixels) return;
@@ -145,9 +134,15 @@ export default function AdminHome() {
       setIsCropping(false);
       setCropSrc(null);
     } catch (e) {
-      console.error(e);
       setToast({ message: "Failed to crop image", type: "error" });
     }
+  };
+
+  const removePhoto = () => {
+    setPreviewUrl(null);
+    setSelectedImage(null);
+    setFormData(prev => ({ ...prev, profilePic: "" }));
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,176 +150,309 @@ export default function AdminHome() {
     if (file) setSelectedResume(file);
   };
 
+  // --- ✅ UPDATED SAVE HANDLER WITH REAL PROGRESS TRACKING ---
   const handleSave = async () => {
     setSaving(true);
+    setUploadProgress(0);
     setToast(null);
 
     try {
       const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => data.append(key, value));
-      if (selectedImage) data.append("image", selectedImage, "profile-pic.jpg");
-      if (selectedResume) data.append("resume", selectedResume);
       
-      const res = await fetch("/api/hero", { method: "PUT", body: data });
+      const generatedTitle = `${formData.line1Bold} <span class="text-gray-500 font-medium">${formData.line1Accent}</span>  
+ ${formData.line2Bold} <span class="text-gray-500 font-medium">${formData.line2Accent}</span>`;
+      const generatedBadge = formData.showAvailability 
+        ? `<span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> ${formData.badgeText}</span>` 
+        : formData.badgeText;
 
-      if (res.ok) {
-        const updated = await res.json();
-        setFormData(prev => ({ ...prev, ...updated }));
-        setSelectedImage(null);
-        setSelectedResume(null);
-        if (imageInputRef.current) imageInputRef.current.value = "";
-        if (resumeInputRef.current) resumeInputRef.current.value = "";
-        setToast({ message: "Home Page updated successfully!", type: "success" });
-      } else {
-        setToast({ message: "Failed to save.", type: "error" });
-      }
+      data.append("title", generatedTitle);
+      data.append("badge", generatedBadge);
+      data.append("subtitle", formData.bio);
+
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key !== "bio" && key !== "profilePic" && key !== "resumeUrl") {
+          data.append(key, String(value));
+        }
+      });
+
+      if (selectedImage) data.append("image", selectedImage, "profile-pic.jpg");
+      else if (formData.profilePic === "") data.append("removeImage", "true");
+
+      if (selectedResume) data.append("resume", selectedResume);
+
+      // Use XMLHttpRequest for actual upload progress tracking
+      const updated: any = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", "/api/hero");
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percentComplete);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error("Failed to save"));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Network Error"));
+        xhr.send(data);
+      });
+
+      if (updated.profilePic) setPreviewUrl(updated.profilePic);
+      setSelectedImage(null);
+      setSelectedResume(null);
+      setToast({ message: "Home Page updated successfully!", type: "success" });
     } catch (error) {
-      setToast({ message: "Network Error.", type: "error" });
+      setToast({ message: "Network Error or Save Failed.", type: "error" });
     } finally {
       setSaving(false);
+      setUploadProgress(0);
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8 pb-32">
+    <div className="bg-gray-50 min-h-screen pb-32">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* 🟢 FIXED CROPPER MODAL: Removed fixed height, added color safety */}
+      {/* CROPPER MODAL */}
       {isCropping && cropSrc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-800">
-              <h3 className="font-bold text-lg">Crop Profile Picture</h3>
-              <button onClick={() => setIsCropping(false)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><X className="w-5 h-5" /></button>
+          <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-lg text-gray-900">Crop Profile Picture</h3>
+              <button onClick={() => setIsCropping(false)} className="p-1 hover:bg-gray-200 rounded-full text-gray-900"><X className="w-5 h-5" /></button>
             </div>
-            
-            {/* Cropper Area: Fixed height to ensure it fits */}
             <div className="relative h-[300px] w-full bg-black">
-              <Cropper
-                image={cropSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                onCropChange={setCrop}
-                onCropComplete={onCropComplete}
-                onZoomChange={setZoom}
-              />
+              <Cropper image={cropSrc} crop={crop} zoom={zoom} aspect={1} onCropChange={setCrop} onCropComplete={onCropComplete} onZoomChange={setZoom} />
             </div>
-
-            {/* Controls Area */}
-            <div className="p-6 bg-white dark:bg-gray-900 space-y-4">
+            <div className="p-6 bg-white space-y-4">
                <div className="flex items-center gap-2">
                  <ZoomIn className="w-4 h-4 text-gray-500" />
-                 <input 
-                   type="range" 
-                   value={zoom} 
-                   min={1} 
-                   max={3} 
-                   step={0.1} 
-                   onChange={(e) => setZoom(Number(e.target.value))}
-                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
-                 />
+                 <input type="range" value={zoom} min={1} max={3} step={0.1} onChange={(e) => setZoom(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
                </div>
                <div className="flex gap-3 pt-2">
-                 <button 
-                    onClick={() => setIsCropping(false)} 
-                    className="flex-1 px-4 py-2 rounded-xl border border-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 text-black dark:text-white"
-                 >
-                    Cancel
-                 </button>
-                 {/* 🟢 FIXED BUTTON: Hardcoded Blue Color to ensure visibility */}
-                 <button 
-                    onClick={handleCropSave} 
-                    className="flex-1 px-4 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center justify-center gap-2"
-                 >
-                    <Check className="w-4 h-4" /> Save Crop
-                 </button>
+                 <button onClick={() => setIsCropping(false)} className="flex-1 px-4 py-2 rounded-xl border border-gray-300 font-bold hover:bg-gray-100 text-gray-900">Cancel</button>
+                 <button onClick={handleCropSave} className="flex-1 px-4 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Save Crop</button>
                </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between border-b pb-4 sticky top-0 bg-background/80 backdrop-blur z-10">
-        <h1 className="text-3xl font-bold">Edit Home Page</h1>
-        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-all shadow-md">
-          {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
-          {saving ? "Uploading..." : "Save Changes"}
-        </button>
+      {/* STICKY HEADER */}
+      <div className="sticky top-0 z-40 bg-gray-50/90 backdrop-blur-md border-b border-gray-200 px-8 py-4 flex justify-between items-center">
+        <h1 className="text-2xl font-extrabold text-gray-900">Edit Home Page</h1>
+        <div className="flex gap-3">
+          <a href="/" target="_blank" className="bg-white border-2 border-gray-300 hover:border-blue-600 hover:text-blue-600 text-gray-900 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all">
+            <Eye size={20} /> Preview
+          </a>
+          
+          {/* ✅ UPDATED: Dynamic Progress Button */}
+          <button 
+            onClick={handleSave} 
+            disabled={saving} 
+            className="relative overflow-hidden bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 disabled:opacity-90 shadow-lg transition-all"
+          >
+            {saving && (
+              <div 
+                className="absolute left-0 top-0 bottom-0 bg-blue-800 transition-all duration-200 ease-out z-0" 
+                style={{ width: `${uploadProgress}%` }} 
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              {saving ? (
+                <>
+                  <Loader2 className="animate-spin w-5 h-5" /> 
+                  {uploadProgress > 0 && uploadProgress < 100 ? `Uploading ${uploadProgress}%` : "Processing..."}
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" /> Save Changes
+                </>
+              )}
+            </span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="p-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* LEFT COLUMN: Media */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 border rounded-xl bg-card flex flex-col items-center gap-4 text-center shadow-sm">
-            <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Profile Picture</h3>
-            <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-border shadow-md group bg-muted">
+          
+          {/* Profile Picture */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm flex flex-col items-center text-center">
+            <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wide mb-6">Profile Picture</h3>
+            <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-gray-100 shadow-md bg-gray-50 mb-6">
               {previewUrl ? (
                 <Image src={previewUrl} alt="Preview" fill className="object-cover" unoptimized />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Upload className="w-8 h-8" /></div>
+                <div className="w-full h-full flex items-center justify-center text-gray-400"><Upload className="w-8 h-8" /></div>
               )}
-              <div onClick={() => imageInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Upload className="w-6 h-6 text-white mb-1" />
-                <span className="text-white text-xs font-bold">Change & Crop</span>
-              </div>
             </div>
-            <input type="file" ref={imageInputRef} onChange={handleImageChange} className="hidden" accept="image/*" />
+            <input type="file" ref={imageInputRef} onChange={handleImageChange} className="hidden" accept="image/jpeg, image/png, image/webp" />
+            <div className="flex gap-2 w-full">
+              <button onClick={() => imageInputRef.current?.click()} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-2 rounded-lg text-sm transition-colors">
+                {previewUrl ? "Change Photo" : "Upload Photo"}
+              </button>
+              {previewUrl && (
+                <button onClick={removePhoto} className="px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors" title="Remove Photo">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-3">JPG, PNG, WebP up to 5MB</p>
           </div>
 
-          <div className="p-6 border rounded-xl bg-card space-y-4 shadow-sm">
-            <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-2"><FileUp className="w-4 h-4" /> Resume PDF</h3>
-            <div className={`p-6 rounded-lg border-2 border-dashed transition-all text-center ${selectedResume ? "border-green-500 bg-green-50 dark:bg-green-900/20" : "border-border bg-muted/30"}`}>
-               <input type="file" ref={resumeInputRef} onChange={handleResumeChange} className="hidden" accept=".pdf" />
-              {selectedResume ? (
-                <div className="flex flex-col items-center gap-2">
-                  <FileText className="w-8 h-8 text-green-600" />
-                  <span className="text-sm font-bold text-green-700 break-all">{selectedResume.name}</span>
+          {/* Resume PDF */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
+            <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Resume (PDF)</h3>
+            <input type="file" ref={resumeInputRef} onChange={handleResumeChange} className="hidden" accept=".pdf" />
+            
+            {selectedResume || formData.resumeUrl ? (
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <FileText className="w-8 h-8 text-blue-600 shrink-0" />
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-bold text-gray-500 uppercase">Current File</p>
+                    <p className="text-sm font-bold text-blue-900 truncate">
+                      {selectedResume ? selectedResume.name : formData.resumeUrl.split('/').pop() || "Resume.pdf"}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 cursor-pointer" onClick={() => resumeInputRef.current?.click()}>
-                  <Upload className="w-6 h-6 text-muted-foreground" />
-                  <span className="text-xs font-bold text-primary">Click to Select PDF</span>
+                <div className="flex gap-2">
+                  {formData.resumeUrl && !selectedResume && (
+                    <a href={formData.resumeUrl} target="_blank" className="flex-1 text-center bg-white border border-blue-200 text-blue-700 text-xs font-bold py-2 rounded-lg hover:bg-blue-100 transition-colors">
+                      View ↗
+                    </a>
+                  )}
+                  <button onClick={() => resumeInputRef.current?.click()} className="flex-1 bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    Replace File
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <button onClick={() => resumeInputRef.current?.click()} className="w-full p-8 border-2 border-dashed border-gray-300 rounded-xl hover:bg-gray-50 hover:border-blue-400 transition-all flex flex-col items-center gap-2 group bg-white">
+                <Upload className="w-6 h-6 text-gray-400 group-hover:text-blue-500" />
+                <span className="text-sm font-bold text-gray-600 group-hover:text-blue-600">Click to Upload PDF</span>
+              </button>
+            )}
           </div>
         </div>
 
+        {/* RIGHT COLUMN: Content & Settings */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="p-6 border rounded-xl bg-card space-y-6 shadow-sm">
-            <h3 className="font-semibold text-lg flex items-center gap-2 border-b pb-2"><FileText className="w-4 h-4" /> Text Content</h3>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Top Badge</label>
-                <RichToolbar targetId="input-badge" onInsert={(s, e) => handleInsertTag('badge', s, e)} />
+          
+          {/* Headline & Badge (Structured) */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-6">
+            <h3 className="font-bold text-lg text-gray-900 border-b pb-2 flex items-center gap-2"><FileText className="w-5 h-5 text-gray-400" /> Hero Headline & Badge</h3>
+            
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase text-gray-500">Badge Text</label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={formData.showAvailability} onChange={(e) => setFormData({...formData, showAvailability: e.target.checked})} className="w-4 h-4 accent-green-500" />
+                  <span className="text-xs font-bold text-gray-700">Show "Available" Green Dot</span>
+                </label>
               </div>
-              <input id="input-badge" value={formData.badge} onChange={(e) => setFormData({...formData, badge: e.target.value})} className="w-full p-3 border rounded-lg bg-background font-mono text-sm focus:ring-2 focus:ring-primary/20 outline-none" placeholder="e.g. SOFTWARE DEVELOPER" />
+              <input value={formData.badgeText} onChange={(e) => setFormData({...formData, badgeText: e.target.value})} className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Software Developer (Python)" />
             </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Main Headline</label>
-                <RichToolbar targetId="input-title" onInsert={(s, e) => handleInsertTag('title', s, e)} />
+
+            <div className="space-y-4">
+              <label className="text-xs font-bold uppercase text-gray-500">Main Headline (Structured)</label>
+              <div className="grid grid-cols-2 gap-4">
+                <input value={formData.line1Bold} onChange={(e) => setFormData({...formData, line1Bold: e.target.value})} className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Line 1 Bold (e.g. Build)" />
+                <input value={formData.line1Accent} onChange={(e) => setFormData({...formData, line1Accent: e.target.value})} className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Line 1 Accent (e.g. clean backends)" />
               </div>
-              <textarea id="input-title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full p-3 border rounded-lg bg-background text-lg font-bold h-32 focus:ring-2 focus:ring-primary/20 outline-none leading-relaxed" placeholder="Headline..." />
+              <div className="grid grid-cols-2 gap-4">
+                <input value={formData.line2Bold} onChange={(e) => setFormData({...formData, line2Bold: e.target.value})} className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Line 2 Bold (e.g. ship)" />
+                <input value={formData.line2Accent} onChange={(e) => setFormData({...formData, line2Accent: e.target.value})} className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Line 2 Accent (e.g. real products)" />
+              </div>
             </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Subtitle / Bio</label>
-                <RichToolbar targetId="input-subtitle" onInsert={(s, e) => handleInsertTag('subtitle', s, e)} />
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-gray-500">Subtitle / Bio</label>
+              <div className="bg-white text-gray-900 rounded-xl overflow-hidden border border-gray-300 [&_*]:!text-gray-900">
+                <ReactQuill theme="snow" value={formData.bio} onChange={(val) => setFormData({...formData, bio: val})} className="h-40 mb-12" />
               </div>
-              <textarea id="input-subtitle" value={formData.subtitle} onChange={(e) => setFormData({...formData, subtitle: e.target.value})} className="w-full p-3 border rounded-lg bg-background h-32 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Short bio..." />
             </div>
           </div>
 
-          <div className="p-6 border rounded-xl bg-card space-y-4 shadow-sm">
-            <h3 className="font-semibold text-lg flex items-center gap-2 border-b pb-2"><ExternalLink className="w-4 h-4" /> Social Links</h3>
-            <div className="grid gap-4">
-              <input value={formData.socialGithub} onChange={(e) => setFormData({...formData, socialGithub: e.target.value})} className="w-full p-3 border rounded-lg bg-background text-sm" placeholder="GitHub URL" />
-              <input value={formData.socialLinkedin} onChange={(e) => setFormData({...formData, socialLinkedin: e.target.value})} className="w-full p-3 border rounded-lg bg-background text-sm" placeholder="LinkedIn URL" />
+          {/* Social Links */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-6">
+            <h3 className="font-bold text-lg text-gray-900 border-b pb-2 flex items-center gap-2"><ExternalLink className="w-5 h-5 text-gray-400" /> Social Links</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Github className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input value={formData.socialGithub} onChange={(e) => setFormData({...formData, socialGithub: e.target.value})} className="w-full pl-10 p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="GitHub URL" />
+              </div>
+              <div className="relative">
+                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input value={formData.socialLinkedin} onChange={(e) => setFormData({...formData, socialLinkedin: e.target.value})} className="w-full pl-10 p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="LinkedIn URL" />
+              </div>
+              <div className="relative">
+                <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input value={formData.socialTwitter} onChange={(e) => setFormData({...formData, socialTwitter: e.target.value})} className="w-full pl-10 p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Twitter / X URL (Optional)" />
+              </div>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input value={formData.socialEmail} onChange={(e) => setFormData({...formData, socialEmail: e.target.value})} className="w-full pl-10 p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Email Address (Optional)" />
+              </div>
             </div>
           </div>
+
+          {/* Quick Stats & Tech Stack */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-6">
+            <h3 className="font-bold text-lg text-gray-900 border-b pb-2 flex items-center gap-2"><ZoomIn className="w-5 h-5 text-gray-400" /> Hero Quick Stats & Tech Stack</h3>
+            
+            <div className="space-y-4">
+              <label className="text-xs font-bold uppercase text-gray-500">Tech Stack Marquee (Comma Separated)</label>
+              <input value={formData.techStack} onChange={(e) => setFormData({...formData, techStack: e.target.value})} className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Python, FastAPI, Docker, PostgreSQL" />
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <label className="text-xs font-bold uppercase text-gray-500">Quick Stats (3 Items)</label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
+                  <input value={formData.stat1Value} onChange={(e) => setFormData({...formData, stat1Value: e.target.value})} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-center placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Value (e.g. 5+)" />
+                  <input value={formData.stat1Label} onChange={(e) => setFormData({...formData, stat1Label: e.target.value})} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-gray-600 text-xs text-center placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Label (e.g. Projects)" />
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
+                  <input value={formData.stat2Value} onChange={(e) => setFormData({...formData, stat2Value: e.target.value})} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-center placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Value (e.g. 100%)" />
+                  <input value={formData.stat2Label} onChange={(e) => setFormData({...formData, stat2Label: e.target.value})} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-gray-600 text-xs text-center placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Label (e.g. Open Source)" />
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
+                  <input value={formData.stat3Value} onChange={(e) => setFormData({...formData, stat3Value: e.target.value})} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-center placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Value (e.g. AIML)" />
+                  <input value={formData.stat3Label} onChange={(e) => setFormData({...formData, stat3Label: e.target.value})} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-gray-600 text-xs text-center placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Label (e.g. Class of 2026)" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Global Status Badge */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-6">
+            <h3 className="font-bold text-lg text-gray-900 border-b pb-2 flex items-center gap-2"><Clock className="w-5 h-5 text-gray-400" /> Global Status Badge</h3>
+            
+            <div className="space-y-4">
+              <label className="text-xs font-bold uppercase text-gray-500">Status Text (Shows with pulsing green dot)</label>
+              <input 
+                value={formData.portfolioLastUpdated} 
+                onChange={(e) => setFormData({...formData, portfolioLastUpdated: e.target.value})} 
+                className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="e.g. Actively Seeking Python / Backend Roles" 
+              />
+              <p className="text-xs text-gray-500 mt-1">This text will appear next to the pulsing green dot below your stats. Leave blank to hide.</p>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

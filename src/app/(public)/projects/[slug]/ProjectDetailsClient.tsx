@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Github, ExternalLink, Loader2, Download,
-  Calendar, Share2, Twitter, Linkedin, Copy, Check
+  ArrowLeft, ArrowRight, Github, ExternalLink, Loader2, Download,
+  Calendar, Share2, Twitter, Linkedin, Copy, Check, Layers
 } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import ReadingProgress from "@/components/blog/ReadingProgress";
@@ -17,6 +17,8 @@ export default function ProjectDetails() {
   const slug = params?.slug;
 
   const [project, setProject] = useState<any>(null);
+  const [prevProject, setPrevProject] = useState<any>(null);
+  const [nextProject, setNextProject] = useState<any>(null);
   const [processedHTML, setProcessedHTML] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -26,12 +28,22 @@ export default function ProjectDetails() {
   useEffect(() => {
     if (!slug) return;
 
-    fetch(`/api/projects?slug=${slug}`)
+    // Fetch ALL projects to determine Previous and Next navigation
+    fetch(`/api/projects`)
       .then((res) => res.json())
       .then(async (data) => {
-        if (data.project) {
-          setProject(data.project);
-          const html = await processContent(data.project.description || "");
+        const projects = data.projects || [];
+        const currentIndex = projects.findIndex((p: any) => p.slug === slug);
+
+        if (currentIndex !== -1) {
+          const currentProject = projects[currentIndex];
+          setProject(currentProject);
+          
+          // Set Prev/Next projects
+          setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
+          setNextProject(currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null);
+
+          const html = await processContent(currentProject.description || currentProject.content || "");
           setProcessedHTML(html);
         }
         setLoading(false);
@@ -51,11 +63,11 @@ export default function ProjectDetails() {
       const headings = container.querySelectorAll("h2, h3");
       headings.forEach((el, i) => {
         if (!el.id) {
-          const slug = (el.textContent || `heading-${i}`)
+          const headingSlug = (el.textContent || `heading-${i}`)
             .toLowerCase()
             .replace(/[^\w\s-]/g, "")
             .replace(/\s+/g, "-");
-          el.id = slug;
+          el.id = headingSlug;
         }
       });
       setContentReady(true);
@@ -79,25 +91,33 @@ export default function ProjectDetails() {
   const shareOnTwitter = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const text = encodeURIComponent(project?.title || "");
+    const text = encodeURIComponent(`Check out this project: ${project?.title}`);
     const url = encodeURIComponent(window.location.href);
-    window.open(
-      `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
-      "_blank",
-      "noopener,noreferrer,width=600,height=500"
-    );
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "width=600,height=500" );
   };
 
   const shareOnLinkedIn = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const url = encodeURIComponent(window.location.href);
-    window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-      "_blank",
-      "noopener,noreferrer,width=600,height=500"
-    );
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank", "width=600,height=500" );
   };
+
+  // Reusable Share Buttons Component
+  const ShareButtons = () => (
+    <div className="flex items-center gap-2 relative z-20">
+      <button type="button" onClick={shareOnTwitter} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1DA1F2] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
+        <Twitter className="w-4 h-4 pointer-events-none" /> <span className="pointer-events-none hidden sm:inline">Twitter</span>
+      </button>
+      <button type="button" onClick={shareOnLinkedIn} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0077B5] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
+        <Linkedin className="w-4 h-4 pointer-events-none" /> <span className="pointer-events-none hidden sm:inline">LinkedIn</span>
+      </button>
+      <button type="button" onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+        {copied ? <Check className="w-4 h-4 pointer-events-none text-green-500" /> : <Share2 className="w-4 h-4 pointer-events-none" />}
+        <span className="pointer-events-none hidden sm:inline">{copied ? "Copied" : "Copy"}</span>
+      </button>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -120,6 +140,9 @@ export default function ProjectDetails() {
     );
   }
 
+  // Combine tags and techStack for the sidebar grid
+  const techStack = project.techStack?.length ? project.techStack : project.tags || [];
+
   return (
     <div className="min-h-screen pb-20 bg-background">
       <ReadingProgress />
@@ -137,56 +160,57 @@ export default function ProjectDetails() {
 
       {/* HEADER */}
       <header className="max-w-4xl mx-auto px-4 md:px-8">
-        {project.tags && project.tags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            {project.tags.map((tag: string, i: number) => (
-              <span key={i} className="px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.15] mb-6">
           {project.title}
         </h1>
 
-        {/* Meta */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-8 border-b border-gray-200 dark:border-gray-800">
-          <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+        {/* Meta & Unified Share Buttons */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-8 border-b border-gray-200 dark:border-gray-800">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-full w-fit">
             <Calendar className="w-4 h-4" />
             {new Date(project.publishDate || project.createdAt).toLocaleDateString("en-US", {
               month: "long", day: "numeric", year: "numeric",
             })}
           </span>
 
-          <div className="flex items-center gap-1 relative z-20">
-            <button type="button" onClick={shareOnTwitter} title="Twitter" className="p-2 rounded-full text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer">
-              <Twitter className="w-4 h-4 pointer-events-none" />
-            </button>
-            <button type="button" onClick={shareOnLinkedIn} title="LinkedIn" className="p-2 rounded-full text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer">
-              <Linkedin className="w-4 h-4 pointer-events-none" />
-            </button>
-            <button type="button" onClick={handleCopyLink} title="Copy" className="p-2 rounded-full text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer">
-              {copied ? <Check className="w-4 h-4 text-green-500 pointer-events-none" /> : <Copy className="w-4 h-4 pointer-events-none" />}
-            </button>
-          </div>
+          <ShareButtons />
         </div>
 
-        {/* Cover Image */}
+        {/* 🟢 Upgraded Hero Image Frame (Browser Mockup) */}
         {project.image && (
-          <div className="w-full aspect-[16/9] bg-gray-200 dark:bg-gray-900 rounded-2xl overflow-hidden mt-8 shadow-2xl border border-gray-200 dark:border-gray-800 relative group">
-            <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <div className="w-full mt-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+            {/* Browser Header */}
+            <div className="h-10 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
+              <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
+            </div>
+            {/* Image */}
+            <div className="relative aspect-[16/9] group bg-gray-50 dark:bg-black">
+              <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" />
+            </div>
           </div>
         )}
       </header>
 
       {/* MAIN LAYOUT */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
-        <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_280px]">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
+        <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_300px]">
+          
           {/* Content */}
           <article className="lg:max-w-3xl w-full">
-            <div className="blog-content" dangerouslySetInnerHTML={{ __html: processedHTML }} />
+            {/* 🟢 Prose formatting applied here */}
+            <div 
+              className="blog-content prose prose-slate dark:prose-invert max-w-none 
+                prose-headings:font-bold prose-headings:tracking-tight 
+                prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-2 prose-h2:border-gray-200 dark:prose-h2:border-gray-800
+                prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
+                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                prose-img:rounded-2xl prose-img:shadow-md
+                prose-li:marker:text-primary
+                prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-xl" 
+              dangerouslySetInnerHTML={{ __html: processedHTML }} 
+            />
 
             {/* Bottom Share */}
             <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800 relative z-20">
@@ -195,64 +219,91 @@ export default function ProjectDetails() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Like this project?</p>
                   <p className="font-semibold text-gray-900 dark:text-white">Share it with your network</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={shareOnTwitter} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1DA1F2] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
-                    <Twitter className="w-4 h-4 pointer-events-none" /> <span className="pointer-events-none">Twitter</span>
-                  </button>
-                  <button type="button" onClick={shareOnLinkedIn} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0077B5] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
-                    <Linkedin className="w-4 h-4 pointer-events-none" /> <span className="pointer-events-none">LinkedIn</span>
-                  </button>
-                  <button type="button" onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                    {copied ? <Check className="w-4 h-4 pointer-events-none" /> : <Share2 className="w-4 h-4 pointer-events-none" />}
-                    <span className="pointer-events-none">{copied ? "Copied" : "Copy"}</span>
-                  </button>
-                </div>
+                <ShareButtons />
               </div>
             </div>
 
-            {/* Back */}
-            <div className="mt-10 flex justify-center">
-              <Link href="/projects" className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-gray-200 dark:border-gray-800 hover:border-primary hover:text-primary text-sm font-semibold transition-all hover:-translate-y-0.5">
-                <ArrowLeft className="w-4 h-4" /> View All Projects
+            {/* 🟢 Previous / Next Project Navigation */}
+            <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {prevProject ? (
+                <Link href={`/projects/${prevProject.slug}`} className="flex flex-col p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group">
+                  <span className="text-sm text-gray-500 flex items-center gap-2 mb-2"><ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Previous Project</span>
+                  <span className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1">{prevProject.title}</span>
+                </Link>
+              ) : <div />}
+
+              {nextProject ? (
+                <Link href={`/projects/${nextProject.slug}`} className="flex flex-col items-end text-right p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group">
+                  <span className="text-sm text-gray-500 flex items-center gap-2 mb-2">Next Project <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></span>
+                  <span className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1">{nextProject.title}</span>
+                </Link>
+              ) : <div />}
+            </div>
+
+            {/* Back to All */}
+            <div className="mt-12 flex justify-center">
+              <Link href="/projects" className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-black font-bold hover:scale-105 transition-transform shadow-lg">
+                <Layers className="w-4 h-4" /> View All Projects
               </Link>
             </div>
           </article>
 
           {/* Sidebar */}
           <aside className="hidden lg:block">
-            <div className="sticky top-32 space-y-6">
+            <div className="sticky top-32 space-y-8">
+              
               {/* Resources */}
               <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
                   Resources
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {project.liveLink && (
-                    <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-primary text-white rounded-xl hover:opacity-90 transition-all font-semibold text-sm group">
+                    <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-primary text-white rounded-xl hover:opacity-90 transition-all font-semibold text-sm group shadow-md shadow-primary/20">
                       <span className="flex items-center gap-2"><ExternalLink size={16} /> Live Preview</span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 transition-transform" />
+                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </a>
                   )}
                   {project.githubLink && (
-                    <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-gray-900 dark:bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-semibold text-sm group">
+                    <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-gray-900 dark:bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-semibold text-sm group shadow-md">
                       <span className="flex items-center gap-2"><Github size={16} /> Source Code</span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 transition-transform" />
+                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </a>
                   )}
                   {project.appLink && (
                     <a href={project.appLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-950 transition-all font-semibold text-sm group">
                       <span className="flex items-center gap-2"><Download size={16} /> Download App</span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 transition-transform" />
+                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </a>
                   )}
                   {!project.liveLink && !project.githubLink && !project.appLink && (
-                    <p className="text-xs text-gray-400 italic">No external resources.</p>
+                    <p className="text-xs text-gray-400 italic">No external resources available.</p>
                   )}
                 </div>
               </div>
 
+              {/* 🟢 Visual Tech Stack Grid */}
+              {techStack.length > 0 && (
+                <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
+                    Tech Stack
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {techStack.map((tech: string, i: number) => (
+                      <span key={i} className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Table of Contents */}
-              {contentReady && <TableOfContents contentSelector=".blog-content" />}
+              {contentReady && (
+                <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                  <TableOfContents contentSelector=".blog-content" />
+                </div>
+              )}
             </div>
           </aside>
         </div>

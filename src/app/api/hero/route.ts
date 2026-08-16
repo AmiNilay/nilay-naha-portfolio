@@ -19,17 +19,44 @@ export async function PUT(req: Request) {
   try {
     await connectToDB();
     const formData = await req.formData();
-    
+
     // 1. Fetch CURRENT data (needed to find old files to delete)
     let currentHero = await Hero.findOne();
     if (!currentHero) currentHero = new Hero({});
 
     const updateData: any = {};
-    const textFields = ["badge", "title", "subtitle", "socialGithub", "socialLinkedin"];
+    
+    // 🟢 ADDED ALL NEW FIELDS HERE
+    const textFields = [
+      "badge", "title", "subtitle", 
+      "badgeText", "showAvailability", 
+      "line1Bold", "line1Accent", "line2Bold", "line2Accent",
+      "socialGithub", "socialLinkedin", "socialTwitter", "socialEmail",
+      "techStack", 
+      "stat1Value", "stat1Label", 
+      "stat2Value", "stat2Label", 
+      "stat3Value", "stat3Label",
+      "portfolioLastUpdated" // ✅ ADDED THIS SO IT SAVES TO DATABASE
+    ];
     
     textFields.forEach((field) => {
-      if (formData.has(field)) updateData[field] = formData.get(field);
+      if (formData.has(field)) {
+        // Handle boolean string conversion for showAvailability
+        if (field === "showAvailability") {
+          updateData[field] = formData.get(field) === "true";
+        } else {
+          updateData[field] = formData.get(field);
+        }
+      }
     });
+
+    // 🟢 Handle Image Removal (if user clicked "Remove Photo" in Admin)
+    if (formData.get("removeImage") === "true") {
+      if (currentHero.profilePic) {
+        await deleteFromGithub(currentHero.profilePic);
+      }
+      updateData.profilePic = "";
+    }
 
     // 2. IMAGE UPLOAD logic
     const imageFile = formData.get("image") as File;

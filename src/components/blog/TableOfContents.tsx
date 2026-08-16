@@ -14,15 +14,13 @@ export default function TableOfContents({ contentSelector = ".blog-content" }: {
   const [activeId, setActiveId] = useState<string>("");
 
   useEffect(() => {
-    // Wait a tick for React to finish rendering
     const timer = setTimeout(() => {
       const container = document.querySelector(contentSelector);
       if (!container) return;
 
       const found = Array.from(container.querySelectorAll("h2, h3, h4")) as HTMLElement[];
-
       const items: Heading[] = found
-        .filter((el) => el.id && el.textContent?.trim()) // Only headings with IDs
+        .filter((el) => el.id && el.textContent?.trim())
         .map((el) => ({
           id: el.id,
           text: el.textContent?.trim() || "",
@@ -54,13 +52,8 @@ export default function TableOfContents({ contentSelector = ".blog-content" }: {
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
-    e.stopPropagation();
-
     const el = document.getElementById(id);
-    if (!el) {
-      console.warn("TOC: Heading not found for id:", id);
-      return;
-    }
+    if (!el) return;
 
     const yOffset = -100;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -72,22 +65,21 @@ export default function TableOfContents({ contentSelector = ".blog-content" }: {
   if (headings.length < 2) return null;
 
   return (
-    <nav className="sticky top-32 max-h-[calc(100vh-10rem)] overflow-y-auto no-scrollbar">
+    <nav className="max-h-[calc(100vh-10rem)] overflow-y-auto no-scrollbar">
       <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
         <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
-          <List className="w-3.5 h-3.5" />
-          On this page
+          <List className="w-4 h-4" /> On this page
         </h3>
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           {headings.map((h) => (
             <li key={h.id} style={{ paddingLeft: `${Math.max(0, h.level - 2) * 12}px` }}>
               <a
                 href={`#${h.id}`}
                 onClick={(e) => handleClick(e, h.id)}
-                className={`block py-1.5 px-3 text-sm rounded-md transition-all border-l-2 cursor-pointer ${
+                className={`block py-1.5 px-3 text-sm rounded-lg transition-all border-l-2 cursor-pointer ${
                   activeId === h.id
-                    ? "border-primary text-primary font-semibold bg-primary/5"
-                    : "border-transparent text-gray-600 dark:text-gray-400 hover:text-primary hover:border-primary/40"
+                    ? "border-primary text-primary font-bold bg-primary/10"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
                 {h.text}

@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Force Node.js to use Google DNS servers (fixes MongoDB SRV lookup errors)
+dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -8,7 +12,6 @@ if (!MONGODB_URI) {
   );
 }
 
-// Global cached connection to prevent multiple connections in dev mode
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -25,7 +28,6 @@ if (!cached) {
 }
 
 export const connectToDB = async () => {
-  console.log("Connecting to:", MONGODB_URI);
   if (cached.conn) {
     return cached.conn;
   }
@@ -33,10 +35,13 @@ export const connectToDB = async () => {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      dbName: "portfolio", // Explicitly sets the database name
+      dbName: "portfolio",
+      serverSelectionTimeoutMS: 10000,
     };
 
+    console.log("Connecting to MongoDB...");
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+      console.log("✅ MongoDB connected");
       return mongoose;
     });
   }
@@ -45,6 +50,7 @@ export const connectToDB = async () => {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    console.error("❌ MongoDB connection failed:", e);
     throw e;
   }
 

@@ -1,23 +1,27 @@
+const withPWA = require("@ducanh2912/next-pwa").default({
+  dest: "public",
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  swcMinify: true,
+  // Disable PWA in development so it doesn't aggressively cache while you are coding
+  disable: process.env.NODE_ENV === "development",
+  workboxOptions: {
+    disableDevLogs: true,
+  },
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 1. Force Vercel to ignore TypeScript errors so the build finishes
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // 2. Force Vercel to ignore ESLint warnings
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // 3. Keep your existing Image settings
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'raw.githubusercontent.com',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "**", // Allows images from GitHub, etc.
       },
     ],
   },
 };
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig );

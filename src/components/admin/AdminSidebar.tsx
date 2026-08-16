@@ -2,92 +2,77 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderKanban, FileText, Home, User, LogOut, X } from "lucide-react";
+import { LayoutDashboard, FolderGit2, FileText, Home, User, LogOut, Bot, Command, X } from "lucide-react";
 
-// Define props to receive state from the parent layout
-interface AdminSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+const navLinks = [
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
+  { name: "Blog Posts", href: "/admin/blog", icon: FileText },
+  { name: "Home Page", href: "/admin/home", icon: Home },
+  { name: "About Page", href: "/admin/about", icon: User },
+  { name: "Train Chatbot", href: "/admin/chatbot", icon: Bot },
+];
 
-export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
+export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
 
-  const navItems = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Projects", href: "/admin/projects", icon: FolderKanban },
-    { name: "Blog Posts", href: "/admin/blog", icon: FileText },
-    { name: "Home Page", href: "/admin/home", icon: Home },
-    { name: "About Page", href: "/admin/about", icon: User },
-  ];
-
   return (
-    <>
-      {/* 🟢 MOBILE BACKDROP: Darkens the screen when menu is open */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-30 bg-black/50 md:hidden backdrop-blur-sm"
-          onClick={onClose}
-        />
-      )}
+    <aside className="w-72 bg-white border-r border-gray-200 h-screen flex flex-col shadow-2xl lg:shadow-none">
+      {/* Premium Logo Area */}
+      <div className="h-20 flex items-center justify-between px-6 border-b border-gray-100">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-blue-600 p-1.5 rounded-lg text-white shadow-sm">
+            <Command className="w-5 h-5" />
+          </div>
+          <span className="text-xl font-extrabold text-gray-900 tracking-tight">
+            Dev<span className="text-blue-600">.Admin</span>
+          </span>
+        </div>
+        {/* Mobile Close Button */}
+        {onClose && (
+          <button onClick={onClose} className="lg:hidden p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
-      {/* 🟢 SIDEBAR: Sliding animation added */}
-      <aside 
-        className={`
-          fixed top-0 left-0 z-40 h-screen w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 
-          transform transition-transform duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full"} 
-          md:translate-x-0 shadow-xl md:shadow-none
-        `}
-      >
+      {/* Navigation Links */}
+      <nav className="flex-1 py-6 flex flex-col gap-1.5 overflow-y-auto">
+        <div className="px-6 mb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+          Menu
+        </div>
         
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
-          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
-            Dev.Admin
-          </h2>
-          {/* 🟢 CLOSE BUTTON: Only visible on Mobile */}
-          <button onClick={onClose} className="md:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-            <X size={24} />
-          </button>
-        </div>
+        {navLinks.map((link) => {
+          const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+          return (
+            <Link
+              key={link.name}
+              href={link.href}
+              onClick={onClose} // Close sidebar on mobile when a link is clicked
+              className={`flex items-center gap-3 mx-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+            >
+              <link.icon 
+                className={`w-5 h-5 transition-colors ${
+                  isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"
+                }`} 
+              />
+              {link.name}
+            </Link>
+          );
+        })}
+      </nav>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose} // 🟢 Auto-close sidebar on mobile click
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-primary/10 text-primary border-r-2 border-primary"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-              >
-                <item.icon size={20} />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-          <button
-            onClick={() => {
-              document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-              window.location.href = "/admin/login";
-            }}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-          >
-            <LogOut size={20} />
-            Sign Out
-          </button>
-        </div>
-      </aside>
-    </>
+      {/* Footer / Sign Out */}
+      <div className="p-4 border-t border-gray-100">
+        <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors group">
+          <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-600 transition-colors" />
+          Sign Out
+        </button>
+      </div>
+    </aside>
   );
 }

@@ -2,13 +2,33 @@ import mongoose, { Schema, model, models } from "mongoose";
 
 const HeroSchema = new Schema(
   {
-    badge: String,          // Top Badge (e.g., Software Developer)
-    title: String,          // Main Headline
-    subtitle: String,       // Description
-    profilePic: String,     // GitHub Image URL
-    resumeUrl: String,      // GitHub PDF URL
-    socialGithub: String,   // GitHub Profile Link
-    socialLinkedin: String, // LinkedIn Profile Link
+    badge: String,
+    title: String,
+    subtitle: String,
+    profilePic: String,
+    resumeUrl: String,
+    
+    badgeText: String,
+    showAvailability: { type: Boolean, default: true },
+    line1Bold: String,
+    line1Accent: String,
+    line2Bold: String,
+    line2Accent: String,
+    
+    socialGithub: String,
+    socialLinkedin: String,
+    socialTwitter: String,
+    socialEmail: String,
+    
+    techStack: String,
+    stat1Value: String,
+    stat1Label: String,
+    stat2Value: String,
+    stat2Label: String,
+    stat3Value: String,
+    stat3Label: String,
+    
+    portfolioLastUpdated: { type: String, default: "" }, // ✅ Explicitly defined here!
   },
   { timestamps: true }
 );

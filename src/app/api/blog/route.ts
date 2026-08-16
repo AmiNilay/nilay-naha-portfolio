@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import Post from "@/models/Post";
 import { uploadToGithub } from "@/lib/githubUpload";
+import { sanitizeHtml } from "@/lib/sanitize"; // ✅ Imported the sanitizer
 
 // 1. GET
 export async function GET(req: Request) {
@@ -35,10 +36,14 @@ export async function POST(req: Request) {
 
     const title = formData.get("title") as string;
     const slug = formData.get("slug") as string;
-    const excerpt = formData.get("excerpt") as string;
-    const content = formData.get("content") as string;
-    const publishDate = formData.get("publishDate") as string; // 🟢 Get Date
+    const rawExcerpt = formData.get("excerpt") as string;
+    const rawContent = formData.get("content") as string;
+    const publishDate = formData.get("publishDate") as string; 
     const imageFile = formData.get("image") as File;
+
+    // ✅ Sanitize the rich text inputs
+    const excerpt = sanitizeHtml(rawExcerpt);
+    const content = sanitizeHtml(rawContent);
 
     let coverImage = "";
     if (imageFile && typeof imageFile !== "string" && imageFile.name !== "undefined") {
@@ -51,8 +56,12 @@ export async function POST(req: Request) {
     }
 
     const newPost = await Post.create({
-      title, slug, excerpt, content, coverImage,
-      publishDate: publishDate ? new Date(publishDate) : new Date(), // 🟢 Save Date
+      title, 
+      slug, 
+      excerpt, 
+      content, 
+      coverImage,
+      publishDate: publishDate ? new Date(publishDate) : new Date(), 
       readTime: Math.ceil(content.split(/\s+/).length / 200) || 5,
     });
 
@@ -63,7 +72,7 @@ export async function POST(req: Request) {
   }
 }
 
-// 3. PUT (Update) - 🟢 Added missing PUT route for Blog Editor
+// 3. PUT (Update)
 export async function PUT(req: Request) {
   try {
     await connectToDB();
@@ -75,13 +84,18 @@ export async function PUT(req: Request) {
     const post = await Post.findById(id);
     if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+    const rawExcerpt = formData.get("excerpt") as string;
+    const rawContent = formData.get("content") as string;
+
     post.title = formData.get("title") || post.title;
     post.slug = formData.get("slug") || post.slug;
-    post.excerpt = formData.get("excerpt") || post.excerpt;
-    post.content = formData.get("content") || post.content;
+    
+    // ✅ Sanitize the rich text inputs before updating
+    if (rawExcerpt !== null) post.excerpt = sanitizeHtml(rawExcerpt);
+    if (rawContent !== null) post.content = sanitizeHtml(rawContent);
 
     const publishDate = formData.get("publishDate") as string;
-    if (publishDate) post.publishDate = new Date(publishDate); // 🟢 Update Date
+    if (publishDate) post.publishDate = new Date(publishDate); 
 
     const imageFile = formData.get("image") as File;
     if (imageFile && typeof imageFile !== "string" && imageFile.size > 0) {

@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Loader2, Save, Plus, Trash2, Check, Search, Bold, Italic, WrapText, Palette, PaintBucket } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Save, Plus, Trash2, Check, Search, ArrowUp, ArrowDown, Eye, X } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import { SKILL_CATEGORIES } from "@/lib/skillData";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 interface Education {
   degree: string;
@@ -14,111 +18,109 @@ interface Education {
   relevantCoursework: string[];
 }
 
-const RichToolbar = ({ targetId, onInsert }: { targetId: string; onInsert: (start: string, end: string) => void }) => {
-  return (
-    <div className="flex flex-wrap items-center gap-1 mb-2 p-1.5 bg-muted/50 rounded-lg border w-fit shadow-sm">
-      <button type="button" onClick={() => onInsert("<b>", "</b>")} className="p-1.5 hover:bg-background rounded transition-colors text-xs font-bold" title="Bold"><Bold className="w-3.5 h-3.5" /></button>
-      <button type="button" onClick={() => onInsert("<i>", "</i>")} className="p-1.5 hover:bg-background rounded transition-colors text-xs italic" title="Italic"><Italic className="w-3.5 h-3.5" /></button>
-      <button type="button" onClick={() => onInsert("<br />", "")} className="p-1.5 hover:bg-background rounded transition-colors text-xs font-bold" title="Line Break"><WrapText className="w-3.5 h-3.5" /></button>
-      <div className="w-px h-4 bg-border mx-1" />
-      <button type="button" onClick={() => onInsert('<span class="text-gray-500 dark:text-gray-400 font-medium">', "</span>")} className="p-1.5 hover:bg-background rounded transition-colors text-xs font-bold flex items-center gap-1"><Palette className="w-3.5 h-3.5" /> Gray</button>
-      <button type="button" onClick={() => onInsert('<span class="text-blue-600 dark:text-yellow-400">', "</span>")} className="p-1.5 hover:bg-background rounded transition-colors text-xs font-bold flex items-center gap-1"><PaintBucket className="w-3.5 h-3.5" /> Magic Color</button>
-    </div>
-  );
-};
+interface Experience {
+  role: string;
+  company: string;
+  duration: string;
+  description: string;
+}
+
+interface Certification {
+  name: string;
+  issuer: string;
+  date: string;
+  url: string;
+}
 
 export default function AdminAbout() {
   const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
+  const [availability, setAvailability] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
+  const [experience, setExperience] = useState<Experience[]>([]);
+  const [certifications, setCertifications] = useState<Certification[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // 🟢 Added Alignment & Justify tools to the toolbar
+  const modules = {
+    toolbar: [
+      [{ 'align': [] }], 
+      ['bold', 'italic', 'underline', 'strike', 'code'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link', 'clean']
+    ],
+  };
 
   useEffect(() => {
-    const audio = new Audio("/sounds/click.mp3");
-    audio.volume = 0.2;
-    audioRef.current = audio;
-
     fetch("/api/about", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data) {
           setBio(data.bio || "");
-          if (Array.isArray(data.skills)) {
-            setSelectedSkills(data.skills);
-          } else if (typeof data.skills === "string") {
-            setSelectedSkills(data.skills.split(",").map((s: string) => s.trim()).filter(Boolean));
-          }
-          setEducation(
-            (data.education || []).map((edu: Education) => ({
-              degree: edu.degree || "",
-              institution: edu.institution || "",
-              year: edu.year || "",
-              cgpa: edu.cgpa || "",
-              percentage: edu.percentage || "",
-              relevantCoursework: edu.relevantCoursework || [],
-            }))
-          );
+          setLocation(data.location || "");
+          setAvailability(data.availability || "");
+          
+          if (Array.isArray(data.skills)) setSelectedSkills(data.skills);
+          else if (typeof data.skills === "string") setSelectedSkills(data.skills.split(",").map((s: string) => s.trim()).filter(Boolean));
+          
+          setEducation(data.education || []);
+          setExperience(data.experience || []);
+          setCertifications(data.certifications || []);
         }
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  const handleInsertTag = (startTag: string, endTag: string) => {
-    const input = document.getElementById("input-bio") as HTMLTextAreaElement;
-    if (!input) return;
-    const startPos = input.selectionStart || 0;
-    const endPos = input.selectionEnd || 0;
-    const selectedText = bio.substring(startPos, endPos);
-    const newVal = bio.substring(0, startPos) + startTag + selectedText + endTag + bio.substring(endPos);
-    setBio(newVal);
-    setTimeout(() => {
-      input.focus();
-      const newCursorPos = startPos + startTag.length + selectedText.length + endTag.length;
-      input.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
-  };
-
-  const playSound = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    }
-  };
-
   const toggleSkill = (skillName: string) => {
-    playSound();
-    if (selectedSkills.includes(skillName)) {
-      setSelectedSkills((prev) => prev.filter((s) => s !== skillName));
-    } else {
-      setSelectedSkills((prev) => [...prev, skillName]);
-    }
+    if (selectedSkills.includes(skillName)) setSelectedSkills((prev) => prev.filter((s) => s !== skillName));
+    else setSelectedSkills((prev) => [...prev, skillName]);
   };
 
-  const addEducation = () =>
-    setEducation([
-      ...education,
-      { degree: "", institution: "", year: "", cgpa: "", percentage: "", relevantCoursework: [] },
-    ]);
-
+  // --- EDUCATION CONTROLS ---
+  const addEducation = () => setEducation([...education, { degree: "", institution: "", year: "", cgpa: "", percentage: "", relevantCoursework: [] }]);
   const updateEducation = (index: number, field: keyof Education, value: string) => {
     const newEdu = [...education];
-    if (field === "relevantCoursework") {
-      newEdu[index].relevantCoursework = value.split(",").map((s) => s.trimStart());
-    } else {
-      newEdu[index][field] = value as never;
-    }
+    if (field === "relevantCoursework") newEdu[index].relevantCoursework = value.split(",").map((s) => s.trimStart());
+    else newEdu[index][field] = value as never;
+    setEducation(newEdu);
+  };
+  const removeEducation = (index: number) => setEducation(education.filter((_, i) => i !== index));
+  const moveEducation = (index: number, direction: 'up' | 'down') => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === education.length - 1)) return;
+    const newEdu = [...education];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    [newEdu[index], newEdu[swapIndex]] = [newEdu[swapIndex], newEdu[index]];
+    setEducation(newEdu);
+  };
+  const removeCoursework = (eduIndex: number, courseIndex: number) => {
+    const newEdu = [...education];
+    newEdu[eduIndex].relevantCoursework = newEdu[eduIndex].relevantCoursework.filter((_, i) => i !== courseIndex);
     setEducation(newEdu);
   };
 
-  const removeEducation = (index: number) =>
-    setEducation(education.filter((_, i) => i !== index));
+  // --- EXPERIENCE CONTROLS ---
+  const addExperience = () => setExperience([...experience, { role: "", company: "", duration: "", description: "" }]);
+  const updateExperience = (index: number, field: keyof Experience, value: string) => {
+    const newExp = [...experience];
+    newExp[index][field] = value;
+    setExperience(newExp);
+  };
+  const removeExperience = (index: number) => setExperience(experience.filter((_, i) => i !== index));
+
+  // --- CERTIFICATION CONTROLS ---
+  const addCertification = () => setCertifications([...certifications, { name: "", issuer: "", date: "", url: "" }]);
+  const updateCertification = (index: number, field: keyof Certification, value: string) => {
+    const newCert = [...certifications];
+    newCert[index][field] = value;
+    setCertifications(newCert);
+  };
+  const removeCertification = (index: number) => setCertifications(certifications.filter((_, i) => i !== index));
 
   const handleSave = async () => {
     setSaving(true);
@@ -127,7 +129,7 @@ export default function AdminAbout() {
       const res = await fetch("/api/about", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bio, skills: selectedSkills, education }),
+        body: JSON.stringify({ bio, location, availability, skills: selectedSkills, education, experience, certifications }),
       });
       if (res.ok) setToast({ message: "About Page updated successfully!", type: "success" });
       else throw new Error("Failed");
@@ -140,161 +142,113 @@ export default function AdminAbout() {
 
   const filteredCategories = SKILL_CATEGORIES.map((cat) => ({
     ...cat,
-    skills: cat.skills.filter((s) =>
-      s.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ),
+    skills: cat.skills.filter((s) => s.name.toLowerCase().includes(searchTerm.toLowerCase())),
   })).filter((cat) => cat.skills.length > 0);
 
-  if (loading)
-    return (
-      <div className="p-20 flex justify-center">
-        <Loader2 className="animate-spin w-8 h-8 text-primary" />
-      </div>
-    );
+  if (loading) return <div className="p-20 flex justify-center"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8 pb-32">
+    <div className="bg-gray-50 min-h-screen pb-32">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div className="flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-10 py-4 border-b">
-        <h1 className="text-3xl font-bold">Edit About Page</h1>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-all shadow-lg"
-        >
-          {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />} Update All
-        </button>
+      {/* STICKY HEADER */}
+      <div className="sticky top-0 z-40 bg-gray-50/90 backdrop-blur-md border-b border-gray-200 px-8 py-4 flex justify-between items-center">
+        <h1 className="text-2xl font-extrabold text-black">Edit About Page</h1>
+        <div className="flex gap-3">
+          <a href="/about" target="_blank" className="bg-white border-2 border-gray-300 hover:border-blue-600 hover:text-blue-600 text-black px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all">
+            <Eye size={20} /> Preview
+          </a>
+          <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 shadow-lg transition-all">
+            {saving ? <Loader2 className="animate-spin w-5 h-5" /> : <Save className="w-5 h-5" />} Update All
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="p-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* LEFT COLUMN */}
+        <div className="space-y-8">
+          
+          {/* Basic Info & Bio */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-6">
+            <h3 className="font-bold text-lg text-black border-b pb-2">Profile & Biography</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-500">Location</label>
+                <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Siliguri, India" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-500">Availability Status</label>
+                <input value={availability} onChange={(e) => setAvailability(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Open to Backend Roles" />
+              </div>
+            </div>
 
-        {/* LEFT COLUMN: Bio & Education */}
-        <div className="space-y-6">
-
-          {/* Bio */}
-          <div className="p-6 border rounded-xl bg-card shadow-sm">
-            <h3 className="font-semibold text-lg mb-2">Biography</h3>
-            <RichToolbar targetId="input-bio" onInsert={handleInsertTag} />
-            <textarea
-              id="input-bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={12}
-              className="w-full p-4 border rounded-lg bg-background font-mono text-sm leading-relaxed focus:ring-2 focus:ring-primary/50 outline-none"
-              placeholder="I am a B.Tech student..."
-            />
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-gray-500">Biography</label>
+              <div className="bg-white text-black rounded-xl overflow-hidden border border-gray-300 [&_*]:!text-black">
+                <ReactQuill theme="snow" value={bio} onChange={setBio} modules={modules} className="h-64 mb-12" />
+              </div>
+            </div>
           </div>
 
-          {/* Education */}
-          <div className="p-6 border rounded-xl bg-card shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Education Timeline</h3>
-              <button
-                onClick={addEducation}
-                className="text-xs flex items-center gap-1 bg-secondary text-secondary-foreground px-3 py-1 rounded hover:opacity-90"
-              >
-                <Plus className="w-3 h-3" /> Add
+          {/* Education Timeline */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
+            <div className="flex items-center justify-between mb-6 border-b pb-2">
+              <h3 className="font-bold text-lg text-black">Education Timeline</h3>
+              <button onClick={addEducation} className="text-sm flex items-center gap-1 bg-blue-50 text-blue-600 font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                <Plus className="w-4 h-4" /> Add Entry
               </button>
             </div>
 
-            <div className="space-y-6 max-h-[700px] overflow-y-auto pr-2">
-              {education.length === 0 && (
-                <p className="text-center text-xs text-muted-foreground">No education added.</p>
-              )}
-
+            <div className="space-y-6">
               {education.map((edu, index) => (
-                <div
-                  key={index}
-                  className="p-4 border rounded-lg bg-background/50 space-y-3 relative group"
-                >
-                  <button
-                    onClick={() => removeEducation(index)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                <div key={index} className="p-5 border border-gray-200 rounded-xl bg-gray-50 relative group">
+                  
+                  {/* Controls */}
+                  <div className="absolute -top-3 -right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => moveEducation(index, 'up')} className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-600 hover:text-blue-600 shadow-sm"><ArrowUp size={14} /></button>
+                    <button onClick={() => moveEducation(index, 'down')} className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-600 hover:text-blue-600 shadow-sm"><ArrowDown size={14} /></button>
+                    <button onClick={() => removeEducation(index)} className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-sm"><Trash2 size={14} /></button>
+                  </div>
 
-                  {/* Degree + Year */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Degree</label>
-                      <input
-                        value={edu.degree}
-                        onChange={(e) => updateEducation(index, "degree", e.target.value)}
-                        className="w-full p-2 border rounded bg-background text-sm font-bold"
-                        placeholder="e.g. B.Sc. CS"
-                      />
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Degree</label>
+                      <input value={edu.degree} onChange={(e) => updateEducation(index, "degree", e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-black" placeholder="e.g. B.Tech in CS" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Year</label>
-                      <input
-                        value={edu.year}
-                        onChange={(e) => updateEducation(index, "year", e.target.value)}
-                        className="w-full p-2 border rounded bg-background text-sm text-center"
-                        placeholder="e.g. 2021 - 2025"
-                      />
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Year</label>
+                      <input value={edu.year} onChange={(e) => updateEducation(index, "year", e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" placeholder="e.g. 2023 - 2026" />
                     </div>
                   </div>
 
-                  {/* Institution */}
+                  <div className="mb-4">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Institution</label>
+                    <input value={edu.institution} onChange={(e) => updateEducation(index, "institution", e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" placeholder="e.g. Siliguri Institute of Technology" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">CGPA</label>
+                      <input value={edu.cgpa} onChange={(e) => updateEducation(index, "cgpa", e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" placeholder="e.g. 7.73" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Percentage</label>
+                      <input value={edu.percentage} onChange={(e) => updateEducation(index, "percentage", e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black" placeholder="e.g. 88.5%" />
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Institution</label>
-                    <input
-                      value={edu.institution}
-                      onChange={(e) => updateEducation(index, "institution", e.target.value)}
-                      className="w-full p-2 border rounded bg-background text-sm"
-                      placeholder="e.g. University of Dhaka"
-                    />
-                  </div>
-
-                  {/* CGPA + Percentage */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">CGPA (optional)</label>
-                      <input
-                        value={edu.cgpa}
-                        onChange={(e) => updateEducation(index, "cgpa", e.target.value)}
-                        className="w-full p-2 border rounded bg-background text-sm"
-                        placeholder="e.g. 3.85 / 4.00"
-                      />
+                    <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Relevant Coursework (comma separated)</label>
+                    <input value={edu.relevantCoursework.join(", ")} onChange={(e) => updateEducation(index, "relevantCoursework", e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black mb-2" placeholder="e.g. Data Structures, Algorithms" />
+                    <div className="flex flex-wrap gap-1.5">
+                      {edu.relevantCoursework.filter((c) => c.trim()).map((course, cIdx) => (
+                        <span key={cIdx} onClick={() => removeCoursework(index, cIdx)} className="text-[10px] font-bold bg-white border border-gray-200 text-gray-600 px-2 py-1 rounded-md cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center gap-1 transition-colors">
+                          {course.trim()} <X size={10} />
+                        </span>
+                      ))}
                     </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Percentage (optional)</label>
-                      <input
-                        value={edu.percentage}
-                        onChange={(e) => updateEducation(index, "percentage", e.target.value)}
-                        className="w-full p-2 border rounded bg-background text-sm"
-                        placeholder="e.g. 88.5%"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Relevant Coursework */}
-                  <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
-                      Relevant Coursework <span className="normal-case font-normal">(comma separated)</span>
-                    </label>
-                    <input
-                      value={edu.relevantCoursework.join(", ")}
-                      onChange={(e) => updateEducation(index, "relevantCoursework", e.target.value)}
-                      className="w-full p-2 border rounded bg-background text-sm"
-                      placeholder="e.g. Data Structures, Algorithms, OS"
-                    />
-                    {edu.relevantCoursework.filter((c) => c.trim()).length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {edu.relevantCoursework
-                          .filter((c) => c.trim())
-                          .map((course, cIdx) => (
-                            <span
-                              key={cIdx}
-                              className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full"
-                            >
-                              {course.trim()}
-                            </span>
-                          ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
@@ -302,52 +256,31 @@ export default function AdminAbout() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Skills */}
-        <div className="space-y-6">
-          <div className="p-6 border rounded-xl bg-card shadow-sm h-full flex flex-col">
-            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-              Technical Arsenal{" "}
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                {selectedSkills.length} Selected
-              </span>
+        {/* RIGHT COLUMN */}
+        <div className="space-y-8">
+          
+          {/* Technical Arsenal */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm flex flex-col h-[600px]">
+            <h3 className="font-bold text-lg text-black mb-4 flex items-center justify-between border-b pb-2">
+              Technical Arsenal 
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{selectedSkills.length} Selected</span>
             </h3>
-            <div className="relative mb-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search skills..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 p-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" placeholder="Search skills..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 p-2.5 rounded-xl border border-gray-300 bg-gray-50 text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
-            <div className="flex-1 overflow-y-auto max-h-[600px] pr-2 space-y-8">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
               {filteredCategories.map((cat) => (
                 <div key={cat.title}>
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3">{cat.title}</h4>
+                  <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">{cat.title}</h4>
                   <div className="flex flex-wrap gap-3">
                     {cat.skills.map((skill) => {
                       const isSelected = selectedSkills.includes(skill.name);
                       return (
-                        <div
-                          key={skill.name}
-                          onClick={() => toggleSkill(skill.name)}
-                          className={`group relative cursor-pointer w-16 h-16 rounded-xl flex flex-col items-center justify-center select-none transition-all duration-200 ${
-                            isSelected
-                              ? "shadow-[0_4px_0_rgba(0,0,0,0.2)] translate-y-0"
-                              : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-primary/50 opacity-60 hover:opacity-100"
-                          }`}
-                          style={isSelected ? { backgroundColor: skill.color, color: "white" } : {}}
-                        >
-                          <skill.Icon className={`w-6 h-6 mb-1 ${!isSelected && "text-gray-500 dark:text-gray-400"}`} />
-                          <span className={`text-[9px] font-bold uppercase tracking-wider ${!isSelected && "text-gray-500"}`}>
-                            {skill.name}
-                          </span>
-                          {isSelected && (
-                            <div className="absolute -top-1 -right-1 bg-white text-black rounded-full p-0.5 shadow-sm">
-                              <Check className="w-3 h-3" />
-                            </div>
-                          )}
+                        <div key={skill.name} onClick={() => toggleSkill(skill.name)} className={`group relative cursor-pointer w-16 h-16 rounded-xl flex flex-col items-center justify-center select-none transition-all duration-200 ${isSelected ? "shadow-md translate-y-0" : "bg-gray-50 border border-gray-200 hover:border-blue-400 opacity-70 hover:opacity-100"}`} style={isSelected ? { backgroundColor: skill.color, color: "white" } : {}}>
+                          <skill.Icon className={`w-6 h-6 mb-1 ${!isSelected && "text-gray-500"}`} />
+                          <span className={`text-[9px] font-bold uppercase tracking-wider ${!isSelected && "text-gray-500"}`}>{skill.name}</span>
+                          {isSelected && <div className="absolute -top-1.5 -right-1.5 bg-white text-black rounded-full p-0.5 shadow-sm border border-gray-200"><Check className="w-3 h-3" /></div>}
                         </div>
                       );
                     })}
@@ -356,6 +289,27 @@ export default function AdminAbout() {
               ))}
             </div>
           </div>
+
+          {/* Experience & Certifications (New Sections) */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
+            <div className="flex items-center justify-between mb-6 border-b pb-2">
+              <h3 className="font-bold text-lg text-black">Experience & Internships</h3>
+              <button onClick={addExperience} className="text-sm flex items-center gap-1 bg-blue-50 text-blue-600 font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"><Plus className="w-4 h-4" /> Add</button>
+            </div>
+            <div className="space-y-4">
+              {experience.map((exp, index) => (
+                <div key={index} className="p-4 border border-gray-200 rounded-xl bg-gray-50 relative group">
+                  <button onClick={() => removeExperience(index)} className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"><Trash2 size={12} /></button>
+                  <input value={exp.role} onChange={(e) => updateExperience(index, "role", e.target.value)} className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm font-bold text-black" placeholder="Role (e.g. Backend Intern)" />
+                  <input value={exp.company} onChange={(e) => updateExperience(index, "company", e.target.value)} className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm text-black" placeholder="Company" />
+                  <input value={exp.duration} onChange={(e) => updateExperience(index, "duration", e.target.value)} className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm text-black" placeholder="Duration (e.g. Jan 2024 - Present)" />
+                  <textarea value={exp.description} onChange={(e) => updateExperience(index, "description", e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg text-sm text-black" placeholder="Key contributions..." rows={2} />
+                </div>
+              ))}
+              {experience.length === 0 && <p className="text-xs text-gray-400 italic">No experience added.</p>}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

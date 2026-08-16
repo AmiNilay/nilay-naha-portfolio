@@ -4,7 +4,8 @@ import "./globals.css";
 
 import Navbar from "@/components/layout/Navbar";
 import PageNavigation from "@/components/layout/PageNavigation";
-import CustomCursor from "@/components/ui/CustomCursor";
+import CommandPalette from "@/components/ui/CommandPalette"; // ✅ Added Command Palette Import
+import Chatbot from "@/components/ui/Chatbot"; // ✅ Added Chatbot Import
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -12,7 +13,7 @@ const inter = Inter({ subsets: ["latin"] });
 const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
 const SITE_NAME = "Nilay Naha - Software Developer";
 const SITE_DESCRIPTION =
-  "Nilay Naha — Software Developer (Python) building secure REST APIs, backend systems, and full-stack apps with FastAPI, Node.js, MongoDB, and Next.js.";
+  "Nilay Naha — Software Developer (Python ) building secure REST APIs, backend systems, and full-stack apps with FastAPI, Node.js, MongoDB, and Next.js.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -80,6 +81,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: SITE_URL,
   },
+  manifest: "/manifest.json", // ✅ Added PWA Manifest Link
 };
 
 export default function RootLayout({
@@ -89,9 +91,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <CustomCursor />
           <Navbar />
           <PageNavigation />
+          <CommandPalette /> {/* ✅ Added Command Palette Component */}
+          <Chatbot /> {/* ✅ Added Chatbot Component */}
           {children}
         </ThemeProvider>
       </body>

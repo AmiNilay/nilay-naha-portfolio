@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MoveHorizontal } from "lucide-react";
 
 const pages = ["/", "/projects", "/blog", "/about", "/contact"];
 
@@ -11,6 +11,7 @@ export default function PageNavigation() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [showHints, setShowHints] = useState(false);
+  const [showGlobalHint, setShowGlobalHint] = useState(false);
 
   // Refs for touch coordinates to avoid stale closures in event listeners
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -22,7 +23,19 @@ export default function PageNavigation() {
     setMounted(true);
   }, []);
 
-  // 1. Show Hints Logic (Mobile Only)
+  // 1. Show Global Onboarding Hint (EVERY time they visit the home page)
+  useEffect(() => {
+    if (!mounted || safePathname.startsWith("/admin") || safePathname !== "/") return;
+
+    // Show the hint immediately
+    setShowGlobalHint(true);
+    
+    // Hide after 4 seconds
+    const timer = setTimeout(() => setShowGlobalHint(false), 4000);
+    return () => clearTimeout(timer);
+  }, [safePathname, mounted]);
+
+  // 2. Show Edge Hints Logic (Mobile Only)
   useEffect(() => {
     if (!mounted || safePathname.startsWith("/admin")) return;
 
@@ -33,7 +46,7 @@ export default function PageNavigation() {
     }
   }, [safePathname, mounted]);
 
-  // 2. Navigation Logic (Keyboard + Touch)
+  // 3. Navigation Logic (Keyboard + Touch)
   useEffect(() => {
     if (!mounted || safePathname.startsWith("/admin") || currentIndex === -1) return;
 
@@ -41,8 +54,15 @@ export default function PageNavigation() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (["INPUT", "TEXTAREA"].includes(target.tagName)) return;
-      if (e.key === "ArrowRight" && currentIndex < pages.length - 1) router.push(pages[currentIndex + 1]);
-      if (e.key === "ArrowLeft" && currentIndex > 0) router.push(pages[currentIndex - 1]);
+      
+      if (e.key === "ArrowRight" && currentIndex < pages.length - 1) {
+        setShowGlobalHint(false); // Hide hint immediately on action
+        router.push(pages[currentIndex + 1]);
+      }
+      if (e.key === "ArrowLeft" && currentIndex > 0) {
+        setShowGlobalHint(false); // Hide hint immediately on action
+        router.push(pages[currentIndex - 1]);
+      }
     };
 
     // --- TOUCH ---
@@ -62,13 +82,12 @@ export default function PageNavigation() {
       const diffX = touchStart.current.x - touchEndX;
       const diffY = touchStart.current.y - touchEndY;
 
-      // Reset
       touchStart.current = null;
 
-      // Logic: Only navigate if swipe is mostly HORIZONTAL (prevents interference with scrolling)
+      // Logic: Only navigate if swipe is mostly HORIZONTAL
       if (Math.abs(diffX) > Math.abs(diffY)) {
-        // Threshold > 50px
         if (Math.abs(diffX) > 50) {
+          setShowGlobalHint(false); // Hide hint immediately on action
           if (diffX > 0) {
             // Swiped LEFT (Next)
             if (currentIndex < pages.length - 1) router.push(pages[currentIndex + 1]);
@@ -91,18 +110,29 @@ export default function PageNavigation() {
     };
   }, [mounted, safePathname, currentIndex, router]);
 
-  // Don't render anything if not mounted or on admin
   if (!mounted || safePathname.startsWith("/admin")) return null;
 
   return (
     <>
-      {/* --- MOBILE VISUAL HINTS (Animated Overlay) --- */}
+      {/* 🟢 GLOBAL ONBOARDING HINT (Desktop & Mobile) */}
+      <div 
+        className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-700 ease-out pointer-events-none ${
+          showGlobalHint ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        }`}
+      >
+        {/* Forced Primary Background and White Text for perfect contrast */}
+        <div className="flex items-center gap-3 px-6 py-3 bg-primary text-white rounded-full shadow-2xl border border-primary/50">
+          <MoveHorizontal className="w-5 h-5 animate-pulse text-white" />
+          <span className="text-sm font-bold tracking-wide text-white">Swipe or use arrow keys to navigate</span>
+        </div>
+      </div>
+
+      {/* --- MOBILE VISUAL EDGE HINTS (Animated Overlay) --- */}
       <div 
         className={`fixed inset-0 z-50 pointer-events-none flex items-center justify-between px-4 transition-opacity duration-700 md:hidden ${
           showHints ? "opacity-100" : "opacity-0"
         }`}
       >
-        {/* Left Hint (Swipe Right to go Prev) */}
         <div className={`transition-transform duration-500 ${showHints ? "translate-x-0" : "-translate-x-8"}`}>
           {currentIndex > 0 && (
             <div className="bg-black/40 dark:bg-white/10 backdrop-blur-md p-3 rounded-full text-white shadow-lg animate-pulse">
@@ -111,7 +141,6 @@ export default function PageNavigation() {
           )}
         </div>
 
-        {/* Right Hint (Swipe Left to go Next) */}
         <div className={`transition-transform duration-500 ${showHints ? "translate-x-0" : "translate-x-8"}`}>
           {currentIndex < pages.length - 1 && (
             <div className="bg-black/40 dark:bg-white/10 backdrop-blur-md p-3 rounded-full text-white shadow-lg animate-pulse">

@@ -4,16 +4,17 @@ const PostSchema = new Schema(
   {
     title: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
-    content: { type: String, required: true }, 
-    excerpt: { type: String }, 
-    coverImage: { type: String },
-    tags: [{ type: String }],
-    published: { type: Boolean, default: true },
-    publishDate: { type: Date, default: Date.now }, // 🟢 Added Publish Date
+    excerpt: String,
+    content: { type: String, required: true },
+    coverImage: String,
+    category: String,
+    tags: [String],
+    published: { type: Boolean, default: false },
+    readTime: String,
+    views: { type: Number, default: 0 }, // ✅ ADDED VIEWS FIELD
   },
-  { timestamps: true }
+  { timestamps: true } // This automatically creates createdAt and updatedAt!
 );
 
 const Post = models.Post || model("Post", PostSchema);
-
 export default Post;

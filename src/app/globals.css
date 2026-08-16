@@ -47,6 +47,8 @@
 
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -168,7 +170,8 @@
   text-decoration-color: color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
-.blog-content a:hover {
+.blog-content a
+:hover {
   text-decoration-color: var(--primary);
 }
 
@@ -224,4 +227,61 @@
 /* KaTeX Sizing */
 .blog-content .katex-display {
   @apply my-6 overflow-x-auto py-2;
+}
+
+/* ==========================================
+   🛡️ ADMIN PANEL LIGHT MODE OVERRIDE
+   ========================================== */
+html.dark .admin-root {
+  background-color: #f9fafb !important;
+  color: #111827 !important;
+  color-scheme: light !important;
+}
+
+html.dark .admin-root .bg-white {
+  background-color: #ffffff !important;
+}
+
+html.dark .admin-root .bg-gray-50 {
+  background-color: #f9fafb !important;
+}
+
+html.dark .admin-root input,
+html.dark .admin-root textarea,
+html.dark .admin-root select {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+html.dark .admin-root .text-gray-900,
+html.dark .admin-root .text-black {
+  color: #111827 !important;
+}
+
+html.dark .admin-root .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+html.dark .admin-root .border-gray-200 {
+  border-color: #e5e7eb !important;
+}
+
+html.dark .admin-root .border-gray-300 {
+  border-color: #d1d5db !important;
+}
+
+/* Force ReactQuill Editor to stay light */
+html.dark .admin-root .ql-toolbar,
+html.dark .admin-root .ql-container {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+html.dark .admin-root .ql-editor {
+  color: #111827 !important;
+}
+
+html.dark .admin-root .ql-editor.ql-blank::before {
+  color: #9ca3af !important;
 }

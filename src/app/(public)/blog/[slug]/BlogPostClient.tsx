@@ -53,7 +53,9 @@ export default function BlogPostClient() {
     if (!post?.content) return;
 
     const preElements = document.querySelectorAll(".prose pre");
-    preElements.forEach((pre) => {
+    preElements.forEach((preNode) => {
+      const pre = preNode as HTMLElement; // ✅ FIX: Tell TypeScript this is an HTMLElement
+
       // Prevent adding multiple buttons if component re-renders
       if (pre.querySelector(".copy-button")) return;
 

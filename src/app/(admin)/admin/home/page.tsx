@@ -9,6 +9,8 @@ import Image from "next/image";
 import Toast from "@/components/ui/Toast";
 import Cropper, { Point, Area } from "react-easy-crop"; 
 import dynamic from "next/dynamic";
+
+// @ts-ignore - Ignores TypeScript warning for CSS import
 import "react-quill/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -64,7 +66,7 @@ export default function AdminHome() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0); // ✅ ACTUAL PROGRESS STATE
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -150,7 +152,6 @@ export default function AdminHome() {
     if (file) setSelectedResume(file);
   };
 
-  // --- ✅ UPDATED SAVE HANDLER WITH REAL PROGRESS TRACKING ---
   const handleSave = async () => {
     setSaving(true);
     setUploadProgress(0);
@@ -180,7 +181,6 @@ export default function AdminHome() {
 
       if (selectedResume) data.append("resume", selectedResume);
 
-      // Use XMLHttpRequest for actual upload progress tracking
       const updated: any = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", "/api/hero");
@@ -204,7 +204,15 @@ export default function AdminHome() {
         xhr.send(data);
       });
 
-      if (updated.profilePic) setPreviewUrl(updated.profilePic);
+      // ✅ FIX: Update formData state so subsequent saves don't delete the files!
+      if (updated.profilePic) {
+        setPreviewUrl(updated.profilePic);
+        setFormData(prev => ({ ...prev, profilePic: updated.profilePic }));
+      }
+      if (updated.resumeUrl) {
+        setFormData(prev => ({ ...prev, resumeUrl: updated.resumeUrl }));
+      }
+
       setSelectedImage(null);
       setSelectedResume(null);
       setToast({ message: "Home Page updated successfully!", type: "success" });
@@ -255,7 +263,6 @@ export default function AdminHome() {
             <Eye size={20} /> Preview
           </a>
           
-          {/* ✅ UPDATED: Dynamic Progress Button */}
           <button 
             onClick={handleSave} 
             disabled={saving} 
@@ -458,3 +465,4 @@ export default function AdminHome() {
     </div>
   );
 }
+

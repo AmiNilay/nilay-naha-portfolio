@@ -11,15 +11,6 @@ interface Message { id: string; role: "bot" | "user"; content: string; quickRepl
 
 const SUGGESTED_QUESTIONS = ["What projects have you built?", "What languages do you know?", "Download Resume", "Why should we hire you?"];
 
-// Common words that the bot should ignore when matching
-const STOP_WORDS = new Set([
-  "what", "is", "the", "have", "you", "built", "do", "know", "tell", "me", "about", 
-  "a", "an", "in", "on", "at", "to", "for", "of", "with", "and", "or", "but", "how", 
-  "why", "when", "where", "who", "which", "can", "could", "would", "should", "are", 
-  "am", "i", "my", "mine", "your", "yours", "he", "she", "it", "they", "them", "their", 
-  "we", "us", "our", "did", "does", "has", "had", "been"
-]);
-
 // Fuzzy Matching Algorithm (Levenshtein Distance)
 const getLevenshteinDistance = (a: string, b: string) => {
   if (!a.length) return b.length;
@@ -34,36 +25,22 @@ const getLevenshteinDistance = (a: string, b: string) => {
   return arr[b.length][a.length];
 };
 
-// NEW: Advanced Scoring Algorithm
-const calculateMatchScore = (input: string, keywords: string[]) => {
-  const cleanInput = input.toLowerCase().replace(/[^\w\s]/g, '');
-  const inputWords = cleanInput.split(/\s+/).filter(w => !STOP_WORDS.has(w) && w.length > 1);
+// Stop words to ignore during matching
+const STOP_WORDS = ["what", "is", "the", "have", "you", "in", "do", "a", "an", "to", "for", "of", "my", "your"];
+
+const isFuzzyMatch = (input: string, keyword: string) => {
+  const inputWords = input.toLowerCase().split(/\s+/).filter(w => !STOP_WORDS.includes(w));
+  const keywordWords = keyword.toLowerCase().split(/\s+/).filter(w => !STOP_WORDS.includes(w));
   
-  let score = 0;
+  if (input.toLowerCase().includes(keyword.toLowerCase())) return true;
   
-  keywords.forEach(kw => {
-    const cleanKw = kw.toLowerCase().trim();
-    
-    // 1. Exact phrase match (Massive points)
-    if (cleanInput.includes(cleanKw)) {
-      score += 10;
-      return;
+  for (const kw of keywordWords) {
+    if (kw.length < 3) continue; 
+    for (const iw of inputWords) {
+      if (getLevenshteinDistance(kw, iw) <= 2) return true;
     }
-    
-    // 2. Word-level matching
-    const kwWords = cleanKw.split(/\s+/).filter(w => !STOP_WORDS.has(w) && w.length > 1);
-    kwWords.forEach(kwWord => {
-      inputWords.forEach(inWord => {
-        if (kwWord === inWord) {
-          score += 3; // Exact word match
-        } else if (kwWord.length > 3 && inWord.length > 3 && getLevenshteinDistance(kwWord, inWord) <= 1) {
-          score += 1; // Fuzzy word match (typos)
-        }
-      });
-    });
-  });
-  
-  return score;
+  }
+  return false;
 };
 
 export default function Chatbot() {
@@ -89,7 +66,7 @@ export default function Chatbot() {
 
   // Auto-Suggest Logic
   const suggestions = input.trim().length > 1 
-    ? Array.from(new Set(rules.flatMap(r => r.keywords))).filter(k => k.toLowerCase().includes(input.toLowerCase().trim())).slice(0, 3)
+    ? Array.from(new Set(rules.flatMap(r => r.keywords))).filter(k => k.toLowerCase().includes(input.toLowerCase())).slice(0, 3)
     : [];
 
   const handleSend = async (text: string) => {
@@ -104,22 +81,24 @@ export default function Chatbot() {
       let links: LinkItem[] = [];
       let isResumeTrigger = false;
 
-      const cleanText = text.toLowerCase();
-
-      // Check for Resume Download Trigger first
-      if (cleanText.includes("resume") || cleanText.includes("cv") || cleanText.includes("download")) {
+      // Check for Resume Download Trigger
+      if (isFuzzyMatch(text, "resume") || isFuzzyMatch(text, "cv") || isFuzzyMatch(text, "download")) {
         responseText = resumeUrl ? "Here is Nilay's resume! Click the button below to download it." : "Sorry, Nilay hasn't uploaded a resume yet.";
         isResumeTrigger = !!resumeUrl;
       } else {
-        // Find best matching rule using the new scoring system
+        // ✅ FIX: Explicitly type bestRule as Rule | null
         let bestRule: Rule | null = null;
         let highestScore = 0;
 
-        rules.forEach(r => {
-          const score = calculateMatchScore(text, r.keywords);
+        // Scoring algorithm to find the BEST match, not just the first match
+        rules.forEach(rule => {
+          let score = 0;
+          rule.keywords.forEach(kw => {
+            if (isFuzzyMatch(text, kw)) score += 1;
+          });
           if (score > highestScore) {
             highestScore = score;
-            bestRule = r;
+            bestRule = rule;
           }
         });
 
@@ -276,6 +255,7 @@ export default function Chatbot() {
                 </button>
               </form>
               
+              {/* Footer Note */}
               <div className="mt-4 text-center">
                 <p className="text-[10px] text-zinc-500 dark:text-zinc-500 font-medium">
                   This is an automated bot. For real interaction, please{" "}

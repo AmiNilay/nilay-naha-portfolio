@@ -23,7 +23,7 @@ export default function PushNotificationButton() {
     if ("serviceWorker" in navigator && "PushManager" in window) {
       setIsSupported(true);
       navigator.serviceWorker.getRegistration().then((reg) => {
-        if (reg && reg.pushManager) {
+        if (reg && reg.active && reg.pushManager) {
           reg.pushManager.getSubscription().then((sub) => {
             if (sub) setIsSubscribed(true);
           });
@@ -50,16 +50,17 @@ export default function PushNotificationButton() {
         return;
       }
 
-      // 2. Safely get the Service Worker without hanging forever
+      // 2. Safely get or register the Service Worker
       let registration = await navigator.serviceWorker.getRegistration();
-      
-      // If it's missing, force register it
       if (!registration) {
         registration = await navigator.serviceWorker.register('/sw.js');
       }
 
-      if (!registration) {
-        alert("ERROR: Service Worker could not be found.");
+      // 🔥 CRITICAL FIX: Wait for the Service Worker to be 100% ACTIVE
+      registration = await navigator.serviceWorker.ready;
+
+      if (!registration.pushManager) {
+        alert("ERROR: Push Manager is not available in this browser.");
         setLoading(false);
         return;
       }

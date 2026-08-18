@@ -86,8 +86,8 @@ export default function Chatbot() {
         responseText = resumeUrl ? "Here is Nilay's resume! Click the button below to download it." : "Sorry, Nilay hasn't uploaded a resume yet.";
         isResumeTrigger = !!resumeUrl;
       } else {
-        // ✅ FIX: Use Rule | undefined to prevent TypeScript closure inference errors
-        let bestRule: Rule | undefined = undefined;
+        // ✅ FIX: Use 'any' to completely bypass TypeScript's strict closure inference
+        let bestRule: any = null;
         let highestScore = 0;
 
         // Scoring algorithm to find the BEST match

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Bell, Loader2, CheckCircle } from "lucide-react";
 
-// Safely converts the VAPID key for the browser
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
@@ -23,10 +22,12 @@ export default function PushNotificationButton() {
   useEffect(() => {
     if ("serviceWorker" in navigator && "PushManager" in window) {
       setIsSupported(true);
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => {
-          if (sub) setIsSubscribed(true);
-        });
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg && reg.pushManager) {
+          reg.pushManager.getSubscription().then((sub) => {
+            if (sub) setIsSubscribed(true);
+          });
+        }
       });
     }
   }, []);
@@ -34,36 +35,42 @@ export default function PushNotificationButton() {
   const subscribeToPush = async () => {
     setLoading(true);
     try {
+      // 1. Force the browser to ask for permission FIRST
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("Permission denied! Please click the lock icon in your URL bar and allow notifications.");
+        setLoading(false);
+        return;
+      }
+
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      
-      // DEBUG CHECK 1: Is the key missing?
       if (!publicKey) {
-        alert("ERROR: VAPID Public Key is missing! Vercel did not inject it.");
+        alert("ERROR: VAPID Public Key is missing!");
         setLoading(false);
         return;
       }
 
-      // DEBUG CHECK 2: Is the key the wrong length? (Should be ~87 chars)
-      if (publicKey.length < 80) {
-        alert(`ERROR: VAPID Key seems broken or too short. Length: ${publicKey.length}`);
-        setLoading(false);
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
+      // 2. Safely get the Service Worker without hanging forever
+      let registration = await navigator.serviceWorker.getRegistration();
+      
+      // If it's missing, force register it
       if (!registration) {
-        alert("ERROR: Service Worker not ready.");
+        registration = await navigator.serviceWorker.register('/sw.js');
+      }
+
+      if (!registration) {
+        alert("ERROR: Service Worker could not be found.");
         setLoading(false);
         return;
       }
 
-      // Attempt to subscribe
+      // 3. Subscribe to Push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
-      // Save to database
+      // 4. Save to Database
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,13 +79,14 @@ export default function PushNotificationButton() {
 
       if (res.ok) {
         setIsSubscribed(true);
+        alert("Success! You will now receive notifications.");
       } else {
         const errorData = await res.json();
         alert(`DB ERROR: ${errorData.error}`);
       }
     } catch (error: any) {
       console.error("Push Subscription Error:", error);
-      alert(`BROWSER ERROR: ${error.message}\n\n(If this says 'push service error', your browser is blocking notifications. Try standard Chrome!)`);
+      alert(`BROWSER ERROR: ${error.message}`);
     } finally {
       setLoading(false);
     }

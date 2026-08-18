@@ -70,6 +70,10 @@ export default function Hero() {
 
     const preventScroll = (e: Event) => e.preventDefault();
     const preventKeyScroll = (e: KeyboardEvent) => {
+      // ✅ CRITICAL FIX: Allow spacebar and typing if the user is inside an input or textarea!
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+
       const keys = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "];
       if (keys.includes(e.key)) {
         e.preventDefault();

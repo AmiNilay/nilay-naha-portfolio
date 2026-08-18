@@ -7,12 +7,13 @@ const PostSchema = new Schema(
     excerpt: String,
     content: { type: String, required: true },
     coverImage: String,
-    gDriveImage: String, // ✅ ADDED G-DRIVE FALLBACK
+    gDriveImage: String,
     category: String,
     tags: [String],
     published: { type: Boolean, default: false },
     readTime: String,
     views: { type: Number, default: 0 },
+    relatedProject: { type: String, default: "" }, // ✅ NEW: Link to a Project
   },
   { timestamps: true }
 );

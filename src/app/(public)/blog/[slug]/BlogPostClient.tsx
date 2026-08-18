@@ -4,17 +4,17 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Eye, Maximize, Minimize, RefreshCw } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Eye, Maximize, Minimize, RefreshCw, FolderGit2 } from "lucide-react";
 
 export default function BlogPostClient() {
   const params = useParams();
   const router = useRouter();
   const [post, setPost] = useState<any>(null);
+  const [linkedProject, setLinkedProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [viewCount, setViewCount] = useState<number>(0);
 
-  // 1. Fetch Post Data & Increment Views
   useEffect(() => {
     if (!params?.slug) return;
 
@@ -26,7 +26,15 @@ export default function BlogPostClient() {
           setPost(data.post);
           setViewCount(data.post.views || 0);
           
-          // Increment view count in the background
+          if (data.post.relatedProject) {
+            fetch(`/api/projects?id=${data.post.relatedProject}`)
+              .then(res => res.json())
+              .then(projData => {
+                if (projData.project) setLinkedProject(projData.project);
+              })
+              .catch(err => console.error("Failed to fetch linked project", err));
+          }
+
           fetch("/api/views", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -47,19 +55,17 @@ export default function BlogPostClient() {
     fetchPost();
   }, [params?.slug]);
 
-  // 2. Inject "Copy Code" Buttons into all <pre> blocks
   useEffect(() => {
     if (!post?.content) return;
 
     const preElements = document.querySelectorAll(".prose pre");
     preElements.forEach((preNode) => {
-      const pre = preNode as HTMLElement; // ✅ FIX: Tell TypeScript this is an HTMLElement
+      const pre = preNode as HTMLElement;
 
-      // Prevent adding multiple buttons if component re-renders
       if (pre.querySelector(".copy-button")) return;
 
       pre.style.position = "relative";
-      pre.classList.add("group"); // For hover effects
+      pre.classList.add("group");
 
       const button = document.createElement("button");
       button.className =
@@ -102,17 +108,14 @@ export default function BlogPostClient() {
     );
   }
 
-  // Format Dates
   const publishedDate = new Date(post.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  
-  // Format Last Updated (Date + Time)
   const updatedDate = new Date(post.updatedAt);
   const formattedLastUpdated = `${updatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${updatedDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 
   return (
     <article className="min-h-screen pt-24 pb-20 transition-colors duration-300">
-      {/* Header Section */}
-      <header className="max-w-4xl mx-auto px-6 mb-12 text-center">
+      {/* Header Section - Widened */}
+      <header className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 mb-12 text-center">
         <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors mb-8">
           <ArrowLeft className="w-4 h-4" /> Back to all posts
         </Link>
@@ -129,7 +132,6 @@ export default function BlogPostClient() {
           {post.title}
         </h1>
 
-        {/* Metadata Row (Date, Read Time, Views, Last Updated) */}
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500 dark:text-gray-400 font-medium">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4" /> {publishedDate}
@@ -144,24 +146,22 @@ export default function BlogPostClient() {
           </div>
         </div>
         
-        {/* Last Updated Badge */}
         <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
           <RefreshCw className="w-3 h-3" /> Last updated: {formattedLastUpdated}
         </div>
       </header>
 
-      {/* ✅ G-Drive Fallback & Anti-Download for Blog Cover Image */}
+      {/* Cover Image - Widened */}
       {(post.coverImage || post.gDriveImage) && (
-        <div className="max-w-5xl mx-auto px-6 mb-16">
+        <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 mb-16">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden shadow-2xl bg-gray-100 dark:bg-gray-900">
             <img 
               src={post.coverImage || post.gDriveImage} 
               alt={post.title} 
               className="w-full h-full object-cover select-none" 
-              onContextMenu={(e) => e.preventDefault()} // ✅ Anti-Download
-              draggable={false} // ✅ Anti-Drag
+              onContextMenu={(e) => e.preventDefault()}
+              draggable={false}
               onError={(e) => {
-                // ✅ G-Drive Fallback Logic
                 if (post.gDriveImage && e.currentTarget.src !== post.gDriveImage) {
                   e.currentTarget.src = post.gDriveImage;
                 }
@@ -170,12 +170,11 @@ export default function BlogPostClient() {
           </motion.div>
         </div>
       )}
-
-      {/* Content Section */}
-      <div className="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row gap-12 relative">
+            {/* Content Section - Widened */}
+      <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 flex flex-col lg:flex-row gap-12 relative">
         
         {/* Main Content */}
-        <div className={`flex-1 transition-all duration-500 ${focusMode ? "max-w-3xl mx-auto" : "max-w-3xl"}`}>
+        <div className={`flex-1 min-w-0 transition-all duration-500 ${focusMode ? "max-w-5xl mx-auto" : ""}`}>
           
           {/* Focus Mode Toggle */}
           <div className="flex justify-end mb-6">
@@ -187,9 +186,9 @@ export default function BlogPostClient() {
             </button>
           </div>
 
-          {/* Prose Content */}
+          {/* ✅ CRITICAL FIX: !max-w-none w-full forces the text to stretch to the edges! */}
           <div
-            className="prose prose-lg dark:prose-invert max-w-none prose-headings:scroll-mt-24 prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:border prose-pre:border-gray-800 prose-a:text-primary hover:prose-a:text-primary/80"
+            className="prose prose-lg md:prose-xl dark:prose-invert !max-w-none w-full prose-headings:scroll-mt-24 prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:border prose-pre:border-gray-800 prose-a:text-primary hover:prose-a:text-primary/80"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
@@ -210,14 +209,37 @@ export default function BlogPostClient() {
 
         {/* Sticky Sidebar (Hidden in Focus Mode) */}
         {!focusMode && (
-          <aside className="hidden lg:block w-64 shrink-0">
+          <aside className="hidden lg:block w-80 xl:w-96 shrink-0">
             <div className="sticky top-24 space-y-8">
+              
               {/* Author Card */}
               <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
                 <h3 className="font-bold text-gray-900 dark:text-white mb-2">Written by</h3>
                 <p className="text-primary font-medium">Nilay Naha</p>
                 <p className="text-sm text-gray-500 mt-2">Software Developer specializing in Python, FastAPI, and modern backend systems.</p>
               </div>
+
+              {/* Linked Project Card */}
+              {linkedProject && (
+                <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-wider mb-3">
+                    <FolderGit2 className="w-4 h-4" /> Related Project
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white text-lg mb-2 line-clamp-2">
+                    {linkedProject.title}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                    {linkedProject.description?.replace(/<[^>]*>?/gm, '') || "Check out the full case study and code for this project."}
+                  </p>
+                  <Link 
+                    href={`/projects/${linkedProject.slug}`}
+                    className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                  >
+                    View Project <ArrowLeft className="w-4 h-4 rotate-180" />
+                  </Link>
+                </div>
+              )}
+
             </div>
           </aside>
         )}
@@ -225,3 +247,4 @@ export default function BlogPostClient() {
     </article>
   );
 }
+

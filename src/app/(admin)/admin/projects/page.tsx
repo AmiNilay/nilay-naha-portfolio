@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { 
   Plus, Edit, Trash2, Loader2, AlertTriangle, Search, 
   ExternalLink, Star, Image as ImageIcon, Filter, ArrowUpDown 
@@ -14,6 +13,7 @@ interface Project {
   title: string;
   slug: string;
   image?: string;
+  gDriveImage?: string;
   status?: string;
   featured?: boolean;
   publishDate?: string;
@@ -22,16 +22,21 @@ interface Project {
   techStack?: string[] | string;
 }
 
-export default function AdminProjects() {
+// ✅ Hidden Google Drive API to generate clean image thumbnails
+const getGDriveThumb = (url?: string) => {
+  if (!url) return null;
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400` : null;
+};
+
+export default function AdminProjects( ) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Toolbar State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Newest");
 
-  // Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -76,23 +81,18 @@ export default function AdminProjects() {
   };
 
   const toggleFeatured = async (project: Project) => {
-    // Optimistic UI update
     setProjects(projects.map(p => p._id === project._id ? { ...p, featured: !p.featured } : p));
-    
     try {
       const formData = new FormData();
       formData.append("id", project._id);
       formData.append("featured", String(!project.featured));
-      
       await fetch("/api/projects", { method: "PUT", body: formData });
     } catch (error) {
-      // Revert on failure
       setProjects(projects.map(p => p._id === project._id ? { ...p, featured: project.featured } : p));
       setToast({ message: "Failed to update featured status", type: "error" });
     }
   };
 
-  // --- FILTERING & SORTING LOGIC ---
   let filteredProjects = projects.filter(p => 
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.slug.toLowerCase().includes(searchQuery.toLowerCase())
@@ -109,7 +109,6 @@ export default function AdminProjects() {
   filteredProjects.sort((a, b) => {
     const dateA = new Date(a.publishDate || a.createdAt || 0).getTime();
     const dateB = new Date(b.publishDate || b.createdAt || 0).getTime();
-    
     if (sortBy === "Newest") return dateB - dateA;
     if (sortBy === "Oldest") return dateA - dateB;
     if (sortBy === "Alphabetical") return a.title.localeCompare(b.title);
@@ -122,40 +121,25 @@ export default function AdminProjects() {
     <div className="p-8 max-w-7xl mx-auto pb-32 bg-gray-50 min-h-screen">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-black">Manage Projects</h1>
           <p className="text-gray-500 font-medium mt-1">Showing {filteredProjects.length} projects</p>
         </div>
-        <Link 
-          href="/admin/projects/new" 
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg"
-        >
+        <Link href="/admin/projects/new" className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg">
           <Plus size={20} /> New Project
         </Link>
       </div>
 
-      {/* TOOLBAR (Search, Filter, Sort) */}
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input 
-            type="text" 
-            placeholder="Search projects by title or slug..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none font-medium"
-          />
+          <input type="text" placeholder="Search projects by title or slug..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none font-medium" />
         </div>
         <div className="flex gap-4">
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <select 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-black font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-            >
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-black font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
               <option value="All">All Status</option>
               <option value="Published">Published</option>
               <option value="Draft">Draft</option>
@@ -164,11 +148,7 @@ export default function AdminProjects() {
           </div>
           <div className="relative">
             <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <select 
-              value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value)}
-              className="pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-black font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-            >
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-black font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
               <option value="Newest">Newest First</option>
               <option value="Oldest">Oldest First</option>
               <option value="Alphabetical">Alphabetical</option>
@@ -177,7 +157,6 @@ export default function AdminProjects() {
         </div>
       </div>
 
-      {/* PROJECT LIST */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         {filteredProjects.length === 0 ? (
           <div className="p-12 text-center text-gray-500 font-medium">
@@ -193,16 +172,17 @@ export default function AdminProjects() {
               return (
                 <div key={p._id} className="p-4 hover:bg-gray-50 transition-colors flex flex-col md:flex-row items-start md:items-center gap-4 group">
                   
-                  {/* Thumbnail */}
+                  {/* ✅ Lightweight Image Thumbnail (GitHub OR G-Drive) */}
                   <div className="w-24 h-16 shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 relative flex items-center justify-center">
                     {p.image ? (
-                      <Image src={p.image} alt={p.title} fill className="object-cover" unoptimized />
+                      <img src={p.image} alt={p.title} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    ) : p.gDriveImage ? (
+                      <img src={getGDriveThumb(p.gDriveImage) || ""} alt={p.title} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     ) : (
                       <ImageIcon className="w-6 h-6 text-gray-300" />
                     )}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-bold text-lg text-black truncate">{p.title}</h3>
@@ -218,7 +198,6 @@ export default function AdminProjects() {
                     </div>
                   </div>
 
-                  {/* Tags */}
                   <div className="hidden lg:flex items-center gap-1.5 w-48 flex-wrap">
                     {displayTags.map((tag, i) => (
                       <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-md border border-gray-200 truncate max-w-[80px]">
@@ -228,35 +207,17 @@ export default function AdminProjects() {
                     {tagsArray.length > 3 && <span className="text-xs text-gray-400 font-bold">+{tagsArray.length - 3}</span>}
                   </div>
 
-                  {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <button 
-                      onClick={() => toggleFeatured(p)}
-                      title={p.featured ? "Unfeature" : "Feature on Homepage"}
-                      className={`p-2 rounded-lg transition-colors ${p.featured ? "text-yellow-500 bg-yellow-50 hover:bg-yellow-100" : "text-gray-400 hover:bg-gray-100 hover:text-yellow-500"}`}
-                    >
+                    <button onClick={() => toggleFeatured(p)} title={p.featured ? "Unfeature" : "Feature on Homepage"} className={`p-2 rounded-lg transition-colors ${p.featured ? "text-yellow-500 bg-yellow-50 hover:bg-yellow-100" : "text-gray-400 hover:bg-gray-100 hover:text-yellow-500"}`}>
                       <Star size={18} className={p.featured ? "fill-current" : ""} />
                     </button>
-                    <Link 
-                      href={`/projects/${p.slug}`} 
-                      target="_blank"
-                      title="View Live"
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
+                    <Link href={`/projects/${p.slug}`} target="_blank" title="View Live" className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                       <ExternalLink size={18} />
                     </Link>
-                    <Link 
-                      href={`/admin/projects/${p._id}`} 
-                      title="Edit Project"
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
+                    <Link href={`/admin/projects/${p._id}`} title="Edit Project" className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                       <Edit size={18} />
                     </Link>
-                    <button 
-                      onClick={() => { setProjectToDelete(p._id); setShowDeleteModal(true); }}
-                      title="Delete Project"
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
+                    <button onClick={() => { setProjectToDelete(p._id); setShowDeleteModal(true); }} title="Delete Project" className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                       <Trash2 size={18} />
                     </button>
                   </div>
@@ -268,7 +229,6 @@ export default function AdminProjects() {
         )}
       </div>
 
-      {/* DELETE MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white p-8 rounded-3xl max-w-md w-full border border-gray-200 shadow-2xl">
@@ -289,3 +249,4 @@ export default function AdminProjects() {
     </div>
   );
 }
+

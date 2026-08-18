@@ -4,7 +4,6 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  // 🔥 THIS IS THE FIX: Tell Workbox to ignore the missing Next.js 14 files
   buildExcludes: [/middleware-manifest\.json$/, /app-build-manifest\.json$/],
   disable: process.env.NODE_ENV === 'development',
 });
@@ -15,6 +14,7 @@ const nextConfig = {
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       { protocol: "https", hostname: "raw.githubusercontent.com" },
       { protocol: "https", hostname: "drive.google.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" }, // ✅ Added new G-Drive image host
     ],
   },
 };

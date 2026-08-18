@@ -6,8 +6,13 @@ import { uploadToGithub } from "@/lib/githubUpload";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// 1. GET
-export async function GET(req: Request) {
+const formatGDriveUrl = (url: string | null) => {
+  if (!url) return "";
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+};
+
+export async function GET(req: Request  ) {
   try {
     await connectToDB();
     const { searchParams } = new URL(req.url);
@@ -29,12 +34,10 @@ export async function GET(req: Request) {
     const projects = await Project.find().sort({ publishDate: -1, createdAt: -1 });
     return NextResponse.json({ projects: projects || [] });
   } catch (error: any) {
-    console.error("Projects API Error:", error);
     return NextResponse.json({ error: "Server Error", details: error.message }, { status: 500 });
   }
 }
 
-// 2. POST (Create)
 export async function POST(req: Request) {
   try {
     await connectToDB();
@@ -48,19 +51,25 @@ export async function POST(req: Request) {
     const appLink = formData.get("appLink") as string;
     const tagsString = formData.get("tags") as string;
     const publishDate = formData.get("publishDate") as string;
-    const gDriveImage = formData.get("gDriveImage") as string; // ✅ Extract G-Drive Image
+    const role = formData.get("role") as string;
+    const status = formData.get("status") as string;
+    const frameStyle = formData.get("frameStyle") as string;
+    const featured = formData.get("featured") === "true";
+    const gDriveImage = formData.get("gDriveImage") as string;
+    const relatedBlog = formData.get("relatedBlog") as string; // ✅ Extract
     const imageFile = formData.get("image") as File;
 
     let imageUrl = "";
-
     if (imageFile && typeof imageFile !== "string") {
       const uploaded = await uploadToGithub(imageFile);
-      if (!uploaded) return NextResponse.json({ error: "Image Upload Failed." }, { status: 500 });
-      imageUrl = uploaded;
+      if (uploaded) imageUrl = uploaded;
     }
 
     const newProject = await Project.create({
-      title, slug, description, image: imageUrl, gDriveImage, githubLink, liveLink, appLink, // ✅ Save G-Drive Image
+      title, slug, description, image: imageUrl, githubLink, liveLink, appLink,
+      role, status, frameStyle, featured,
+      gDriveImage: formatGDriveUrl(gDriveImage),
+      relatedBlog: relatedBlog || "", // ✅ Save
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       tags: tagsString ? tagsString.split(",").map(t => t.trim()) : []
     });
@@ -71,7 +80,6 @@ export async function POST(req: Request) {
   }
 }
 
-// 3. PUT (Update)
 export async function PUT(req: Request) {
   try {
     await connectToDB();
@@ -92,10 +100,16 @@ export async function PUT(req: Request) {
     project.githubLink = formData.get("githubLink") || project.githubLink;
     project.liveLink = formData.get("liveLink") || project.liveLink;
     project.appLink = formData.get("appLink") || project.appLink;
+    project.role = formData.get("role") || project.role;
+    project.status = formData.get("status") || project.status;
+    project.frameStyle = formData.get("frameStyle") || project.frameStyle;
+    
+    if (formData.has("featured")) project.featured = formData.get("featured") === "true";
+    if (formData.has("relatedBlog")) project.relatedBlog = formData.get("relatedBlog") as string; // ✅ Update
     
     const gDriveImage = formData.get("gDriveImage") as string;
-    if (gDriveImage !== null) project.gDriveImage = gDriveImage; // ✅ Update G-Drive Image
-    
+    if (gDriveImage !== null) project.gDriveImage = formatGDriveUrl(gDriveImage);
+
     const publishDate = formData.get("publishDate") as string;
     if (publishDate) project.publishDate = new Date(publishDate);
     
@@ -105,8 +119,7 @@ export async function PUT(req: Request) {
     const imageFile = formData.get("image") as File;
     if (imageFile && typeof imageFile !== "string" && imageFile.size > 0) {
       const newImageUrl = await uploadToGithub(imageFile);
-      if (!newImageUrl) return NextResponse.json({ error: "Image Upload Failed." }, { status: 500 });
-      project.image = newImageUrl;
+      if (newImageUrl) project.image = newImageUrl;
     }
 
     await project.save();
@@ -116,21 +129,14 @@ export async function PUT(req: Request) {
   }
 }
 
-// 4. DELETE
 export async function DELETE(req: Request) {
   try {
     await connectToDB();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
-
-    if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      await Project.findByIdAndDelete(id);
-    } else {
-      await Project.findOneAndDelete({ slug: id });
-    }
-    
+    if (id.match(/^[0-9a-fA-F]{24}$/)) await Project.findByIdAndDelete(id);
+    else await Project.findOneAndDelete({ slug: id });
     return NextResponse.json({ message: "Deleted" }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });

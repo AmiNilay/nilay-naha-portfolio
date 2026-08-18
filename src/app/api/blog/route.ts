@@ -6,8 +6,13 @@ import { uploadToGithub } from "@/lib/githubUpload";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// 1. GET
-export async function GET(req: Request) {
+const formatGDriveUrl = (url: string | null) => {
+  if (!url) return "";
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+};
+
+export async function GET(req: Request  ) {
   try {
     await connectToDB();
     const { searchParams } = new URL(req.url);
@@ -26,12 +31,10 @@ export async function GET(req: Request) {
     const posts = await Post.find().sort({ publishDate: -1, createdAt: -1 });
     return NextResponse.json({ posts: posts || [] });
   } catch (error: any) {
-    console.error("Blog API Error:", error);
     return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
   }
 }
 
-// 2. POST (Create)
 export async function POST(req: Request) {
   try {
     await connectToDB();
@@ -42,7 +45,8 @@ export async function POST(req: Request) {
     const excerpt = formData.get("excerpt") as string;
     const content = formData.get("content") as string;
     const publishDate = formData.get("publishDate") as string;
-    const gDriveImage = formData.get("gDriveImage") as string; // ✅ Extract G-Drive Image
+    const gDriveImage = formData.get("gDriveImage") as string;
+    const relatedProject = formData.get("relatedProject") as string; // ✅ Extract
     const imageFile = formData.get("image") as File;
 
     let coverImage = "";
@@ -56,7 +60,9 @@ export async function POST(req: Request) {
     }
 
     const newPost = await Post.create({
-      title, slug, excerpt, content, coverImage, gDriveImage, // ✅ Save G-Drive Image
+      title, slug, excerpt, content, coverImage,
+      gDriveImage: formatGDriveUrl(gDriveImage),
+      relatedProject: relatedProject || "", // ✅ Save
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       readTime: Math.ceil(content.split(/\s+/).length / 200) || 5,
     });
@@ -68,7 +74,6 @@ export async function POST(req: Request) {
   }
 }
 
-// 3. PUT (Update)
 export async function PUT(req: Request) {
   try {
     await connectToDB();
@@ -84,9 +89,11 @@ export async function PUT(req: Request) {
     post.slug = formData.get("slug") || post.slug;
     post.excerpt = formData.get("excerpt") || post.excerpt;
     post.content = formData.get("content") || post.content;
-    
+
+    if (formData.has("relatedProject")) post.relatedProject = formData.get("relatedProject") as string; // ✅ Update
+
     const gDriveImage = formData.get("gDriveImage") as string;
-    if (gDriveImage !== null) post.gDriveImage = gDriveImage; // ✅ Update G-Drive Image
+    if (gDriveImage !== null) post.gDriveImage = formatGDriveUrl(gDriveImage);
 
     const publishDate = formData.get("publishDate") as string;
     if (publishDate) post.publishDate = new Date(publishDate);
@@ -104,7 +111,6 @@ export async function PUT(req: Request) {
   }
 }
 
-// 4. DELETE
 export async function DELETE(req: Request) {
   try {
     await connectToDB();

@@ -10,12 +10,10 @@ import PushNotificationButton from "@/components/ui/PushNotificationButton";
 export default function Navbar() {
   const pathname = usePathname();
   
-  // --- ADD THIS CHECK HERE ---
   // If we are in the admin panel, do not show this public navbar
-  if (pathname.startsWith("/admin")) {
+  if (pathname?.startsWith("/admin")) {
     return null;
   }
-  // ---------------------------
 
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -43,45 +41,53 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Menu */}
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                pathname === link.href ? "text-primary" : "text-gray-600 dark:text-gray-300"
-              }`}
+        <div className="hidden md:flex items-center gap-2 lg:gap-4">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={`px-4 py-2 rounded-full text-sm transition-all duration-300 ${
+                  isActive 
+                    ? "bg-primary/10 text-primary font-bold shadow-[0_0_15px] shadow-primary/50 border border-primary/30" 
+                    : "text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary"
+                }`}
+              >
+                {link.name}
+              </Link>
+            );
+          })}
+
+          <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-200 dark:border-gray-700">
+            <PushNotificationButton />
+            
+            {/* Theme Toggle Button */}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Toggle Theme"
             >
-              {link.name}
-            </Link>
-          ))}
-
-          {/* ✅ Push Notification Button (Desktop) */}
-          <PushNotificationButton />
-
-          {/* Theme Toggle Button */}
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Toggle Theme"
-          >
-            {!mounted ? (
-              <div className="w-5 h-5" /> 
-            ) : theme === "dark" ? (
-              <Sun className="w-5 h-5 text-yellow-500" />
-            ) : (
-              <Moon className="w-5 h-5 text-gray-700" />
-            )}
-          </button>
+              {!mounted ? (
+                <div className="w-5 h-5" /> 
+              ) : theme === "dark" ? (
+                <Sun className="w-5 h-5 text-yellow-500" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-700" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center gap-4">
-           <button
+        <div className="md:hidden flex items-center gap-3">
+          <PushNotificationButton />
+          
+          <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-             {mounted && theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+             {mounted && theme === "dark" ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-700" />}
           </button>
 
           <button onClick={() => setIsOpen(!isOpen)} className="p-2">
@@ -92,24 +98,24 @@ export default function Navbar() {
 
       {/* Mobile Dropdown */}
       {isOpen && (
-        <div className="md:hidden absolute top-16 left-0 w-full bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-4 shadow-xl">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              onClick={() => setIsOpen(false)}
-              className={`text-lg font-medium ${
-                pathname === link.href ? "text-primary" : "text-gray-600 dark:text-gray-300"
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
-          
-          {/* ✅ Push Notification Button (Mobile) */}
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex justify-center">
-            <PushNotificationButton />
-          </div>
+        <div className="md:hidden absolute top-16 left-0 w-full bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2 shadow-xl">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                onClick={() => setIsOpen(false)}
+                className={`block px-4 py-3 rounded-xl text-base transition-all duration-300 ${
+                  isActive 
+                    ? "bg-primary/10 text-primary font-bold border-l-4 border-primary shadow-[inset_0_0_20px] shadow-primary/20" 
+                    : "text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
+                }`}
+              >
+                {link.name}
+              </Link>
+            );
+          })}
         </div>
       )}
     </nav>

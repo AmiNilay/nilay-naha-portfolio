@@ -12,7 +12,7 @@ interface Project {
   slug: string;
   description: string;
   image?: string;
-  gDriveImage?: string; // ✅ Added G-Drive Fallback
+  gDriveImage?: string; // ✅ Added to interface
   githubLink?: string;
   liveLink?: string;
   tags?: string[];
@@ -33,11 +33,6 @@ export default function PublicProjectsPage() {
           setLoading(false);
           return;
         }
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          setLoading(false);
-          return;
-        }
         const data = await res.json();
         setProjects(data.projects || []);
       } catch (err) {
@@ -51,11 +46,7 @@ export default function PublicProjectsPage() {
 
   const stripHtml = (html: string) => {
     if (!html) return "";
-    return html
-      .replace(/<[^>]*>?/gm, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .trim();
+    return html.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").trim();
   };
 
   const allTags = Array.from(
@@ -91,7 +82,6 @@ export default function PublicProjectsPage() {
 
   return (
     <div className="container mx-auto px-4 py-24 max-w-7xl">
-      
       <AnimatedSection direction="up">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
@@ -156,25 +146,25 @@ export default function PublicProjectsPage() {
               <StaggerItem key={project._id}>
                 <div className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
                   
+                  {/* ✅ Thumbnail Area: Handles Image OR Iframe */}
                   <Link href={`/projects/${project.slug}`} className="relative w-full aspect-[16/9] bg-gray-100 dark:bg-gray-800 overflow-hidden block">
-                    {(project.image || project.gDriveImage) ? (
+                    {project.image ? (
                       <img 
-                        src={project.image || project.gDriveImage} 
+                        src={project.image} 
                         alt={project.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
-                        onContextMenu={(e) => e.preventDefault()} // ✅ Anti-Download
-                        draggable={false} // ✅ Anti-Drag
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
-                          // ✅ G-Drive Fallback Logic
-                          if (project.gDriveImage && e.currentTarget.src !== project.gDriveImage) {
-                            e.currentTarget.src = project.gDriveImage;
-                          } else {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                            e.currentTarget.parentElement?.insertAdjacentHTML('beforeend', '<span class="text-gray-400 flex flex-col items-center gap-2"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg> Image Unavailable</span>');
-                          }
+                          e.currentTarget.style.display = 'none';
                         }}
                       />
+                    ) : project.gDriveImage ? (
+                      // ✅ Renders the G-Drive Preview Iframe
+                      <iframe 
+                        src={project.gDriveImage} 
+                        className="w-full h-full object-cover pointer-events-none" 
+                        frameBorder="0" 
+                        scrolling="no"
+                      ></iframe>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">
                         <ImageIcon className="w-8 h-8 opacity-50" />
@@ -196,11 +186,6 @@ export default function PublicProjectsPage() {
                             {tag.trim()}
                           </span>
                         ))}
-                        {tags.length > 3 && (
-                          <span className="px-2.5 py-1 bg-gray-50 dark:bg-gray-800/50 text-gray-400 text-[10px] font-bold uppercase tracking-wider rounded-md">
-                            +{tags.length - 3}
-                          </span>
-                        )}
                       </div>
                     )}
 
@@ -215,12 +200,12 @@ export default function PublicProjectsPage() {
 
                       <div className="flex items-center gap-3">
                         {project.githubLink && (
-                          <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="View Source Code">
+                          <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                             <Github className="w-5 h-5" />
                           </a>
                         )}
                         {project.liveLink && (
-                          <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors" title="Live Demo">
+                          <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
                             <ExternalLink className="w-5 h-5" />
                           </a>
                         )}

@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { 
   ArrowLeft, Save, Loader2, Upload, Calendar, Eye, Wand2, 
-  X, Maximize2, Minimize2, ChevronDown, ChevronUp, Clock, FileText
+  X, Maximize2, Minimize2, ChevronDown, ChevronUp, Clock, FileText,
+  Table as TableIcon, Code, Link as LinkIcon
 } from "lucide-react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import Toast from "@/components/ui/Toast";
-import "react-quill/dist/quill.snow.css";
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 export default function EditBlogPostPage() {
   const router = useRouter();
@@ -26,33 +23,35 @@ export default function EditBlogPostPage() {
   const [showSEO, setShowSEO] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
+
+  // ✅ NEW: State to hold available projects for the dropdown
+  const [availableProjects, setAvailableProjects] = useState<{_id: string, title: string}[]>([]);
+
   const [formData, setFormData] = useState({
     title: "", slug: "", excerpt: "", content: "", existingImage: "",
     image: null as File | null,
-    gDriveImage: "", // ✅ Added G-Drive Fallback
+    gDriveImage: "",
     publishDate: "", status: "Draft", featured: false,
-    metaTitle: "", metaDescription: "", canonicalUrl: ""
+    metaTitle: "", metaDescription: "", canonicalUrl: "",
+    relatedProject: "" // ✅ NEW: Field to store linked project ID
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-
-  // Stats
   const [wordCount, setWordCount] = useState(0);
   const [readTime, setReadTime] = useState(0);
 
-  const modules = useMemo(() => ({
-    toolbar: [
-      [{ 'header': [2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'image', 'clean'],
-    ],
-  }), []);
-
   useEffect(() => {
+    // ✅ Fetch all projects to populate the dropdown
+    fetch("/api/projects")
+      .then(res => res.json())
+      .then(data => {
+        if (data.projects) setAvailableProjects(data.projects);
+      })
+      .catch(err => console.error("Failed to fetch projects", err));
+
     if (isNew) {
       setFormData(prev => ({ ...prev, publishDate: new Date().toISOString().slice(0, 16) }));
       return;
@@ -71,10 +70,11 @@ export default function EditBlogPostPage() {
           setFormData({
             title: p.title || "", slug: p.slug || "", excerpt: p.excerpt || "",
             content: p.content || "", existingImage: p.coverImage || "", image: null,
-            gDriveImage: p.gDriveImage || "", // ✅ Load G-Drive Fallback
+            gDriveImage: p.gDriveImage || "",
             publishDate: formattedDate, status: p.status || (p.published ? "Published" : "Draft"),
             featured: p.featured || false, metaTitle: p.metaTitle || "", 
-            metaDescription: p.metaDescription || "", canonicalUrl: p.canonicalUrl || ""
+            metaDescription: p.metaDescription || "", canonicalUrl: p.canonicalUrl || "",
+            relatedProject: p.relatedProject || "" // ✅ Load existing linked project
           });
           setTags(p.tags || []);
           setImagePreview(p.coverImage || null);
@@ -88,12 +88,11 @@ export default function EditBlogPostPage() {
     fetchPost();
   }, [id, isNew]);
 
-  // Calculate Word Count & Read Time dynamically
   useEffect(() => {
     const text = formData.content.replace(/<[^>]+>/g, '').trim();
     const words = text ? text.split(/\s+/).length : 0;
     setWordCount(words);
-    setReadTime(Math.ceil(words / 200) || 1); // Avg reading speed: 200 wpm
+    setReadTime(Math.ceil(words / 200) || 1);
   }, [formData.content]);
 
   const generateSlug = () => {
@@ -123,6 +122,27 @@ export default function EditBlogPostPage() {
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
+  };
+
+  const insertTableTemplate = () => {
+    const tableHtml = `
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; border: 1px solid #d1d5db;">
+  <tbody>
+    <tr style="background-color: #f3f4f6;">
+      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: bold;">Header 1</td>
+      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: bold;">Header 2</td>
+      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: bold;">Header 3</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #d1d5db; padding: 12px;">Row 1 Data</td>
+      <td style="border: 1px solid #d1d5db; padding: 12px;">Row 1 Data</td>
+      <td style="border: 1px solid #d1d5db; padding: 12px;">Row 1 Data</td>
+    </tr>
+  </tbody>
+</table>
+`;
+    setFormData(prev => ({ ...prev, content: prev.content + "\n" + tableHtml + "\n" }));
+    setToast({ message: "HTML Table inserted!", type: "success" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,7 +184,7 @@ export default function EditBlogPostPage() {
     <div className="bg-gray-50 min-h-screen pb-32">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* 🟢 LIVE PREVIEW MODAL */}
+      {/* FULLSCREEN LIVE PREVIEW MODAL */}
       {showPreview && (
         <div className="fixed inset-0 z-[100] bg-white overflow-y-auto p-8">
           <div className="max-w-3xl mx-auto">
@@ -182,14 +202,14 @@ export default function EditBlogPostPage() {
               )}
               <h1 className="text-5xl font-extrabold text-black mb-6">{formData.title || "Untitled Post"}</h1>
               <p className="text-xl text-gray-600 mb-8">{formData.excerpt}</p>
-              {(imagePreview || formData.gDriveImage) && <img src={imagePreview || formData.gDriveImage} alt="Cover" className="w-full aspect-[21/9] object-cover rounded-2xl mb-8 shadow-lg" />}
+              {imagePreview && <img src={imagePreview} alt="Cover" className="w-full aspect-[21/9] object-cover rounded-2xl mb-8 shadow-lg" />}
             </header>
             <div className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-pre:bg-gray-900 prose-pre:text-white" dangerouslySetInnerHTML={{ __html: formData.content || "<p>No content yet...</p>" }} />
           </div>
         </div>
       )}
 
-      {/* 🟢 STICKY HEADER ACTIONS */}
+      {/* STICKY HEADER ACTIONS */}
       <div className="sticky top-0 z-40 bg-gray-50/90 backdrop-blur-md border-b border-gray-200 px-8 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <Link href="/admin/blog" className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-black transition-colors"><ArrowLeft size={20} /></Link>
@@ -200,7 +220,7 @@ export default function EditBlogPostPage() {
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <button type="button" onClick={() => setShowPreview(true)} className="flex-1 sm:flex-none bg-white border-2 border-gray-300 hover:border-blue-600 hover:text-blue-600 text-black px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
-            <Eye size={20} /> Preview
+            <Eye size={20} /> Inline Preview
           </button>
           <button onClick={handleSubmit} disabled={saving} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 !text-white px-8 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg transition-all">
             {saving ? <Loader2 className="animate-spin w-5 h-5 !text-white" /> : <Save className="w-5 h-5 !text-white" />} <span className="!text-white">Save</span>
@@ -209,7 +229,6 @@ export default function EditBlogPostPage() {
       </div>
 
       <form className="p-8 max-w-7xl mx-auto">
-        {/* 🟢 2-COLUMN LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* LEFT COLUMN: Main Content */}
@@ -234,21 +253,63 @@ export default function EditBlogPostPage() {
               </div>
             </div>
 
-            {/* Rich Text Editor with Fullscreen Toggle */}
+            {/* TABBED HTML/MARKDOWN EDITOR */}
             <div className={`bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col transition-all ${isFullscreen ? 'fixed inset-0 z-50 p-8 overflow-y-auto' : 'p-6'}`}>
-              <div className="flex justify-between items-center mb-4">
-                <label className="text-xs font-bold uppercase text-gray-500">Content Body</label>
-                <button type="button" onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors">
-                  {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                </button>
+              
+              {/* Editor Header with Tabs */}
+              <div className="flex justify-between items-end mb-4 border-b border-gray-200">
+                <div className="flex gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setEditorTab("write")} 
+                    className={`px-4 py-2.5 text-sm font-bold rounded-t-lg flex items-center gap-2 transition-colors ${editorTab === "write" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                  >
+                    <Code size={16} /> Write Code
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setEditorTab("preview")} 
+                    className={`px-4 py-2.5 text-sm font-bold rounded-t-lg flex items-center gap-2 transition-colors ${editorTab === "preview" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                  >
+                    <Eye size={16} /> Inline Preview
+                  </button>
+                </div>
+                
+                <div className="flex items-center gap-2 pb-2">
+                  {editorTab === "write" && (
+                    <button 
+                      type="button" 
+                      onClick={insertTableTemplate} 
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-bold rounded-lg transition-colors"
+                    >
+                      <TableIcon size={16} /> Insert HTML Table
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors">
+                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                  </button>
+                </div>
               </div>
-              <div className={`bg-white text-black rounded-xl overflow-hidden border border-gray-300 flex-1 ${isFullscreen ? 'min-h-[80vh]' : ''}`}>
-                <ReactQuill theme="snow" value={formData.content} onChange={c => setFormData({...formData, content: c})} modules={modules} className={`${isFullscreen ? 'h-[75vh]' : 'h-[500px]'} mb-12`} />
+              
+              {/* Editor Content Area */}
+              <div className="flex-1">
+                {editorTab === "write" ? (
+                  <textarea 
+                    value={formData.content} 
+                    onChange={e => setFormData({...formData, content: e.target.value})} 
+                    className={`w-full p-4 bg-gray-900 text-gray-100 font-mono text-sm rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-y leading-relaxed ${isFullscreen ? 'h-[75vh]' : 'h-[500px]'}`}
+                    placeholder="<h1>Hello World</h1>&#10;<p>Write your HTML, CSS, or Markdown here...</p>"
+                  />
+                ) : (
+                  <div 
+                    className={`w-full p-6 bg-white border border-gray-200 rounded-xl overflow-y-auto prose prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-pre:bg-gray-900 prose-pre:text-white ${isFullscreen ? 'h-[75vh]' : 'h-[500px]'}`}
+                    dangerouslySetInnerHTML={{ __html: formData.content || "<p class='text-gray-400'>Nothing to preview yet...</p>" }}
+                  />
+                )}
               </div>
             </div>
-
-            {/* SEO Accordion */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                        {/* SEO Accordion */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-6">
               <button type="button" onClick={() => setShowSEO(!showSEO)} className="w-full p-6 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors">
                 <span className="font-bold text-black">SEO & Social Share Settings</span>
                 {showSEO ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -298,6 +359,24 @@ export default function EditBlogPostPage() {
                 </div>
               </div>
 
+              {/* ✅ NEW: Link to Project */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2">
+                  <LinkIcon size={16} /> Link to Project
+                </label>
+                <p className="text-xs text-gray-400 font-medium">Connect this blog post to a specific project in your portfolio.</p>
+                <select 
+                  value={formData.relatedProject} 
+                  onChange={(e) => setFormData({ ...formData, relatedProject: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-xl text-black font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">-- No Project Linked --</option>
+                  {availableProjects.map(proj => (
+                    <option key={proj._id} value={proj._id}>{proj.title}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Cover Image & G-Drive Fallback */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
                 <label className="text-xs font-bold uppercase text-gray-500">Cover Image</label>
@@ -316,14 +395,14 @@ export default function EditBlogPostPage() {
                   )}
                 </div>
                 
-                {/* ✅ G-Drive Fallback Input */}
-                <div className="pt-4 border-t border-gray-100 space-y-2">
-                  <label className="text-xs font-bold uppercase text-gray-500">G-Drive Image Fallback URL</label>
+                <div className="space-y-2 pt-2">
+                  <label className="text-xs font-bold uppercase text-gray-500">G-Drive Fallback URL</label>
                   <input 
+                    type="text" 
                     value={formData.gDriveImage} 
-                    onChange={e => setFormData({...formData, gDriveImage: e.target.value})} 
-                    className="w-full p-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none text-sm" 
-                    placeholder="Paste Google Drive image link..." 
+                    onChange={(e) => setFormData({ ...formData, gDriveImage: e.target.value })} 
+                    placeholder="Paste Google Drive link or iframe..." 
+                    className="w-full p-3 rounded-xl border border-gray-300 bg-white text-black text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
                   />
                 </div>
               </div>
@@ -354,3 +433,4 @@ export default function EditBlogPostPage() {
     </div>
   );
 }
+

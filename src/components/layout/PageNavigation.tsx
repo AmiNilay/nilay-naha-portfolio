@@ -13,8 +13,8 @@ export default function PageNavigation() {
   const [showHints, setShowHints] = useState(false);
   const [showGlobalHint, setShowGlobalHint] = useState(false);
 
-  // Refs for touch coordinates to avoid stale closures in event listeners
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  // ✅ Added 'time' to track how fast the swipe is
+  const touchStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const safePathname = pathname || "";
   const currentIndex = pages.indexOf(safePathname);
@@ -23,14 +23,10 @@ export default function PageNavigation() {
     setMounted(true);
   }, []);
 
-  // 1. Show Global Onboarding Hint (EVERY time they visit the home page)
+  // 1. Show Global Onboarding Hint
   useEffect(() => {
     if (!mounted || safePathname.startsWith("/admin") || safePathname !== "/") return;
-
-    // Show the hint immediately
     setShowGlobalHint(true);
-    
-    // Hide after 4 seconds
     const timer = setTimeout(() => setShowGlobalHint(false), 4000);
     return () => clearTimeout(timer);
   }, [safePathname, mounted]);
@@ -38,7 +34,6 @@ export default function PageNavigation() {
   // 2. Show Edge Hints Logic (Mobile Only)
   useEffect(() => {
     if (!mounted || safePathname.startsWith("/admin")) return;
-
     if (window.innerWidth < 768) {
       setShowHints(true);
       const timer = setTimeout(() => setShowHints(false), 2500);
@@ -56,11 +51,11 @@ export default function PageNavigation() {
       if (["INPUT", "TEXTAREA"].includes(target.tagName)) return;
       
       if (e.key === "ArrowRight" && currentIndex < pages.length - 1) {
-        setShowGlobalHint(false); // Hide hint immediately on action
+        setShowGlobalHint(false);
         router.push(pages[currentIndex + 1]);
       }
       if (e.key === "ArrowLeft" && currentIndex > 0) {
-        setShowGlobalHint(false); // Hide hint immediately on action
+        setShowGlobalHint(false);
         router.push(pages[currentIndex - 1]);
       }
     };
@@ -69,7 +64,8 @@ export default function PageNavigation() {
     const handleTouchStart = (e: TouchEvent) => {
       touchStart.current = {
         x: e.changedTouches[0].screenX,
-        y: e.changedTouches[0].screenY
+        y: e.changedTouches[0].screenY,
+        time: Date.now() // ✅ Record exact time of touch
       };
     };
 
@@ -78,30 +74,32 @@ export default function PageNavigation() {
 
       const touchEndX = e.changedTouches[0].screenX;
       const touchEndY = e.changedTouches[0].screenY;
+      const timeDiff = Date.now() - touchStart.current.time;
 
       const diffX = touchStart.current.x - touchEndX;
       const diffY = touchStart.current.y - touchEndY;
 
       touchStart.current = null;
 
-      // Logic: Only navigate if swipe is mostly HORIZONTAL
-      if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (Math.abs(diffX) > 50) {
-          setShowGlobalHint(false); // Hide hint immediately on action
-          if (diffX > 0) {
-            // Swiped LEFT (Next)
-            if (currentIndex < pages.length - 1) router.push(pages[currentIndex + 1]);
-          } else {
-            // Swiped RIGHT (Prev)
-            if (currentIndex > 0) router.push(pages[currentIndex - 1]);
-          }
+      // ✅ CRITICAL FIX: Ignore slow swipes (over 600ms) or sloppy taps
+      if (timeDiff > 600) return;
+
+      // ✅ CRITICAL FIX: Must be a clear horizontal swipe (>100px) and not a diagonal scroll
+      if (Math.abs(diffX) > 100 && Math.abs(diffX) > Math.abs(diffY) * 2) {
+        setShowGlobalHint(false);
+        if (diffX > 0) {
+          // Swiped LEFT (Next)
+          if (currentIndex < pages.length - 1) router.push(pages[currentIndex + 1]);
+        } else {
+          // Swiped RIGHT (Prev)
+          if (currentIndex > 0) router.push(pages[currentIndex - 1]);
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("touchstart", handleTouchStart);
-    window.addEventListener("touchend", handleTouchEnd);
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
@@ -114,20 +112,19 @@ export default function PageNavigation() {
 
   return (
     <>
-      {/* 🟢 GLOBAL ONBOARDING HINT (Desktop & Mobile) */}
+      {/* GLOBAL ONBOARDING HINT */}
       <div 
         className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-700 ease-out pointer-events-none ${
           showGlobalHint ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         }`}
       >
-        {/* Forced Primary Background and White Text for perfect contrast */}
         <div className="flex items-center gap-3 px-6 py-3 bg-primary text-white rounded-full shadow-2xl border border-primary/50">
           <MoveHorizontal className="w-5 h-5 animate-pulse text-white" />
           <span className="text-sm font-bold tracking-wide text-white">Swipe or use arrow keys to navigate</span>
         </div>
       </div>
 
-      {/* --- MOBILE VISUAL EDGE HINTS (Animated Overlay) --- */}
+      {/* MOBILE VISUAL EDGE HINTS */}
       <div 
         className={`fixed inset-0 z-50 pointer-events-none flex items-center justify-between px-4 transition-opacity duration-700 md:hidden ${
           showHints ? "opacity-100" : "opacity-0"
@@ -150,7 +147,7 @@ export default function PageNavigation() {
         </div>
       </div>
 
-      {/* --- DESKTOP DOT NAVIGATION --- */}
+      {/* DESKTOP DOT NAVIGATION */}
       <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-4">
         {pages.map((path, idx) => (
           <div

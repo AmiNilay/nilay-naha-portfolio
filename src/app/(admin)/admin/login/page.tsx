@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Lock, Loader2, Mail, Key } from "lucide-react";
 
 export default function AdminLogin() {
@@ -9,24 +8,28 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (res.ok) {
-      router.push("/admin/dashboard");
-      router.refresh();
-    } else {
-      setError("Invalid email or password.");
+      if (res.ok) {
+        // 🔥 CRITICAL FIX: Hard redirect forces the browser to attach the new cookie
+        window.location.href = "/admin/dashboard";
+      } else {
+        setError("Invalid email or password.");
+        setLoading(false);
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
       setLoading(false);
     }
   };

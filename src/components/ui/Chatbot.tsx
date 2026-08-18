@@ -86,11 +86,11 @@ export default function Chatbot() {
         responseText = resumeUrl ? "Here is Nilay's resume! Click the button below to download it." : "Sorry, Nilay hasn't uploaded a resume yet.";
         isResumeTrigger = !!resumeUrl;
       } else {
-        // ✅ FIX: Explicitly type bestRule as Rule | null
-        let bestRule: Rule | null = null;
+        // ✅ FIX: Use Rule | undefined to prevent TypeScript closure inference errors
+        let bestRule: Rule | undefined = undefined;
         let highestScore = 0;
 
-        // Scoring algorithm to find the BEST match, not just the first match
+        // Scoring algorithm to find the BEST match
         rules.forEach(rule => {
           let score = 0;
           rule.keywords.forEach(kw => {

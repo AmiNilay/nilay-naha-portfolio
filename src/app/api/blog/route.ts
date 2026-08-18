@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     const excerpt = formData.get("excerpt") as string;
     const content = formData.get("content") as string;
     const publishDate = formData.get("publishDate") as string;
+    const gDriveImage = formData.get("gDriveImage") as string; // ✅ Extract G-Drive Image
     const imageFile = formData.get("image") as File;
 
     let coverImage = "";
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
     }
 
     const newPost = await Post.create({
-      title, slug, excerpt, content, coverImage,
+      title, slug, excerpt, content, coverImage, gDriveImage, // ✅ Save G-Drive Image
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       readTime: Math.ceil(content.split(/\s+/).length / 200) || 5,
     });
@@ -83,6 +84,9 @@ export async function PUT(req: Request) {
     post.slug = formData.get("slug") || post.slug;
     post.excerpt = formData.get("excerpt") || post.excerpt;
     post.content = formData.get("content") || post.content;
+    
+    const gDriveImage = formData.get("gDriveImage") as string;
+    if (gDriveImage !== null) post.gDriveImage = gDriveImage; // ✅ Update G-Drive Image
 
     const publishDate = formData.get("publishDate") as string;
     if (publishDate) post.publishDate = new Date(publishDate);

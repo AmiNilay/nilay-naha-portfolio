@@ -44,6 +44,7 @@ export default function ProjectEditorPage() {
 
   const [formData, setFormData] = useState({
     title: "", slug: "", description: "", githubLink: "", liveLink: "", appLink: "", image: "",
+    gDriveImage: "", // ✅ Added G-Drive Fallback
     publishDate: "", role: "", status: "Published", featured: false, frameStyle: "Browser"
   });
 
@@ -86,7 +87,8 @@ export default function ProjectEditorPage() {
             title: p.title || "", slug: p.slug || "", description: p.description || "",
             githubLink: p.githubLink || "", liveLink: p.liveLink || "", appLink: p.appLink || "", image: p.image || "",
             publishDate: formattedDate, role: p.role || "", status: p.status || "Published", 
-            featured: p.featured || false, frameStyle: p.frameStyle || "Browser"
+            featured: p.featured || false, frameStyle: p.frameStyle || "Browser",
+            gDriveImage: p.gDriveImage || ""
           });
           setTags(p.tags || (typeof p.techStack === 'string' ? p.techStack.split(',') : p.techStack) || []);
           if (p.image) setPreviewUrl(p.image);
@@ -207,7 +209,7 @@ export default function ProjectEditorPage() {
                 <span>{formData.role || "Role not specified"}</span> • <span>{formData.status}</span>
               </div>
               
-              {previewUrl && (
+              {(previewUrl || formData.gDriveImage) && (
                 <div className={`w-full mt-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-white ${formData.frameStyle === 'Browser' ? 'pt-10 relative' : ''}`}>
                   {formData.frameStyle === 'Browser' && (
                     <div className="absolute top-0 left-0 w-full h-10 bg-gray-100 border-b border-gray-200 flex items-center px-4 gap-2">
@@ -216,7 +218,15 @@ export default function ProjectEditorPage() {
                       <div className="w-3 h-3 rounded-full bg-[#27C93F]"></div>
                     </div>
                   )}
-                  <img src={previewUrl} alt="Preview" className="w-full h-auto object-cover" />
+                  <img 
+                    src={previewUrl || formData.gDriveImage} 
+                    alt="Preview" 
+                    className="w-full h-auto object-cover" 
+                    onContextMenu={(e) => e.preventDefault()}
+                    onError={(e) => {
+                      if (formData.gDriveImage) e.currentTarget.src = formData.gDriveImage;
+                    }}
+                  />
                 </div>
               )}
             </header>
@@ -237,8 +247,8 @@ export default function ProjectEditorPage() {
                <input type="range" value={zoom} min={1} max={3} step={0.1} onChange={(e) => setZoom(Number(e.target.value))} className="w-full accent-blue-500" />
             </div>
             <div className="flex gap-4 w-full sm:w-auto">
-              <button onClick={() => setImageToCrop(null)} className="flex-1 px-6 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700">Cancel</button>
-              <button onClick={handleCropSave} className="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2"><Crop size={18} /> Apply Crop</button>
+              <button type="button" onClick={() => setImageToCrop(null)} className="flex-1 px-6 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700">Cancel</button>
+              <button type="button" onClick={handleCropSave} className="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center justify-centergap-2"><Crop size={18} /> Apply Crop</button>
             </div>
           </div>
         </div>
@@ -268,7 +278,6 @@ export default function ProjectEditorPage() {
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase text-gray-500 flex justify-between items-center">
               Slug 
-              {/* 🟢 Fixed Auto-Generate Button */}
               <button type="button" onClick={generateSlug} className="text-blue-600 flex items-center gap-1 hover:underline bg-blue-50 px-2 py-1 rounded-md">
                 <Wand2 size={12} /> Auto-Generate
               </button>
@@ -362,9 +371,21 @@ export default function ProjectEditorPage() {
                 <div className="text-center p-8 text-gray-400"><Upload className="w-8 h-8 mb-2 mx-auto opacity-50" /><span className="text-xs font-medium">Preview</span></div>
               )}
             </div>
+
+            {/* ✅ G-Drive Fallback Input */}
+            <div className="pt-4 border-t border-gray-100 space-y-2">
+              <label className="text-xs font-bold uppercase text-gray-500">G-Drive Image Fallback URL</label>
+              <input 
+                value={formData.gDriveImage} 
+                onChange={e => setFormData({...formData, gDriveImage: e.target.value})} 
+                className="w-full p-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none text-sm" 
+                placeholder="Paste Google Drive image link..." 
+              />
+            </div>
           </div>
         </div>
       </form>
     </div>
   );
 }
+

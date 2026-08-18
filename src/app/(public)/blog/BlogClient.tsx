@@ -12,12 +12,13 @@ interface BlogPost {
   slug: string;
   excerpt: string;
   coverImage?: string;
+  gDriveImage?: string; // ✅ Added G-Drive Fallback
   createdAt: string;
   readTime?: number;
   tags?: string[];
 }
 
-export default function BlogListingPage() {
+export default function BlogClient() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,11 +146,23 @@ export default function BlogListingPage() {
               >
                 {/* Thumbnail */}
                 <div className="relative aspect-[16/9] w-full bg-gray-100 dark:bg-gray-800 overflow-hidden border-b border-gray-100 dark:border-gray-800">
-                  {post.coverImage ? (
+                  {(post.coverImage || post.gDriveImage) ? (
                     <img
-                      src={post.coverImage}
+                      src={post.coverImage || post.gDriveImage}
                       alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
+                      onContextMenu={(e) => e.preventDefault()} // ✅ Anti-Download
+                      draggable={false} // ✅ Anti-Drag
+                      onError={(e) => {
+                        // ✅ G-Drive Fallback Logic
+                        if (post.gDriveImage && e.currentTarget.src !== post.gDriveImage) {
+                          e.currentTarget.src = post.gDriveImage;
+                        } else {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                          e.currentTarget.parentElement?.insertAdjacentHTML('beforeend', '<span class="text-gray-400 flex flex-col items-center gap-2"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg> Image Unavailable</span>');
+                        }
+                      }}
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-medium bg-gray-100 dark:bg-gray-800">

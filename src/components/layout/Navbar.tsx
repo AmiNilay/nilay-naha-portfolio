@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Moon, Sun, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
+import PushNotificationButton from "@/components/ui/PushNotificationButton";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -55,6 +56,9 @@ export default function Navbar() {
             </Link>
           ))}
 
+          {/* ✅ Push Notification Button (Desktop) */}
+          <PushNotificationButton />
+
           {/* Theme Toggle Button */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -101,6 +105,11 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
+          
+          {/* ✅ Push Notification Button (Mobile) */}
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex justify-center">
+            <PushNotificationButton />
+          </div>
         </div>
       )}
     </nav>

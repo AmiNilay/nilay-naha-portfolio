@@ -36,7 +36,9 @@ export async function PUT(req: Request) {
       "stat1Value", "stat1Label", 
       "stat2Value", "stat2Label", 
       "stat3Value", "stat3Label",
-      "portfolioLastUpdated" // ✅ ADDED THIS SO IT SAVES TO DATABASE
+      "portfolioLastUpdated", // ✅ ADDED THIS SO IT SAVES TO DATABASE
+      "gDriveProfilePic", // ✅ ADDED
+      "gDriveResume"      // ✅ ADDED
     ];
     
     textFields.forEach((field) => {

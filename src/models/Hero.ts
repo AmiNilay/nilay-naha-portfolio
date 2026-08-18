@@ -8,18 +8,20 @@ const HeroSchema = new Schema(
     profilePic: String,
     resumeUrl: String,
     
+    // ✅ NEW: Google Drive Fallbacks
+    gDriveProfilePic: String,
+    gDriveResume: String,
+
     badgeText: String,
     showAvailability: { type: Boolean, default: true },
     line1Bold: String,
     line1Accent: String,
     line2Bold: String,
     line2Accent: String,
-    
     socialGithub: String,
     socialLinkedin: String,
     socialTwitter: String,
     socialEmail: String,
-    
     techStack: String,
     stat1Value: String,
     stat1Label: String,
@@ -27,8 +29,7 @@ const HeroSchema = new Schema(
     stat2Label: String,
     stat3Value: String,
     stat3Label: String,
-    
-    portfolioLastUpdated: { type: String, default: "" }, // ✅ Explicitly defined here!
+    portfolioLastUpdated: String,
   },
   { timestamps: true }
 );

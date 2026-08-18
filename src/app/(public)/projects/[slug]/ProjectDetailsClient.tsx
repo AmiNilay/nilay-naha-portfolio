@@ -28,7 +28,6 @@ export default function ProjectDetails() {
   useEffect(() => {
     if (!slug) return;
 
-    // Fetch ALL projects to determine Previous and Next navigation
     fetch(`/api/projects`)
       .then((res) => res.json())
       .then(async (data) => {
@@ -39,7 +38,6 @@ export default function ProjectDetails() {
           const currentProject = projects[currentIndex];
           setProject(currentProject);
           
-          // Set Prev/Next projects
           setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
           setNextProject(currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null);
 
@@ -54,7 +52,6 @@ export default function ProjectDetails() {
       });
   }, [slug]);
 
-  // Add IDs to headings after HTML renders (for TOC jumping)
   useEffect(() => {
     if (!processedHTML) return;
     const timer = setTimeout(() => {
@@ -93,17 +90,16 @@ export default function ProjectDetails() {
     e.stopPropagation();
     const text = encodeURIComponent(`Check out this project: ${project?.title}`);
     const url = encodeURIComponent(window.location.href);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "width=600,height=500" );
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "width=600,height=500"  );
   };
 
   const shareOnLinkedIn = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const url = encodeURIComponent(window.location.href);
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank", "width=600,height=500" );
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank", "width=600,height=500"  );
   };
 
-  // Reusable Share Buttons Component
   const ShareButtons = () => (
     <div className="flex items-center gap-2 relative z-20">
       <button type="button" onClick={shareOnTwitter} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1DA1F2] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
@@ -140,7 +136,6 @@ export default function ProjectDetails() {
     );
   }
 
-  // Combine tags and techStack for the sidebar grid
   const techStack = project.techStack?.length ? project.techStack : project.tags || [];
 
   return (
@@ -148,7 +143,6 @@ export default function ProjectDetails() {
       <ReadingProgress />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Top Nav */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 mb-8">
         <Link href="/projects" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors group">
           <div className="p-1.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 group-hover:-translate-x-1 transition-transform">
@@ -158,13 +152,11 @@ export default function ProjectDetails() {
         </Link>
       </div>
 
-      {/* HEADER */}
       <header className="max-w-4xl mx-auto px-4 md:px-8">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.15] mb-6">
           {project.title}
         </h1>
 
-        {/* Meta & Unified Share Buttons */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-8 border-b border-gray-200 dark:border-gray-800">
           <span className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-full w-fit">
             <Calendar className="w-4 h-4" />
@@ -176,30 +168,36 @@ export default function ProjectDetails() {
           <ShareButtons />
         </div>
 
-        {/* 🟢 Upgraded Hero Image Frame (Browser Mockup) */}
-        {project.image && (
+        {/* ✅ G-Drive Fallback & Anti-Download */}
+        {(project.image || project.gDriveImage) && (
           <div className="w-full mt-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-            {/* Browser Header */}
             <div className="h-10 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-2">
               <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
               <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
               <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
             </div>
-            {/* Image */}
             <div className="relative aspect-[16/9] group bg-gray-50 dark:bg-black">
-              <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" />
+              <img 
+                src={project.image || project.gDriveImage} 
+                alt={project.title} 
+                className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700 select-none" 
+                onContextMenu={(e) => e.preventDefault()}
+                draggable={false}
+                onError={(e) => {
+                  if (project.gDriveImage && e.currentTarget.src !== project.gDriveImage) {
+                    e.currentTarget.src = project.gDriveImage;
+                  }
+                }}
+              />
             </div>
           </div>
         )}
       </header>
 
-      {/* MAIN LAYOUT */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
         <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_300px]">
           
-          {/* Content */}
           <article className="lg:max-w-3xl w-full">
-            {/* 🟢 Prose formatting applied here */}
             <div 
               className="blog-content prose prose-slate dark:prose-invert max-w-none 
                 prose-headings:font-bold prose-headings:tracking-tight 
@@ -212,7 +210,6 @@ export default function ProjectDetails() {
               dangerouslySetInnerHTML={{ __html: processedHTML }} 
             />
 
-            {/* Bottom Share */}
             <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800 relative z-20">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
@@ -223,7 +220,6 @@ export default function ProjectDetails() {
               </div>
             </div>
 
-            {/* 🟢 Previous / Next Project Navigation */}
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {prevProject ? (
                 <Link href={`/projects/${prevProject.slug}`} className="flex flex-col p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group">
@@ -240,7 +236,6 @@ export default function ProjectDetails() {
               ) : <div />}
             </div>
 
-            {/* Back to All */}
             <div className="mt-12 flex justify-center">
               <Link href="/projects" className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-black font-bold hover:scale-105 transition-transform shadow-lg">
                 <Layers className="w-4 h-4" /> View All Projects
@@ -248,11 +243,9 @@ export default function ProjectDetails() {
             </div>
           </article>
 
-          {/* Sidebar */}
           <aside className="hidden lg:block">
             <div className="sticky top-32 space-y-8">
               
-              {/* Resources */}
               <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
                   Resources
@@ -282,7 +275,6 @@ export default function ProjectDetails() {
                 </div>
               </div>
 
-              {/* 🟢 Visual Tech Stack Grid */}
               {techStack.length > 0 && (
                 <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
@@ -298,7 +290,6 @@ export default function ProjectDetails() {
                 </div>
               )}
 
-              {/* Table of Contents */}
               {contentReady && (
                 <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                   <TableOfContents contentSelector=".blog-content" />

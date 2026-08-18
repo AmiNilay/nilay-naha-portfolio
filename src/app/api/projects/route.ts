@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     const appLink = formData.get("appLink") as string;
     const tagsString = formData.get("tags") as string;
     const publishDate = formData.get("publishDate") as string;
+    const gDriveImage = formData.get("gDriveImage") as string; // ✅ Extract G-Drive Image
     const imageFile = formData.get("image") as File;
 
     let imageUrl = "";
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     const newProject = await Project.create({
-      title, slug, description, image: imageUrl, githubLink, liveLink, appLink,
+      title, slug, description, image: imageUrl, gDriveImage, githubLink, liveLink, appLink, // ✅ Save G-Drive Image
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       tags: tagsString ? tagsString.split(",").map(t => t.trim()) : []
     });
@@ -91,6 +92,9 @@ export async function PUT(req: Request) {
     project.githubLink = formData.get("githubLink") || project.githubLink;
     project.liveLink = formData.get("liveLink") || project.liveLink;
     project.appLink = formData.get("appLink") || project.appLink;
+    
+    const gDriveImage = formData.get("gDriveImage") as string;
+    if (gDriveImage !== null) project.gDriveImage = gDriveImage; // ✅ Update G-Drive Image
     
     const publishDate = formData.get("publishDate") as string;
     if (publishDate) project.publishDate = new Date(publishDate);

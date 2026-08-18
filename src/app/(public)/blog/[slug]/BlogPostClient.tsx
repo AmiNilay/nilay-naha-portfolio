@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Clock, Calendar, Eye, Maximize, Minimize, RefreshCw } from "lucide-react";
@@ -151,11 +150,23 @@ export default function BlogPostClient() {
         </div>
       </header>
 
-      {/* Cover Image */}
-      {post.coverImage && (
+      {/* ✅ G-Drive Fallback & Anti-Download for Blog Cover Image */}
+      {(post.coverImage || post.gDriveImage) && (
         <div className="max-w-5xl mx-auto px-6 mb-16">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden shadow-2xl">
-            <Image src={post.coverImage} alt={post.title} fill className="object-cover" priority />
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden shadow-2xl bg-gray-100 dark:bg-gray-900">
+            <img 
+              src={post.coverImage || post.gDriveImage} 
+              alt={post.title} 
+              className="w-full h-full object-cover select-none" 
+              onContextMenu={(e) => e.preventDefault()} // ✅ Anti-Download
+              draggable={false} // ✅ Anti-Drag
+              onError={(e) => {
+                // ✅ G-Drive Fallback Logic
+                if (post.gDriveImage && e.currentTarget.src !== post.gDriveImage) {
+                  e.currentTarget.src = post.gDriveImage;
+                }
+              }}
+            />
           </motion.div>
         </div>
       )}

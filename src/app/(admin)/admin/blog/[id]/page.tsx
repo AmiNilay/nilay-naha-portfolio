@@ -29,6 +29,7 @@ export default function EditBlogPostPage() {
   const [formData, setFormData] = useState({
     title: "", slug: "", excerpt: "", content: "", existingImage: "",
     image: null as File | null,
+    gDriveImage: "", // ✅ Added G-Drive Fallback
     publishDate: "", status: "Draft", featured: false,
     metaTitle: "", metaDescription: "", canonicalUrl: ""
   });
@@ -70,6 +71,7 @@ export default function EditBlogPostPage() {
           setFormData({
             title: p.title || "", slug: p.slug || "", excerpt: p.excerpt || "",
             content: p.content || "", existingImage: p.coverImage || "", image: null,
+            gDriveImage: p.gDriveImage || "", // ✅ Load G-Drive Fallback
             publishDate: formattedDate, status: p.status || (p.published ? "Published" : "Draft"),
             featured: p.featured || false, metaTitle: p.metaTitle || "", 
             metaDescription: p.metaDescription || "", canonicalUrl: p.canonicalUrl || ""
@@ -180,7 +182,7 @@ export default function EditBlogPostPage() {
               )}
               <h1 className="text-5xl font-extrabold text-black mb-6">{formData.title || "Untitled Post"}</h1>
               <p className="text-xl text-gray-600 mb-8">{formData.excerpt}</p>
-              {imagePreview && <img src={imagePreview} alt="Cover" className="w-full aspect-[21/9] object-cover rounded-2xl mb-8 shadow-lg" />}
+              {(imagePreview || formData.gDriveImage) && <img src={imagePreview || formData.gDriveImage} alt="Cover" className="w-full aspect-[21/9] object-cover rounded-2xl mb-8 shadow-lg" />}
             </header>
             <div className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-pre:bg-gray-900 prose-pre:text-white" dangerouslySetInnerHTML={{ __html: formData.content || "<p>No content yet...</p>" }} />
           </div>
@@ -266,7 +268,7 @@ export default function EditBlogPostPage() {
                     <input value={formData.canonicalUrl} onChange={e => setFormData({...formData, canonicalUrl: e.target.value})} className="w-full p-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://medium.com/your-article" />
                   </div>
                 </div>
-               )}
+                )}
             </div>
           </div>
 
@@ -296,7 +298,7 @@ export default function EditBlogPostPage() {
                 </div>
               </div>
 
-              {/* Cover Image */}
+              {/* Cover Image & G-Drive Fallback */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
                 <label className="text-xs font-bold uppercase text-gray-500">Cover Image</label>
                 <div className="w-full aspect-[16/9] border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center relative overflow-hidden bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -312,6 +314,17 @@ export default function EditBlogPostPage() {
                       <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                     </label>
                   )}
+                </div>
+                
+                {/* ✅ G-Drive Fallback Input */}
+                <div className="pt-4 border-t border-gray-100 space-y-2">
+                  <label className="text-xs font-bold uppercase text-gray-500">G-Drive Image Fallback URL</label>
+                  <input 
+                    value={formData.gDriveImage} 
+                    onChange={e => setFormData({...formData, gDriveImage: e.target.value})} 
+                    className="w-full p-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none text-sm" 
+                    placeholder="Paste Google Drive image link..." 
+                  />
                 </div>
               </div>
 

@@ -7,13 +7,14 @@ const PostSchema = new Schema(
     excerpt: String,
     content: { type: String, required: true },
     coverImage: String,
+    gDriveImage: String, // ✅ ADDED G-DRIVE FALLBACK
     category: String,
     tags: [String],
     published: { type: Boolean, default: false },
     readTime: String,
-    views: { type: Number, default: 0 }, // ✅ ADDED VIEWS FIELD
+    views: { type: Number, default: 0 },
   },
-  { timestamps: true } // This automatically creates createdAt and updatedAt!
+  { timestamps: true }
 );
 
 const Post = models.Post || model("Post", PostSchema);

@@ -10,7 +10,7 @@ import Toast from "@/components/ui/Toast";
 import Cropper, { Point, Area } from "react-easy-crop"; 
 import dynamic from "next/dynamic";
 
-// @ts-ignore - Ignores TypeScript warning for CSS import
+// @ts-ignore
 import "react-quill/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -57,6 +57,8 @@ export default function AdminHome() {
     socialEmail: "",
     profilePic: "",
     resumeUrl: "",
+    gDriveProfilePic: "", // ✅ Added G-Drive Fallback
+    gDriveResume: "",     // ✅ Added G-Drive Fallback
     techStack: "Python, FastAPI, Docker, PostgreSQL, MongoDB",
     stat1Value: "5+", stat1Label: "Projects Built",
     stat2Value: "100%", stat2Label: "Open Source",
@@ -97,6 +99,8 @@ export default function AdminHome() {
             socialEmail: data.socialEmail || "",
             profilePic: data.profilePic || "",
             resumeUrl: data.resumeUrl || "",
+            gDriveProfilePic: data.gDriveProfilePic || "", // ✅ Load G-Drive Fallback
+            gDriveResume: data.gDriveResume || "",         // ✅ Load G-Drive Fallback
             badgeText: data.badgeText || prev.badgeText,
             showAvailability: data.showAvailability ?? prev.showAvailability,
             line1Bold: data.line1Bold || prev.line1Bold,
@@ -204,7 +208,6 @@ export default function AdminHome() {
         xhr.send(data);
       });
 
-      // ✅ FIX: Update formData state so subsequent saves don't delete the files!
       if (updated.profilePic) {
         setPreviewUrl(updated.profilePic);
         setFormData(prev => ({ ...prev, profilePic: updated.profilePic }));
@@ -317,6 +320,17 @@ export default function AdminHome() {
               )}
             </div>
             <p className="text-[10px] text-gray-400 mt-3">JPG, PNG, WebP up to 5MB</p>
+
+            {/* ✅ G-Drive Fallback Input */}
+            <div className="mt-6 w-full text-left border-t pt-4">
+              <label className="text-[10px] font-bold uppercase text-gray-500">G-Drive Image Fallback URL</label>
+              <input 
+                value={formData.gDriveProfilePic} 
+                onChange={(e) => setFormData({...formData, gDriveProfilePic: e.target.value})} 
+                className="w-full p-2 mt-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
+                placeholder="Paste Google Drive image link..." 
+              />
+            </div>
           </div>
 
           {/* Resume PDF */}
@@ -352,6 +366,17 @@ export default function AdminHome() {
                 <span className="text-sm font-bold text-gray-600 group-hover:text-blue-600">Click to Upload PDF</span>
               </button>
             )}
+
+            {/* ✅ G-Drive Fallback Input */}
+            <div className="mt-6 w-full text-left border-t pt-4">
+              <label className="text-[10px] font-bold uppercase text-gray-500">G-Drive Resume Fallback URL</label>
+              <input 
+                value={formData.gDriveResume} 
+                onChange={(e) => setFormData({...formData, gDriveResume: e.target.value})} 
+                className="w-full p-2 mt-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
+                placeholder="Paste Google Drive PDF link..." 
+              />
+            </div>
           </div>
         </div>
 

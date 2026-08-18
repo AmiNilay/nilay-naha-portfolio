@@ -12,6 +12,7 @@ interface Project {
   slug: string;
   description: string;
   image?: string;
+  gDriveImage?: string; // ✅ Added G-Drive Fallback
   githubLink?: string;
   liveLink?: string;
   tags?: string[];
@@ -48,17 +49,15 @@ export default function PublicProjectsPage() {
     fetchProjects();
   }, []);
 
-  // 1. Utility to strip raw HTML tags and HTML entities from Quill editor content
   const stripHtml = (html: string) => {
     if (!html) return "";
     return html
-      .replace(/<[^>]*>?/gm, "") // Strip HTML tags
-      .replace(/&nbsp;/g, " ")   // Replace non-breaking spaces
-      .replace(/&amp;/g, "&")    // Replace ampersands
+      .replace(/<[^>]*>?/gm, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
       .trim();
   };
 
-  // 2. Extract unique tags for the Filter Bar
   const allTags = Array.from(
     new Set(
       projects.flatMap((p) => {
@@ -68,10 +67,8 @@ export default function PublicProjectsPage() {
     )
   ).filter(Boolean);
   
-  // Take top 5 tags for quick filters to avoid clutter
   const filterTabs = ["All", ...allTags.slice(0, 5)];
 
-  // 3. Filter and Search Logic
   const filteredProjects = projects.filter((p) => {
     const plainTextDesc = stripHtml(p.description);
     const matchesSearch = 
@@ -95,7 +92,6 @@ export default function PublicProjectsPage() {
   return (
     <div className="container mx-auto px-4 py-24 max-w-7xl">
       
-      {/* HEADER & SEARCH BAR */}
       <AnimatedSection direction="up">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
@@ -120,7 +116,6 @@ export default function PublicProjectsPage() {
         </div>
       </AnimatedSection>
 
-      {/* FILTER TABS */}
       {filterTabs.length > 1 && (
         <AnimatedSection direction="up">
           <div className="flex flex-wrap items-center gap-2 mb-12">
@@ -141,7 +136,6 @@ export default function PublicProjectsPage() {
         </AnimatedSection>
       )}
 
-      {/* PROJECTS GRID */}
       {filteredProjects.length === 0 ? (
         <AnimatedSection direction="fade">
           <div className="text-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
@@ -152,10 +146,7 @@ export default function PublicProjectsPage() {
           </div>
         </AnimatedSection>
       ) : (
-        <StaggerContainer
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-          staggerDelay={0.12}
-        >
+        <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" staggerDelay={0.12}>
           {filteredProjects.map((project) => {
             const plainTextDesc = stripHtml(project.description);
             const tags = project.tags || (typeof project.techStack === "string" ? project.techStack.split(",") : project.techStack) || [];
@@ -165,17 +156,23 @@ export default function PublicProjectsPage() {
               <StaggerItem key={project._id}>
                 <div className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
                   
-                  {/* 16:9 Thumbnail */}
                   <Link href={`/projects/${project.slug}`} className="relative w-full aspect-[16/9] bg-gray-100 dark:bg-gray-800 overflow-hidden block">
-                    {project.image ? (
+                    {(project.image || project.gDriveImage) ? (
                       <img 
-                        src={project.image} 
+                        src={project.image || project.gDriveImage} 
                         alt={project.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
+                        onContextMenu={(e) => e.preventDefault()} // ✅ Anti-Download
+                        draggable={false} // ✅ Anti-Drag
                         onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                          e.currentTarget.parentElement?.insertAdjacentHTML('beforeend', '<span class="text-gray-400 flex flex-col items-center gap-2"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg> Image Unavailable</span>');
+                          // ✅ G-Drive Fallback Logic
+                          if (project.gDriveImage && e.currentTarget.src !== project.gDriveImage) {
+                            e.currentTarget.src = project.gDriveImage;
+                          } else {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                            e.currentTarget.parentElement?.insertAdjacentHTML('beforeend', '<span class="text-gray-400 flex flex-col items-center gap-2"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg> Image Unavailable</span>');
+                          }
                         }}
                       />
                     ) : (
@@ -185,7 +182,6 @@ export default function PublicProjectsPage() {
                     )}
                   </Link>
 
-                  {/* Card Content */}
                   <div className="p-6 flex flex-col flex-1">
                     <Link href={`/projects/${project.slug}`} className="block group-hover:text-primary transition-colors">
                       <h2 className="text-xl font-extrabold text-gray-900 dark:text-white line-clamp-1 mb-3" title={project.title}>
@@ -193,7 +189,6 @@ export default function PublicProjectsPage() {
                       </h2>
                     </Link>
 
-                    {/* Tech Stack Pills */}
                     {displayTags.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-4">
                         {displayTags.map((tag, i) => (
@@ -209,21 +204,15 @@ export default function PublicProjectsPage() {
                       </div>
                     )}
 
-                    {/* Clean Excerpt */}
                     <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 mb-6">
                       {plainTextDesc || "No description provided."}
                     </p>
 
-                    {/* Footer (Pinned to bottom using mt-auto) */}
                     <div className="mt-auto pt-5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                      <Link 
-                        href={`/projects/${project.slug}`} 
-                        className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary/80 transition-colors group/link"
-                      >
+                      <Link href={`/projects/${project.slug}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary/80 transition-colors group/link">
                         View Details <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
                       </Link>
 
-                      {/* Quick Actions */}
                       <div className="flex items-center gap-3">
                         {project.githubLink && (
                           <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="View Source Code">

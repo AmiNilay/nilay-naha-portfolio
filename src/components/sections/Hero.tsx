@@ -30,6 +30,8 @@ export default function Hero() {
     subtitle: "",
     profilePic: "",
     resumeUrl: "",
+    gDriveProfilePic: "", // ✅ G-Drive Fallback
+    gDriveResume: "",     // ✅ G-Drive Fallback
     socialGithub: "",
     socialLinkedin: "",
     socialTwitter: "",
@@ -58,6 +60,35 @@ export default function Hero() {
   const glowX = useTransform(springX, [-0.5, 0.5], [15, -15]);
   const glowY = useTransform(springY, [-0.5, 0.5], [15, -15]);
 
+  // 🔥 BULLETPROOF SCROLL LOCK 🔥
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const preventScroll = (e: Event) => e.preventDefault();
+    const preventKeyScroll = (e: KeyboardEvent) => {
+      const keys = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "];
+      if (keys.includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+    window.addEventListener("keydown", preventKeyScroll, { passive: false });
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+      window.removeEventListener("keydown", preventKeyScroll);
+    };
+  }, []);
+
   useEffect(() => {
     fetch(`/api/hero?timestamp=${Date.now()}`, {
       cache: "no-store",
@@ -72,6 +103,8 @@ export default function Hero() {
             subtitle: resData.subtitle || resData.description || "",
             profilePic: resData.profilePic || resData.image || "",
             resumeUrl: resData.resumeUrl || "",
+            gDriveProfilePic: resData.gDriveProfilePic || "",
+            gDriveResume: resData.gDriveResume || "",
             socialGithub: resData.socialGithub || "",
             socialLinkedin: resData.socialLinkedin || "",
             socialTwitter: resData.socialTwitter || "",
@@ -107,7 +140,7 @@ export default function Hero() {
 
   if (loading) {
     return (
-      <section className="min-h-[calc(100dvh-80px)] flex items-center justify-center">
+      <section className="h-[100dvh] flex items-center justify-center overflow-hidden">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </section>
     );
@@ -116,15 +149,19 @@ export default function Hero() {
   const imageKey = data.profilePic ? `${data.profilePic}?v=${Date.now()}` : null;
   const easeOut = [0.25, 0.4, 0.25, 1] as const;
   const techArray = data.techStack ? data.techStack.split(",").map(t => t.trim()).filter(Boolean) : [];
+  
+  // ✅ Determine final resume URL (GitHub first, then G-Drive)
+  const finalResumeUrl = data.resumeUrl || data.gDriveResume;
 
   return (
     <section
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative w-full min-h-[calc(100dvh-80px)] flex items-center justify-center overflow-x-hidden py-10 md:py-0"
+      // ✅ STRICTLY 100dvh and overflow-hidden to prevent ANY scrolling
+      className="relative w-full h-[100dvh] flex items-center justify-center overflow-hidden py-10 md:py-0"
     >
-      {/* INNER CONTAINER */}
+      {/* INNER CONTAINER (Restored exact layout sizing) */}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-12 lg:gap-16 pb-20 md:pb-16">
         
         {/* TEXT CONTENT */}
@@ -184,9 +221,9 @@ export default function Hero() {
               View Work <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
             </Link>
 
-            {data.resumeUrl ? (
+            {finalResumeUrl ? (
               <a
-                href={data.resumeUrl}
+                href={finalResumeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-full text-gray-800 dark:text-gray-200 font-semibold hover:border-primary hover:text-primary hover:-translate-y-0.5 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-xs sm:text-sm md:text-base flex-1 md:flex-none min-w-[130px]"
@@ -274,7 +311,7 @@ export default function Hero() {
           )}
         </motion.div>
 
-        {/* PROFILE PICTURE with CURSOR PARALLAX */}
+        {/* PROFILE PICTURE with CURSOR PARALLAX (Restored exact sizing and mobile visibility) */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8, x: 40 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -290,13 +327,23 @@ export default function Hero() {
             style={{ x: imageX, y: imageY }}
             className="relative w-44 h-44 sm:w-52 sm:h-52 md:w-72 md:h-72 lg:w-80 lg:h-80 xl:w-96 xl:h-96 rounded-full overflow-hidden border-[3px] sm:border-[4px] border-white dark:border-gray-800 shadow-2xl ring-1 ring-gray-900/5 dark:ring-white/10 bg-gray-100 dark:bg-gray-900"
           >
-            {data.profilePic ? (
-              <Image key={imageKey} src={data.profilePic} alt="Profile Picture" fill className="object-cover object-center" priority unoptimized />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 text-gray-400">
-                <span className="text-xs">No Image</span>
-              </div>
-            )}
+            {/* ✅ Anti-Download & Fallback Logic Applied */}
+            <Image 
+              key={imageKey} 
+              src={data.profilePic || data.gDriveProfilePic || "/placeholder.png"} 
+              alt="Profile Picture" 
+              fill 
+              className="object-cover object-center select-none pointer-events-none" 
+              priority 
+              unoptimized 
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
+              onError={(e) => {
+                if (data.gDriveProfilePic) {
+                  e.currentTarget.src = data.gDriveProfilePic;
+                }
+              }}
+            />
           </motion.div>
 
           <motion.div animate={{ y: [0, -10, 0], rotate: [0, 10, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="hidden md:block absolute -top-4 -right-4 w-6 h-6 rounded-full bg-primary/80 shadow-lg" />

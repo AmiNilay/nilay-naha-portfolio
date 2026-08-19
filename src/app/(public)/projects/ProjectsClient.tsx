@@ -44,28 +44,16 @@ export default function PublicProjectsPage() {
     fetchProjects();
   }, []);
 
-  // ✅ UPGRADED: Smart HTML Stripper
   const stripHtml = (html: string) => {
     if (!html) return "";
     let text = html;
-    
-    // 1. Completely remove <style> and <script> blocks so CSS/JS doesn't show as text
     text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
     text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
-    
-    // 2. Replace block-level tags with a space so words don't get squished together
     text = text.replace(/<\/(p|div|h[1-6]|li|ul|ol|table|tr|td|th)>/gi, " ");
     text = text.replace(/<br\s*\/?>/gi, " ");
-    
-    // 3. Remove all remaining HTML tags
     text = text.replace(/<[^>]*>?/gm, "");
-    
-    // 4. Decode common HTML entities
     text = text.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-    
-    // 5. Clean up multiple spaces into a single space
     text = text.replace(/\s+/g, " ").trim();
-    
     return text;
   };
 
@@ -161,15 +149,12 @@ export default function PublicProjectsPage() {
             const plainTextDesc = stripHtml(project.description);
             const tags = project.tags || (typeof project.techStack === "string" ? project.techStack.split(",") : project.techStack) || [];
             const displayTags = tags.slice(0, 3);
-            
-            // ✅ Smart Image Fallback Logic
             const displayImage = project.image || project.gDriveImage;
 
             return (
               <StaggerItem key={project._id}>
                 <div className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
                   
-                  {/* ✅ FIXED: Thumbnail Area handles both Images and Iframes perfectly */}
                   <Link href={`/projects/${project.slug}`} className="relative w-full aspect-[16/9] bg-gray-100 dark:bg-gray-800 overflow-hidden block">
                     {displayImage ? (
                       displayImage.includes("<iframe") ? (

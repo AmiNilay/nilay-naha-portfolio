@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, Github, ExternalLink, Loader2, Download,
-  Calendar, Share2, Twitter, Linkedin, Copy, Check, Layers
+  Calendar, Share2, Twitter, Linkedin, Copy, Check, Layers, AlertTriangle, RefreshCw
 } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import ReadingProgress from "@/components/blog/ReadingProgress";
@@ -21,43 +21,56 @@ export default function ProjectDetails() {
   const [nextProject, setNextProject] = useState<any>(null);
   const [processedHTML, setProcessedHTML] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [copied, setCopied] = useState(false);
   const [contentReady, setContentReady] = useState(false);
 
-  useEffect(() => {
+  const fetchProjectData = async () => {
     if (!slug) return;
+    setLoading(true);
+    setError(null);
 
-    fetch(`/api/projects`)
-      .then((res) => res.json())
-      .then(async (data) => {
-        const projects = data.projects || [];
-        const currentIndex = projects.findIndex((p: any) => p.slug === slug);
+    try {
+      const res = await fetch(`/api/projects`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      
+      const data = await res.json();
+      const projects = data.projects || [];
+      const currentIndex = projects.findIndex((p: any) => p.slug === slug);
 
-        if (currentIndex !== -1) {
-          const currentProject = projects[currentIndex];
-          setProject(currentProject);
-          
-          setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
-          setNextProject(currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null);
+      if (currentIndex !== -1) {
+        const currentProject = projects[currentIndex];
+        setProject(currentProject);
+        setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
+        setNextProject(currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null);
 
-          const rawContent = currentProject.description || currentProject.content || "";
-          
-          const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
-          
-          if (isRawHtml) {
-            setProcessedHTML(rawContent);
-          } else {
-            const html = await processContent(rawContent);
-            setProcessedHTML(html);
-          }
+        const rawContent = currentProject.description || currentProject.content || "";
+        const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
+        
+        if (isRawHtml) {
+          setProcessedHTML(rawContent);
+        } else {
+          const html = await processContent(rawContent);
+          setProcessedHTML(html);
         }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error:", err);
-        setLoading(false);
-      });
+      } else {
+        setProject(null);
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      if (!navigator.onLine) {
+        setError("You appear to be offline. Please check your internet connection.");
+      } else {
+        setError("Failed to load project details. The server might be busy.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectData();
   }, [slug]);
 
   useEffect(() => {
@@ -123,11 +136,59 @@ export default function ProjectDetails() {
     </div>
   );
 
+  // ==========================================
+  // ERROR STATE UI
+  // ==========================================
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center pt-20">
+        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-red-100 dark:border-red-900/30">
+          <AlertTriangle className="w-10 h-10" />
+        </div>
+        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">Oops! Something went wrong</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">{error}</p>
+        <button 
+          onClick={fetchProjectData} 
+          className="px-8 py-3.5 bg-primary text-white rounded-full font-bold hover:scale-105 hover:shadow-lg transition-all flex items-center gap-2"
+        >
+          <RefreshCw className="w-5 h-5" /> Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // SKELETON LOADER UI
+  // ==========================================
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center pt-20">
-        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-        <p className="text-gray-500 font-medium animate-pulse">Loading project...</p>
+      <div className="min-h-screen pb-20 bg-background pt-24">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 mb-8">
+          <div className="w-32 h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+        </div>
+        <header className="max-w-4xl mx-auto px-4 md:px-8">
+          <div className="w-3/4 h-12 md:h-16 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse mb-6"></div>
+          <div className="flex justify-between pb-8 border-b border-gray-200 dark:border-gray-800">
+            <div className="w-40 h-8 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+            <div className="w-48 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+          </div>
+          <div className="w-full mt-10 aspect-[16/9] bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse"></div>
+        </header>
+        <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
+          <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_320px]">
+            <article className="w-full space-y-4">
+              <div className="w-full h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+              <div className="w-full h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+              <div className="w-5/6 h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+              <div className="w-full h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse mt-8"></div>
+              <div className="w-4/5 h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+            </article>
+            <aside className="hidden lg:block space-y-8">
+              <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse"></div>
+              <div className="w-full h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse"></div>
+            </aside>
+          </div>
+        </div>
       </div>
     );
   }

@@ -43,7 +43,6 @@ export default function ProjectDetails() {
 
           const rawContent = currentProject.description || currentProject.content || "";
           
-          // ✅ FIX: If content starts with HTML tags, render it directly to prevent Markdown from turning it into a code block
           const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
           
           if (isRawHtml) {
@@ -147,11 +146,35 @@ export default function ProjectDetails() {
 
   const techStack = project.techStack?.length ? project.techStack : project.tags || [];
   const displayImage = project.image || project.gDriveImage;
-
-  return (
+    return (
     <div className="min-h-screen pb-20 bg-background">
       <ReadingProgress />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* 🔥 BULLETPROOF DARK MODE OVERRIDE FOR CUSTOM HTML 🔥 */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .dark .blog-content .portfolio-post {
+          background-color: transparent !important;
+          color: #e5e7eb !important;
+          box-shadow: none !important;
+        }
+        .dark .blog-content [style*="background-color: #ffffff"],
+        .dark .blog-content [style*="background-color: #fff"],
+        .dark .blog-content [style*="background-color: white"],
+        .dark .blog-content [style*="background-color: #f3f4f6"] {
+          background-color: transparent !important;
+        }
+        .dark .blog-content [style*="color: #334155"],
+        .dark .blog-content [style*="color: #000000"],
+        .dark .blog-content [style*="color: black"] {
+          color: #e5e7eb !important;
+        }
+        .dark .blog-content table,
+        .dark .blog-content th,
+        .dark .blog-content td {
+          border-color: #374151 !important;
+        }
+      `}} />
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 mb-8">
         <Link href="/projects" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors group">
@@ -211,7 +234,6 @@ export default function ProjectDetails() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
-        {/* ✅ FIX: Removed max-w-3xl so the content expands to fill the desktop space */}
         <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_320px]">
           
           <article className="w-full min-w-0">

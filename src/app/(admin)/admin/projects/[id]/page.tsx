@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { 
   ArrowLeft, Save, Loader2, Upload, X, Calendar, Crop, Eye, Wand2,
-  Table as TableIcon, Code, Link as LinkIcon
+  Table as TableIcon, Code, Link as LinkIcon, RefreshCw, Trash2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -40,19 +40,18 @@ export default function ProjectEditorPage() {
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
-
-  // ✅ NEW: State to hold available blogs for the dropdown
   const [availableBlogs, setAvailableBlogs] = useState<{_id: string, title: string}[]>([]);
 
   const [formData, setFormData] = useState({
     title: "", slug: "", description: "", githubLink: "", liveLink: "", appLink: "", image: "",
     gDriveImage: "",
     publishDate: "", role: "", status: "Published", featured: false, frameStyle: "Browser",
-    relatedBlog: "" // ✅ NEW: Field to store linked blog ID
+    relatedBlog: ""
   });
 
   const [tags, setTags] = useState<string[]>([]);
@@ -67,7 +66,6 @@ export default function ProjectEditorPage() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   useEffect(() => {
-    // ✅ Fetch all blogs to populate the dropdown
     fetch("/api/blog")
       .then(res => res.json())
       .then(data => {
@@ -91,7 +89,7 @@ export default function ProjectEditorPage() {
             gDriveImage: p.gDriveImage || "",
             publishDate: formattedDate, role: p.role || "", status: p.status || "Published", 
             featured: p.featured || false, frameStyle: p.frameStyle || "Browser",
-            relatedBlog: p.relatedBlog || "" // ✅ Load existing linked blog
+            relatedBlog: p.relatedBlog || ""
           });
           setTags(p.tags || (typeof p.techStack === 'string' ? p.techStack.split(',') : p.techStack) || []);
           if (p.image) setPreviewUrl(p.image);
@@ -148,6 +146,34 @@ export default function ProjectEditorPage() {
     }
   };
 
+  // ✅ NEW: Remove Image Function
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image: "" }));
+    setPreviewUrl(null);
+    setNewImage(null);
+    setToast({ message: "Image removed. Save to apply changes.", type: "success" });
+  };
+
+  // ✅ NEW: Extract G-Drive Link Function
+  const handleExtractGDrive = () => {
+    if (!formData.gDriveImage) return;
+    setExtracting(true);
+    
+    setTimeout(() => {
+      let url = formData.gDriveImage;
+      // If it's not an iframe, try to extract the ID and convert to thumbnail
+      if (!url.includes("<iframe")) {
+        const fileIdMatch = url.match(/[-\w]{25,}/);
+        if (fileIdMatch) {
+          url = `https://drive.google.com/thumbnail?id=${fileIdMatch[0]}&sz=w1000`;
+          setFormData(prev => ({ ...prev, gDriveImage: url } ));
+        }
+      }
+      setExtracting(false);
+      setToast({ message: "G-Drive link extracted successfully!", type: "success" });
+    }, 800);
+  };
+
   const insertTableTemplate = () => {
     const tableHtml = `
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; border: 1px solid #d1d5db;">
@@ -183,8 +209,16 @@ export default function ProjectEditorPage() {
         if (key !== "image") data.append(key, value as string);
       });
       data.append("tags", tags.join(","));
-      if (newImage) data.append("image", newImage);
-      else if (formData.image) data.append("image", formData.image);
+      
+      // Handle image saving/removal
+      if (newImage) {
+        data.append("image", newImage);
+      } else if (formData.image === "") {
+        data.append("image", ""); // Explicitly send empty string to clear it
+      } else if (formData.image) {
+        data.append("image", formData.image);
+      }
+
       if (!isNew && id) data.append("id", id);
       
       const res = await fetch("/api/projects", { method: isNew ? "POST" : "PUT", body: data });
@@ -207,6 +241,7 @@ export default function ProjectEditorPage() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin w-10 h-10 text-blue-600" /></div>;
 
+  const displayPreviewImage = previewUrl || formData.gDriveImage;
   return (
     <div className="p-8 max-w-6xl mx-auto pb-32 bg-gray-50 min-h-screen">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -235,7 +270,7 @@ export default function ProjectEditorPage() {
                 <span>{formData.role || "Role not specified"}</span> • <span>{formData.status}</span>
               </div>
               
-              {previewUrl && (
+              {displayPreviewImage && (
                 <div className={`w-full mt-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-white ${formData.frameStyle === 'Browser' ? 'pt-10 relative' : ''}`}>
                   {formData.frameStyle === 'Browser' && (
                     <div className="absolute top-0 left-0 w-full h-10 bg-gray-100 border-b border-gray-200 flex items-center px-4 gap-2">
@@ -244,7 +279,11 @@ export default function ProjectEditorPage() {
                       <div className="w-3 h-3 rounded-full bg-[#27C93F]"></div>
                     </div>
                   )}
-                  <img src={previewUrl} alt="Preview" className="w-full h-auto object-cover" />
+                  {displayPreviewImage.includes("<iframe") ? (
+                    <div className="w-full h-auto aspect-[16/9] [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: displayPreviewImage }} />
+                  ) : (
+                    <img src={displayPreviewImage} alt="Preview" className="w-full h-auto object-cover" />
+                  )}
                 </div>
               )}
             </header>
@@ -323,9 +362,9 @@ export default function ProjectEditorPage() {
             </label>
           </div>
         </div>
-                {/* ✅ NEW: TABBED HTML/MARKDOWN EDITOR */}
+
+        {/* ✅ TABBED HTML/MARKDOWN EDITOR */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col transition-all">
-          {/* Editor Header with Tabs */}
           <div className="flex justify-between items-end mb-0 border-b border-gray-200 px-6 pt-6">
             <div className="flex gap-2">
               <button 
@@ -357,7 +396,6 @@ export default function ProjectEditorPage() {
             </div>
           </div>
           
-          {/* Editor Content Area */}
           <div className="flex-1 p-6">
             {editorTab === "write" ? (
               <textarea 
@@ -383,7 +421,6 @@ export default function ProjectEditorPage() {
                <input type="datetime-local" value={formData.publishDate} onChange={(e) => setFormData({ ...formData, publishDate: e.target.value })} className="w-full p-3 rounded-xl border border-gray-300 bg-white text-black font-medium focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
 
-            {/* ✅ NEW: Link to Blog Post */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2">
                 <LinkIcon size={14} /> Link to Blog Post
@@ -400,7 +437,6 @@ export default function ProjectEditorPage() {
               </select>
             </div>
 
-            {/* Tag Pills Input */}
             <div className="space-y-2">
                <label className="text-xs font-bold uppercase text-gray-500">Tech Stack & Tags (Press Enter)</label>
                <div className="w-full p-2 rounded-xl border border-gray-300 bg-white flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-blue-500">
@@ -440,23 +476,47 @@ export default function ProjectEditorPage() {
               {previewUrl ? (
                 <div className="relative w-full h-full group">
                   <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => { setNewImage(null); setPreviewUrl(null); }} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={16} /></button>
+                  <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ) : (
                 <div className="text-center p-8 text-gray-400"><Upload className="w-8 h-8 mb-2 mx-auto opacity-50" /><span className="text-xs font-medium">Preview</span></div>
               )}
             </div>
 
-            {/* ✅ G-Drive Fallback */}
+            {/* ✅ G-Drive Fallback & Extract Button */}
             <div className="space-y-2 pt-2">
               <label className="text-xs font-bold uppercase text-gray-500">G-Drive Fallback URL</label>
-              <input 
-                type="text" 
-                value={formData.gDriveImage} 
-                onChange={(e) => setFormData({ ...formData, gDriveImage: e.target.value })} 
-                placeholder="Paste Google Drive link or iframe..." 
-                className="w-full p-3 rounded-xl border border-gray-300 bg-white text-black text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-              />
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={formData.gDriveImage} 
+                  onChange={(e) => setFormData({ ...formData, gDriveImage: e.target.value })} 
+                  placeholder="Paste Google Drive link or iframe..." 
+                  className="flex-1 p-3 rounded-xl border border-gray-300 bg-white text-black text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                />
+                <button 
+                  type="button" 
+                  onClick={handleExtractGDrive}
+                  disabled={!formData.gDriveImage || extracting}
+                  className="px-4 py-2 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2 transition-colors"
+                >
+                  {extracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Extract
+                </button>
+              </div>
+              
+              {/* G-Drive Mini Preview */}
+              {formData.gDriveImage && (
+                <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 aspect-[16/9] bg-gray-50">
+                  {formData.gDriveImage.includes("<iframe") ? (
+                    <div className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full pointer-events-none" dangerouslySetInnerHTML={{ __html: formData.gDriveImage }} />
+                  ) : (
+                    <img src={formData.gDriveImage} alt="G-Drive Preview" className="w-full h-full object-cover" />
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -464,5 +524,4 @@ export default function ProjectEditorPage() {
     </div>
   );
 }
-
 

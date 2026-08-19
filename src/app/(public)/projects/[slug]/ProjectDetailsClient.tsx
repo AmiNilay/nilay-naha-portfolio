@@ -41,8 +41,17 @@ export default function ProjectDetails() {
           setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
           setNextProject(currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null);
 
-          const html = await processContent(currentProject.description || currentProject.content || "");
-          setProcessedHTML(html);
+          const rawContent = currentProject.description || currentProject.content || "";
+          
+          // ✅ FIX: If content starts with HTML tags, render it directly to prevent Markdown from turning it into a code block
+          const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
+          
+          if (isRawHtml) {
+            setProcessedHTML(rawContent);
+          } else {
+            const html = await processContent(rawContent);
+            setProcessedHTML(html);
+          }
         }
         setLoading(false);
       })
@@ -90,14 +99,14 @@ export default function ProjectDetails() {
     e.stopPropagation();
     const text = encodeURIComponent(`Check out this project: ${project?.title}`);
     const url = encodeURIComponent(window.location.href);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "width=600,height=500"  );
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "width=600,height=500" );
   };
 
   const shareOnLinkedIn = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const url = encodeURIComponent(window.location.href);
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank", "width=600,height=500"  );
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank", "width=600,height=500" );
   };
 
   const ShareButtons = () => (
@@ -137,6 +146,7 @@ export default function ProjectDetails() {
   }
 
   const techStack = project.techStack?.length ? project.techStack : project.tags || [];
+  const displayImage = project.image || project.gDriveImage;
 
   return (
     <div className="min-h-screen pb-20 bg-background">
@@ -168,38 +178,45 @@ export default function ProjectDetails() {
           <ShareButtons />
         </div>
 
-        {/* ✅ G-Drive Fallback & Anti-Download */}
-        {(project.image || project.gDriveImage) && (
+        {/* ✅ G-Drive Fallback & Iframe Support */}
+        {displayImage && (
           <div className="w-full mt-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-            <div className="h-10 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
-              <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
-              <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
-            </div>
+            {project.frameStyle !== "None" && (
+              <div className="h-10 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
+              </div>
+            )}
             <div className="relative aspect-[16/9] group bg-gray-50 dark:bg-black">
-              <img 
-                src={project.image || project.gDriveImage} 
-                alt={project.title} 
-                className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700 select-none" 
-                onContextMenu={(e) => e.preventDefault()}
-                draggable={false}
-                onError={(e) => {
-                  if (project.gDriveImage && e.currentTarget.src !== project.gDriveImage) {
-                    e.currentTarget.src = project.gDriveImage;
-                  }
-                }}
-              />
+              {displayImage.includes("<iframe") ? (
+                <div className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: displayImage }} />
+              ) : (
+                <img 
+                  src={displayImage} 
+                  alt={project.title} 
+                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700 select-none" 
+                  onContextMenu={(e) => e.preventDefault()}
+                  draggable={false}
+                  onError={(e) => {
+                    if (project.gDriveImage && !project.gDriveImage.includes("<iframe") && e.currentTarget.src !== project.gDriveImage) {
+                      e.currentTarget.src = project.gDriveImage;
+                    }
+                  }}
+                />
+              )}
             </div>
           </div>
         )}
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
-        <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_300px]">
+        {/* ✅ FIX: Removed max-w-3xl so the content expands to fill the desktop space */}
+        <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_320px]">
           
-          <article className="lg:max-w-3xl w-full">
+          <article className="w-full min-w-0">
             <div 
-              className="blog-content prose prose-slate dark:prose-invert max-w-none 
+              className="blog-content prose prose-slate dark:prose-invert max-w-none w-full
                 prose-headings:font-bold prose-headings:tracking-tight 
                 prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-2 prose-h2:border-gray-200 dark:prose-h2:border-gray-800
                 prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
@@ -302,3 +319,4 @@ export default function ProjectDetails() {
     </div>
   );
 }
+

@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import Hero from "@/models/Hero";
-// ✅ CORRECT IMPORT (Points to your existing file)
 import { uploadToGithub, deleteFromGithub } from "@/lib/githubUpload";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+// Helper to extract clean G-Drive URL
+const formatGDriveUrl = (url: string | null) => {
+  if (!url) return "";
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? `https://drive.google.com/file/d/${match[1]}/preview` : url;
+};
+
+export async function GET( ) {
   await connectToDB();
   const hero = await Hero.findOne();
   return NextResponse.json(hero || {}, {
@@ -20,13 +26,11 @@ export async function PUT(req: Request) {
     await connectToDB();
     const formData = await req.formData();
 
-    // 1. Fetch CURRENT data (needed to find old files to delete)
     let currentHero = await Hero.findOne();
     if (!currentHero) currentHero = new Hero({});
 
     const updateData: any = {};
     
-    // 🟢 ADDED ALL NEW FIELDS HERE
     const textFields = [
       "badge", "title", "subtitle", 
       "badgeText", "showAvailability", 
@@ -36,14 +40,11 @@ export async function PUT(req: Request) {
       "stat1Value", "stat1Label", 
       "stat2Value", "stat2Label", 
       "stat3Value", "stat3Label",
-      "portfolioLastUpdated", // ✅ ADDED THIS SO IT SAVES TO DATABASE
-      "gDriveProfilePic", // ✅ ADDED
-      "gDriveResume"      // ✅ ADDED
+      "portfolioLastUpdated"
     ];
     
     textFields.forEach((field) => {
       if (formData.has(field)) {
-        // Handle boolean string conversion for showAvailability
         if (field === "showAvailability") {
           updateData[field] = formData.get(field) === "true";
         } else {
@@ -52,41 +53,45 @@ export async function PUT(req: Request) {
       }
     });
 
-    // 🟢 Handle Image Removal (if user clicked "Remove Photo" in Admin)
+    const gDriveProfilePic = formData.get("gDriveProfilePic") as string;
+    if (gDriveProfilePic !== null) {
+      const match = gDriveProfilePic.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      updateData.gDriveProfilePic = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : gDriveProfilePic;
+    }
+
+    const gDriveResume = formData.get("gDriveResume" ) as string;
+    if (gDriveResume !== null) updateData.gDriveResume = formatGDriveUrl(gDriveResume);
+
+    // Handle Image Removal
     if (formData.get("removeImage") === "true") {
-      if (currentHero.profilePic) {
-        await deleteFromGithub(currentHero.profilePic);
-      }
+      if (currentHero.profilePic) await deleteFromGithub(currentHero.profilePic);
       updateData.profilePic = "";
     }
 
-    // 2. IMAGE UPLOAD logic
+    // ✅ NEW: Handle Resume Removal
+    if (formData.get("removeResume") === "true") {
+      if (currentHero.resumeUrl) await deleteFromGithub(currentHero.resumeUrl);
+      updateData.resumeUrl = "";
+    }
+
     const imageFile = formData.get("image") as File;
     if (imageFile && imageFile.size > 0) {
-      console.log(">> Uploading Image...");
       const newUrl = await uploadToGithub(imageFile);
-      
       if (newUrl) {
         updateData.profilePic = newUrl;
-        // Delete old ONLY if new upload worked
         if (currentHero.profilePic) await deleteFromGithub(currentHero.profilePic);
       }
     }
 
-    // 3. RESUME UPLOAD logic
     const resumeFile = formData.get("resume") as File;
     if (resumeFile && resumeFile.size > 0) {
-      console.log(">> Uploading Resume...");
       const newUrl = await uploadToGithub(resumeFile);
-      
       if (newUrl) {
         updateData.resumeUrl = newUrl;
-        // Delete old ONLY if new upload worked
         if (currentHero.resumeUrl) await deleteFromGithub(currentHero.resumeUrl);
       }
     }
 
-    // 4. Update MongoDB
     const updatedHero = await Hero.findOneAndUpdate(
       {}, 
       { $set: updateData },

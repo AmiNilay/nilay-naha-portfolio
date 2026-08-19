@@ -7,11 +7,8 @@ const HeroSchema = new Schema(
     subtitle: String,
     profilePic: String,
     resumeUrl: String,
-    
-    // ✅ NEW: Google Drive Fallbacks
     gDriveProfilePic: String,
     gDriveResume: String,
-
     badgeText: String,
     showAvailability: { type: Boolean, default: true },
     line1Bold: String,

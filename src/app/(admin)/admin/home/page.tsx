@@ -15,7 +15,6 @@ import "react-quill/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
-// --- HELPERS FOR CROPPER ---
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new window.Image();
@@ -42,7 +41,6 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
 }
 
 export default function AdminHome() {
-  // --- STRUCTURED STATE ---
   const [formData, setFormData] = useState({
     badgeText: "Software Developer (Python)",
     showAvailability: true,
@@ -57,8 +55,8 @@ export default function AdminHome() {
     socialEmail: "",
     profilePic: "",
     resumeUrl: "",
-    gDriveProfilePic: "", // ✅ Added G-Drive Fallback
-    gDriveResume: "",     // ✅ Added G-Drive Fallback
+    gDriveProfilePic: "",
+    gDriveResume: "",
     techStack: "Python, FastAPI, Docker, PostgreSQL, MongoDB",
     stat1Value: "5+", stat1Label: "Projects Built",
     stat2Value: "100%", stat2Label: "Open Source",
@@ -78,7 +76,6 @@ export default function AdminHome() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
-  // CROP STATE
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -99,8 +96,8 @@ export default function AdminHome() {
             socialEmail: data.socialEmail || "",
             profilePic: data.profilePic || "",
             resumeUrl: data.resumeUrl || "",
-            gDriveProfilePic: data.gDriveProfilePic || "", // ✅ Load G-Drive Fallback
-            gDriveResume: data.gDriveResume || "",         // ✅ Load G-Drive Fallback
+            gDriveProfilePic: data.gDriveProfilePic || "",
+            gDriveResume: data.gDriveResume || "",
             badgeText: data.badgeText || prev.badgeText,
             showAvailability: data.showAvailability ?? prev.showAvailability,
             line1Bold: data.line1Bold || prev.line1Bold,
@@ -151,6 +148,13 @@ export default function AdminHome() {
     if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
+  // ✅ NEW: Remove Resume Function
+  const removeResume = () => {
+    setSelectedResume(null);
+    setFormData(prev => ({ ...prev, resumeUrl: "" }));
+    if (resumeInputRef.current) resumeInputRef.current.value = "";
+  };
+
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setSelectedResume(file);
@@ -184,6 +188,7 @@ export default function AdminHome() {
       else if (formData.profilePic === "") data.append("removeImage", "true");
 
       if (selectedResume) data.append("resume", selectedResume);
+      else if (formData.resumeUrl === "") data.append("removeResume", "true"); // ✅ Tell API to delete resume
 
       const updated: any = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -208,11 +213,11 @@ export default function AdminHome() {
         xhr.send(data);
       });
 
-      if (updated.profilePic) {
+      if (updated.profilePic !== undefined) {
         setPreviewUrl(updated.profilePic);
         setFormData(prev => ({ ...prev, profilePic: updated.profilePic }));
       }
-      if (updated.resumeUrl) {
+      if (updated.resumeUrl !== undefined) {
         setFormData(prev => ({ ...prev, resumeUrl: updated.resumeUrl }));
       }
 
@@ -358,6 +363,10 @@ export default function AdminHome() {
                   <button onClick={() => resumeInputRef.current?.click()} className="flex-1 bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition-colors">
                     Replace File
                   </button>
+                  {/* ✅ NEW: Remove Resume Button */}
+                  <button onClick={removeResume} className="px-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors" title="Remove Resume">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ) : (
@@ -367,15 +376,26 @@ export default function AdminHome() {
               </button>
             )}
 
-            {/* ✅ G-Drive Fallback Input */}
+            {/* ✅ G-Drive Fallback Input with Preview */}
             <div className="mt-6 w-full text-left border-t pt-4">
               <label className="text-[10px] font-bold uppercase text-gray-500">G-Drive Resume Fallback URL</label>
-              <input 
-                value={formData.gDriveResume} 
-                onChange={(e) => setFormData({...formData, gDriveResume: e.target.value})} 
-                className="w-full p-2 mt-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
-                placeholder="Paste Google Drive PDF link..." 
-              />
+              <div className="flex gap-2 mt-1">
+                <input 
+                  value={formData.gDriveResume} 
+                  onChange={(e) => setFormData({...formData, gDriveResume: e.target.value})} 
+                  className="flex-1 p-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
+                  placeholder="Paste Google Drive PDF link..." 
+                />
+                {formData.gDriveResume && (
+                  <a 
+                    href={formData.gDriveResume.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ? `https://drive.google.com/file/d/${formData.gDriveResume.match(/\/file\/d\/([a-zA-Z0-9_-]+ )/)?.[1]}/preview` : formData.gDriveResume} 
+                    target="_blank" 
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    Preview ↗
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -490,4 +510,5 @@ export default function AdminHome() {
     </div>
   );
 }
+
 

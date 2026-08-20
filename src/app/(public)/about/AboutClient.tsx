@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   BookOpen, Cpu, Loader2, AlertCircle, GraduationCap, Award, 
-  Calendar, MapPin, Download, ArrowRight, Mail, Briefcase, ExternalLink, BadgeCheck 
+  Calendar, MapPin, Download, ArrowRight, Mail, Briefcase, ExternalLink, BadgeCheck,
+  AlertTriangle, RefreshCw
 } from "lucide-react";
 import SkillKeyboard from "@/components/ui/SkillKeyboard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
@@ -46,27 +47,88 @@ export default function AboutClient() {
   const [data, setData] = useState<AboutData | null>(null);
   const [heroData, setHeroData] = useState<{ profilePic?: string; resumeUrl?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/about").then(res => res.json()),
-      fetch("/api/hero").then(res => res.json()).catch(() => null)
-    ]).then(([aboutRes, heroRes]) => {
+  const fetchAboutData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [aboutRes, heroRes] = await Promise.all([
+        fetch("/api/about").then(res => {
+          if (!res.ok) throw new Error("Failed to fetch about data");
+          return res.json();
+        }),
+        fetch("/api/hero").then(res => res.json()).catch(() => null)
+      ]);
+      
       if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
         setData(aboutRes);
       }
       if (heroRes) setHeroData(heroRes);
-      setLoading(false);
-    }).catch(err => {
+    } catch (err) {
       console.error("Fetch error:", err);
+      if (!navigator.onLine) {
+        setError("You appear to be offline. Please check your internet connection.");
+      } else {
+        setError("Failed to load about details. The server might be busy or experiencing issues.");
+      }
+    } finally {
       setLoading(false);
-    });
+    }
+  };
+
+  useEffect(() => {
+    fetchAboutData();
   }, []);
 
+  // ==========================================
+  // ERROR STATE UI
+  // ==========================================
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center pt-20">
+        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-red-100 dark:border-red-900/30">
+          <AlertTriangle className="w-10 h-10" />
+        </div>
+        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">Oops! Something went wrong</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">{error}</p>
+        <button 
+          onClick={fetchAboutData} 
+          className="px-8 py-3.5 bg-primary text-white rounded-full font-bold hover:scale-105 hover:shadow-lg transition-all flex items-center gap-2"
+        >
+          <RefreshCw className="w-5 h-5" /> Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // SKELETON LOADER UI
+  // ==========================================
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary w-10 h-10" />
+      <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl">
+        <div className="flex flex-col md:flex-row gap-12 items-start mb-24">
+          <div className="w-full md:w-1/3 shrink-0 flex flex-col gap-6">
+            <div className="w-full aspect-square rounded-3xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse"></div>
+          </div>
+          <div className="w-full md:w-2/3 space-y-6">
+            <div className="h-12 bg-gray-200 dark:bg-gray-800 rounded-xl w-1/2 animate-pulse"></div>
+            <div className="space-y-4">
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-5/6 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-4/5 animate-pulse"></div>
+            </div>
+            <div className="flex gap-4 pt-4">
+              <div className="h-12 w-40 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+              <div className="h-12 w-40 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

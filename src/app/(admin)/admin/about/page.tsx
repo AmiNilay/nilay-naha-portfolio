@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Save, Plus, Trash2, Check, Search, ArrowUp, ArrowDown, Eye, X } from "lucide-react";
+import { Loader2, Save, Plus, Trash2, Check, Search, ArrowUp, ArrowDown, Eye, X, Image as ImageIcon } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import { SKILL_CATEGORIES } from "@/lib/skillData";
-import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 interface Education {
   degree: string;
@@ -36,6 +32,9 @@ export default function AdminAbout() {
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [availability, setAvailability] = useState("");
+  const [gDriveProfilePic, setGDriveProfilePic] = useState(""); // ✅ Dedicated About Image
+  const [previewImage, setPreviewImage] = useState("");
+  
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [experience, setExperience] = useState<Experience[]>([]);
@@ -46,16 +45,6 @@ export default function AdminAbout() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 🟢 Added Alignment & Justify tools to the toolbar
-  const modules = {
-    toolbar: [
-      [{ 'align': [] }], 
-      ['bold', 'italic', 'underline', 'strike', 'code'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'clean']
-    ],
-  };
-
   useEffect(() => {
     fetch("/api/about", { cache: "no-store" })
       .then((res) => res.json())
@@ -64,6 +53,13 @@ export default function AdminAbout() {
           setBio(data.bio || "");
           setLocation(data.location || "");
           setAvailability(data.availability || "");
+          setGDriveProfilePic(data.gDriveProfilePic || "");
+          
+          if (data.gDriveProfilePic) {
+            const match = data.gDriveProfilePic.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || data.gDriveProfilePic.match(/id=([a-zA-Z0-9_-]+)/);
+            if (match) setPreviewImage(`https://drive.google.com/thumbnail?id=${match[1]}&sz=w800` );
+            else setPreviewImage(data.gDriveProfilePic);
+          }
           
           if (Array.isArray(data.skills)) setSelectedSkills(data.skills);
           else if (typeof data.skills === "string") setSelectedSkills(data.skills.split(",").map((s: string) => s.trim()).filter(Boolean));
@@ -76,6 +72,28 @@ export default function AdminAbout() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  // --- G-DRIVE IMAGE CONTROLS ---
+  const handleExtractImage = () => {
+    if (!gDriveProfilePic) {
+      setToast({ message: "Please paste a link first.", type: "error" });
+      return;
+    }
+    const match = gDriveProfilePic.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || gDriveProfilePic.match(/id=([a-zA-Z0-9_-]+)/);
+    if (match) {
+      setPreviewImage(`https://drive.google.com/thumbnail?id=${match[1]}&sz=w800` );
+      setToast({ message: "Image extracted successfully!", type: "success" });
+    } else {
+      setPreviewImage(gDriveProfilePic);
+      setToast({ message: "Link applied (no ID extracted).", type: "success" });
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setGDriveProfilePic("");
+    setPreviewImage("");
+    setToast({ message: "Image removed.", type: "success" });
+  };
 
   const toggleSkill = (skillName: string) => {
     if (selectedSkills.includes(skillName)) setSelectedSkills((prev) => prev.filter((s) => s !== skillName));
@@ -129,7 +147,10 @@ export default function AdminAbout() {
       const res = await fetch("/api/about", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bio, location, availability, skills: selectedSkills, education, experience, certifications }),
+        body: JSON.stringify({ 
+          bio, location, availability, gDriveProfilePic, 
+          skills: selectedSkills, education, experience, certifications 
+        }),
       });
       if (res.ok) setToast({ message: "About Page updated successfully!", type: "success" });
       else throw new Error("Failed");
@@ -169,10 +190,43 @@ export default function AdminAbout() {
         {/* LEFT COLUMN */}
         <div className="space-y-8">
           
-          {/* Basic Info & Bio */}
+          {/* Profile & Biography */}
           <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-6">
             <h3 className="font-bold text-lg text-black border-b pb-2">Profile & Biography</h3>
             
+            {/* ✅ NEW: Dedicated G-Drive Image Section */}
+            <div className="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2">
+                <ImageIcon size={14} /> Dedicated About Page Image (G-Drive)
+              </label>
+              <p className="text-[10px] text-gray-400 mb-2">If left blank, it will fallback to the Home Page profile picture.</p>
+              
+              {previewImage && (
+                <div className="relative w-32 h-32 rounded-xl overflow-hidden mb-3 border border-gray-200 shadow-sm">
+                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input 
+                  value={gDriveProfilePic} 
+                  onChange={(e) => setGDriveProfilePic(e.target.value)} 
+                  className="flex-1 p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none" 
+                  placeholder="Paste Google Drive link..." 
+                />
+                <div className="flex gap-2">
+                  <button onClick={handleExtractImage} className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-900 text-sm font-bold rounded-lg transition-colors">
+                    Extract
+                  </button>
+                  {gDriveProfilePic && (
+                    <button onClick={handleRemoveImage} className="px-3 py-2.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors" title="Remove Image">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-gray-500">Location</label>
@@ -185,14 +239,17 @@ export default function AdminAbout() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-gray-500">Biography</label>
-              <div className="bg-white text-black rounded-xl overflow-hidden border border-gray-300 [&_*]:!text-black">
-                <ReactQuill theme="snow" value={bio} onChange={setBio} modules={modules} className="h-64 mb-12" />
-              </div>
+              <label className="text-xs font-bold uppercase text-gray-500">Biography (HTML Supported)</label>
+              {/* ✅ REMOVED REACT-QUILL, REPLACED WITH RAW TEXTAREA */}
+              <textarea 
+                value={bio} 
+                onChange={(e) => setBio(e.target.value)} 
+                className="w-full h-64 p-4 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none resize-y font-mono text-sm leading-relaxed bg-gray-50" 
+                placeholder="<p>Write your bio here...</p>" 
+              />
             </div>
           </div>
-
-          {/* Education Timeline */}
+                    {/* Education Timeline */}
           <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
             <div className="flex items-center justify-between mb-6 border-b pb-2">
               <h3 className="font-bold text-lg text-black">Education Timeline</h3>
@@ -290,7 +347,7 @@ export default function AdminAbout() {
             </div>
           </div>
 
-          {/* Experience & Certifications (New Sections) */}
+          {/* Experience & Internships */}
           <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
             <div className="flex items-center justify-between mb-6 border-b pb-2">
               <h3 className="font-bold text-lg text-black">Experience & Internships</h3>
@@ -310,8 +367,31 @@ export default function AdminAbout() {
             </div>
           </div>
 
+          {/* Certifications */}
+          <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
+            <div className="flex items-center justify-between mb-6 border-b pb-2">
+              <h3 className="font-bold text-lg text-black">Certifications</h3>
+              <button onClick={addCertification} className="text-sm flex items-center gap-1 bg-blue-50 text-blue-600 font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"><Plus className="w-4 h-4" /> Add</button>
+            </div>
+            <div className="space-y-4">
+              {certifications.map((cert, index) => (
+                <div key={index} className="p-4 border border-gray-200 rounded-xl bg-gray-50 relative group">
+                  <button onClick={() => removeCertification(index)} className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"><Trash2 size={12} /></button>
+                  <input value={cert.name} onChange={(e) => updateCertification(index, "name", e.target.value)} className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm font-bold text-black" placeholder="Certification Name" />
+                  <input value={cert.issuer} onChange={(e) => updateCertification(index, "issuer", e.target.value)} className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm text-black" placeholder="Issuer (e.g. Coursera, AWS)" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input value={cert.date} onChange={(e) => updateCertification(index, "date", e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg text-sm text-black" placeholder="Date (e.g. Aug 2024)" />
+                    <input value={cert.url} onChange={(e) => updateCertification(index, "url", e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg text-sm text-black" placeholder="Credential URL" />
+                  </div>
+                </div>
+              ))}
+              {certifications.length === 0 && <p className="text-xs text-gray-400 italic">No certifications added.</p>}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   );
 }
+

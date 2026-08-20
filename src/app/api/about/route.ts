@@ -1,41 +1,32 @@
 import { NextResponse } from "next/server";
-import { connectToDB } from "@/lib/connectToDB";
+import mongoose from "mongoose";
 import About from "@/models/About";
+
+// ✅ Bulletproof DB connection
+async function connectDB() {
+  if (mongoose.connection.readyState >= 1) return;
+  await mongoose.connect(process.env.MONGODB_URI || "");
+}
 
 export async function GET() {
   try {
-    await connectToDB();
-    const about = await About.findOne();
+    await connectDB();
+    const about = await About.findOne({});
     return NextResponse.json(about || {});
   } catch (error) {
-    console.error("GET Error:", error);
+    console.error("GET About Error:", error);
     return NextResponse.json({ error: "Failed to fetch about data" }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request) {
   try {
-    await connectToDB();
-
+    await connectDB();
     const body = await req.json();
-    const { bio, skills, education } = body;
-
-    const updatedAbout = await About.findOneAndUpdate(
-      {},
-      {
-        $set: {
-          bio,
-          skills,
-          education
-        }
-      },
-      { new: true, upsert: true }
-    );
-
-    return NextResponse.json(updatedAbout);
-
+    const updated = await About.findOneAndUpdate({}, body, { new: true, upsert: true });
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error("PUT Error:", error);
+    console.error("PUT About Error:", error);
     return NextResponse.json({ error: "Failed to update about data" }, { status: 500 });
   }
 }

@@ -8,12 +8,6 @@ import {
 import Image from "next/image";
 import Toast from "@/components/ui/Toast";
 import Cropper, { Point, Area } from "react-easy-crop"; 
-import dynamic from "next/dynamic";
-
-// @ts-ignore
-import "react-quill/dist/quill.snow.css";
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -110,7 +104,14 @@ export default function AdminHome() {
             stat3Value: data.stat3Value || prev.stat3Value, stat3Label: data.stat3Label || prev.stat3Label,
             portfolioLastUpdated: data.portfolioLastUpdated || prev.portfolioLastUpdated,
           }));
-          if (data.profilePic) setPreviewUrl(data.profilePic);
+          
+          // Load initial previews
+          if (data.profilePic) {
+            setPreviewUrl(data.profilePic);
+          } else if (data.gDriveProfilePic) {
+            const id = extractGDriveId(data.gDriveProfilePic);
+            if (id) setPreviewUrl(`https://drive.google.com/thumbnail?id=${id}&sz=w800` );
+          }
         }
         setLoading(false);
       })
@@ -144,20 +145,45 @@ export default function AdminHome() {
   const removePhoto = () => {
     setPreviewUrl(null);
     setSelectedImage(null);
-    setFormData(prev => ({ ...prev, profilePic: "" }));
+    setFormData(prev => ({ ...prev, profilePic: "", gDriveProfilePic: "" }));
     if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
-  // ✅ NEW: Remove Resume Function
   const removeResume = () => {
     setSelectedResume(null);
-    setFormData(prev => ({ ...prev, resumeUrl: "" }));
+    setFormData(prev => ({ ...prev, resumeUrl: "", gDriveResume: "" }));
     if (resumeInputRef.current) resumeInputRef.current.value = "";
   };
 
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setSelectedResume(file);
+  };
+
+  // ✅ G-Drive Extraction Logic
+  const extractGDriveId = (url: string) => {
+    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+    return match ? match[1] : null;
+  };
+
+  const handleExtractProfilePic = () => {
+    const id = extractGDriveId(formData.gDriveProfilePic);
+    if (id) {
+      const thumbUrl = `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+      setPreviewUrl(thumbUrl );
+      setToast({ message: "Profile pic extracted successfully!", type: "success" });
+    } else {
+      setToast({ message: "Invalid G-Drive Image URL", type: "error" });
+    }
+  };
+
+  const handleExtractResume = () => {
+    const id = extractGDriveId(formData.gDriveResume);
+    if (id) {
+      setToast({ message: "Resume extracted successfully!", type: "success" });
+    } else {
+      setToast({ message: "Invalid G-Drive Resume URL", type: "error" });
+    }
   };
 
   const handleSave = async () => {
@@ -188,7 +214,7 @@ export default function AdminHome() {
       else if (formData.profilePic === "") data.append("removeImage", "true");
 
       if (selectedResume) data.append("resume", selectedResume);
-      else if (formData.resumeUrl === "") data.append("removeResume", "true"); // ✅ Tell API to delete resume
+      else if (formData.resumeUrl === "") data.append("removeResume", "true");
 
       const updated: any = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -326,15 +352,23 @@ export default function AdminHome() {
             </div>
             <p className="text-[10px] text-gray-400 mt-3">JPG, PNG, WebP up to 5MB</p>
 
-            {/* ✅ G-Drive Fallback Input */}
+            {/* ✅ G-Drive Fallback Input with Extract Button */}
             <div className="mt-6 w-full text-left border-t pt-4">
               <label className="text-[10px] font-bold uppercase text-gray-500">G-Drive Image Fallback URL</label>
-              <input 
-                value={formData.gDriveProfilePic} 
-                onChange={(e) => setFormData({...formData, gDriveProfilePic: e.target.value})} 
-                className="w-full p-2 mt-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
-                placeholder="Paste Google Drive image link..." 
-              />
+              <div className="flex gap-2 mt-1">
+                <input 
+                  value={formData.gDriveProfilePic} 
+                  onChange={(e) => setFormData({...formData, gDriveProfilePic: e.target.value})} 
+                  className="flex-1 p-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
+                  placeholder="Paste Google Drive image link..." 
+                />
+                <button 
+                  onClick={handleExtractProfilePic} 
+                  className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Extract
+                </button>
+              </div>
             </div>
           </div>
 
@@ -343,27 +377,30 @@ export default function AdminHome() {
             <h3 className="font-bold text-xs text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Resume (PDF)</h3>
             <input type="file" ref={resumeInputRef} onChange={handleResumeChange} className="hidden" accept=".pdf" />
             
-            {selectedResume || formData.resumeUrl ? (
+            {selectedResume || formData.resumeUrl || formData.gDriveResume ? (
               <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
                 <div className="flex items-center gap-3 mb-3">
                   <FileText className="w-8 h-8 text-blue-600 shrink-0" />
                   <div className="overflow-hidden">
                     <p className="text-xs font-bold text-gray-500 uppercase">Current File</p>
                     <p className="text-sm font-bold text-blue-900 truncate">
-                      {selectedResume ? selectedResume.name : formData.resumeUrl.split('/').pop() || "Resume.pdf"}
+                      {selectedResume ? selectedResume.name : (formData.resumeUrl ? formData.resumeUrl.split('/').pop() : "G-Drive Resume Linked")}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {formData.resumeUrl && !selectedResume && (
-                    <a href={formData.resumeUrl} target="_blank" className="flex-1 text-center bg-white border border-blue-200 text-blue-700 text-xs font-bold py-2 rounded-lg hover:bg-blue-100 transition-colors">
+                  {(formData.resumeUrl || formData.gDriveResume) && !selectedResume && (
+                    <a 
+                      href={formData.resumeUrl || (formData.gDriveResume.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ? `https://drive.google.com/file/d/${formData.gDriveResume.match(/\/file\/d\/([a-zA-Z0-9_-]+ )/)?.[1]}/preview` : formData.gDriveResume)} 
+                      target="_blank" 
+                      className="flex-1 text-center bg-white border border-blue-200 text-blue-700 text-xs font-bold py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
                       View ↗
                     </a>
                   )}
                   <button onClick={() => resumeInputRef.current?.click()} className="flex-1 bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition-colors">
                     Replace File
                   </button>
-                  {/* ✅ NEW: Remove Resume Button */}
                   <button onClick={removeResume} className="px-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors" title="Remove Resume">
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -376,7 +413,7 @@ export default function AdminHome() {
               </button>
             )}
 
-            {/* ✅ G-Drive Fallback Input with Preview */}
+            {/* ✅ G-Drive Fallback Input with Extract Button */}
             <div className="mt-6 w-full text-left border-t pt-4">
               <label className="text-[10px] font-bold uppercase text-gray-500">G-Drive Resume Fallback URL</label>
               <div className="flex gap-2 mt-1">
@@ -386,15 +423,12 @@ export default function AdminHome() {
                   className="flex-1 p-2 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
                   placeholder="Paste Google Drive PDF link..." 
                 />
-                {formData.gDriveResume && (
-                  <a 
-                    href={formData.gDriveResume.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ? `https://drive.google.com/file/d/${formData.gDriveResume.match(/\/file\/d\/([a-zA-Z0-9_-]+ )/)?.[1]}/preview` : formData.gDriveResume} 
-                    target="_blank" 
-                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
-                  >
-                    Preview ↗
-                  </a>
-                )}
+                <button 
+                  onClick={handleExtractResume} 
+                  className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Extract
+                </button>
               </div>
             </div>
           </div>
@@ -431,10 +465,14 @@ export default function AdminHome() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-gray-500">Subtitle / Bio</label>
-              <div className="bg-white text-gray-900 rounded-xl overflow-hidden border border-gray-300 [&_*]:!text-gray-900">
-                <ReactQuill theme="snow" value={formData.bio} onChange={(val) => setFormData({...formData, bio: val})} className="h-40 mb-12" />
-              </div>
+              <label className="text-xs font-bold uppercase text-gray-500">Subtitle / Bio (HTML Supported)</label>
+              <textarea 
+                value={formData.bio} 
+                onChange={(e) => setFormData({...formData, bio: e.target.value})} 
+                className="w-full h-40 p-4 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none resize-y" 
+                placeholder="Write your bio here... HTML tags like <b> or   
+ are supported." 
+              />
             </div>
           </div>
 
@@ -510,5 +548,3 @@ export default function AdminHome() {
     </div>
   );
 }
-
-

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderGit2, FileText, Home, User, LogOut, Bot, Command, X, BellRing } from "lucide-react";
+import { LayoutDashboard, FolderGit2, FileText, Home, User, LogOut, Bot, Command, X, BellRing, Settings } from "lucide-react";
 
 const navLinks = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -11,7 +11,8 @@ const navLinks = [
   { name: "Home Page", href: "/admin/home", icon: Home },
   { name: "About Page", href: "/admin/about", icon: User },
   { name: "Train Chatbot", href: "/admin/chatbot", icon: Bot },
-  { name: "Notifications", href: "/admin/notifications", icon: BellRing }, // ✅ Added Notifications
+  { name: "Notifications", href: "/admin/notifications", icon: BellRing },
+  { name: "Global Settings", href: "/admin/settings", icon: Settings }, // ✅ Added Global Settings
 ];
 
 export default function AdminSidebar({ onClose }: { onClose?: () => void }) {

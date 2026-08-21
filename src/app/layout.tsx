@@ -13,7 +13,7 @@ const inter = Inter({ subsets: ["latin"] });
 const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
 const SITE_NAME = "Nilay Naha - Software Developer";
 const SITE_DESCRIPTION =
-  "Nilay Naha — Software Developer (Python ) building secure REST APIs, backend systems, and full-stack apps with FastAPI, Node.js, MongoDB, and Next.js.";
+  "Nilay Naha — Software Developer (Python  ) building secure REST APIs, backend systems, and full-stack apps with FastAPI, Node.js, MongoDB, and Next.js.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -89,6 +89,14 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Story+Script&family=Bitcount+Prop+Single&family=Bitcount+Prop+Single+Ink&family=Bitcount+Grid+Single&family=Allura&family=Italianno&family=Alex+Brush&family=Corinthia&family=Carattere&family=Kaushan+Script&family=Praise&family=Londrina+Shadow&family=Rouge+Script&family=Libertinus+Keyboard&family=Birthstone&family=Dancing+Script&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Navbar />

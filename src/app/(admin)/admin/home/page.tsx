@@ -65,6 +65,7 @@ export default function AdminHome() {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<Blob | File | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
   const [selectedResume, setSelectedResume] = useState<File | null>(null);
   
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +135,7 @@ export default function AdminHome() {
     try {
       const croppedBlob = await getCroppedImg(cropSrc, croppedAreaPixels);
       setSelectedImage(croppedBlob);
+      setImageRemoved(false);
       setPreviewUrl(URL.createObjectURL(croppedBlob));
       setIsCropping(false);
       setCropSrc(null);
@@ -145,6 +147,7 @@ export default function AdminHome() {
   const removePhoto = () => {
     setPreviewUrl(null);
     setSelectedImage(null);
+    setImageRemoved(true);
     setFormData(prev => ({ ...prev, profilePic: "", gDriveProfilePic: "" }));
     if (imageInputRef.current) imageInputRef.current.value = "";
   };
@@ -211,7 +214,7 @@ export default function AdminHome() {
       });
 
       if (selectedImage) data.append("image", selectedImage, "profile-pic.jpg");
-      else if (formData.profilePic === "") data.append("removeImage", "true");
+      else if (imageRemoved) data.append("removeImage", "true");
 
       if (selectedResume) data.append("resume", selectedResume);
       else if (formData.resumeUrl === "") data.append("removeResume", "true");
@@ -249,6 +252,7 @@ export default function AdminHome() {
 
       setSelectedImage(null);
       setSelectedResume(null);
+      setImageRemoved(false);
       setToast({ message: "Home Page updated successfully!", type: "success" });
     } catch (error) {
       setToast({ message: "Network Error or Save Failed.", type: "error" });

@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { 
   ArrowLeft, Save, Loader2, Upload, Calendar, Eye, Wand2, 
   X, Maximize2, Minimize2, ChevronDown, ChevronUp, Clock, FileText,
-  Table as TableIcon, Code, Link as LinkIcon
+  Table as TableIcon, Code, Link as LinkIcon, Type
 } from "lucide-react";
 import Link from "next/link";
 import Toast from "@/components/ui/Toast";
+
+const CUSTOM_FONTS = [
+  "Story Script", "Bitcount Prop Single", "Bitcount Prop Single Ink", 
+  "Bitcount Grid Single", "Allura", "Italianno", "Alex Brush", 
+  "Corinthia", "Carattere", "Kaushan Script", "Praise", 
+  "Londrina Shadow", "Rouge Script", "Libertinus Keyboard", 
+  "Birthstone", "Dancing Script"
+];
 
 export default function EditBlogPostPage() {
   const router = useRouter();
@@ -24,6 +32,7 @@ export default function EditBlogPostPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // ✅ NEW: State to hold available projects for the dropdown
   const [availableProjects, setAvailableProjects] = useState<{_id: string, title: string}[]>([]);
@@ -143,6 +152,30 @@ export default function EditBlogPostPage() {
 `;
     setFormData(prev => ({ ...prev, content: prev.content + "\n" + tableHtml + "\n" }));
     setToast({ message: "HTML Table inserted!", type: "success" });
+  };
+
+  // ✅ NEW: Apply Font to Highlighted Text
+  const applyFont = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const font = e.target.value;
+    if (!font || !textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = formData.content.substring(start, end);
+
+    if (!selectedText) {
+      setToast({ message: "Please highlight some text first!", type: "error" });
+      e.target.value = "";
+      return;
+    }
+
+    const wrappedText = `<span style="font-family: '${font}', sans-serif;">${selectedText}</span>`;
+    const newContent = formData.content.substring(0, start) + wrappedText + formData.content.substring(end);
+    
+    setFormData(prev => ({ ...prev, content: newContent }));
+    e.target.value = ""; // Reset dropdown
+    setToast({ message: `Applied ${font} font!`, type: "success" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -277,13 +310,29 @@ export default function EditBlogPostPage() {
                 
                 <div className="flex items-center gap-2 pb-2">
                   {editorTab === "write" && (
-                    <button 
-                      type="button" 
-                      onClick={insertTableTemplate} 
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-bold rounded-lg transition-colors"
-                    >
-                      <TableIcon size={16} /> Insert HTML Table
-                    </button>
+                    <>
+                      {/* ✅ NEW: Font Selector Dropdown */}
+                      <div className="relative flex items-center">
+                        <Type size={16} className="absolute left-2 text-gray-400" />
+                        <select 
+                          onChange={applyFont}
+                          className="pl-8 pr-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm font-bold rounded-lg transition-colors outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        >
+                          <option value="">Aa Font Family</option>
+                          {CUSTOM_FONTS.map(font => (
+                            <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button 
+                        type="button" 
+                        onClick={insertTableTemplate} 
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-bold rounded-lg transition-colors"
+                      >
+                        <TableIcon size={16} /> Insert HTML Table
+                      </button>
+                    </>
                   )}
                   <button type="button" onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors">
                     {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
@@ -295,6 +344,7 @@ export default function EditBlogPostPage() {
               <div className="flex-1">
                 {editorTab === "write" ? (
                   <textarea 
+                    ref={textareaRef}
                     value={formData.content} 
                     onChange={e => setFormData({...formData, content: e.target.value})} 
                     className={`w-full p-4 bg-gray-900 text-gray-100 font-mono text-sm rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-y leading-relaxed ${isFullscreen ? 'h-[75vh]' : 'h-[500px]'}`}
@@ -329,7 +379,7 @@ export default function EditBlogPostPage() {
                     <input value={formData.canonicalUrl} onChange={e => setFormData({...formData, canonicalUrl: e.target.value})} className="w-full p-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://medium.com/your-article" />
                   </div>
                 </div>
-                )}
+                 )}
             </div>
           </div>
 
@@ -433,4 +483,3 @@ export default function EditBlogPostPage() {
     </div>
   );
 }
-

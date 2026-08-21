@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
-  BookOpen, Cpu, Loader2, AlertCircle, GraduationCap, Award, 
-  Calendar, MapPin, Download, ArrowRight, Mail, Briefcase, ExternalLink, BadgeCheck,
-  AlertTriangle, RefreshCw
+    BookOpen, Cpu, AlertCircle, GraduationCap, Award, 
+ 
+  Calendar, MapPin, Download, ArrowRight, Mail, Briefcase, ExternalLink, BadgeCheck 
 } from "lucide-react";
 import SkillKeyboard from "@/components/ui/SkillKeyboard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
@@ -45,89 +45,64 @@ interface AboutData {
 
 export default function AboutClient() {
   const [data, setData] = useState<AboutData | null>(null);
-  const [heroData, setHeroData] = useState<{ profilePic?: string; resumeUrl?: string } | null>(null);
+  const [heroData, setHeroData] = useState<{ profilePic?: string; resumeUrl?: string; gDriveProfilePic?: string; gDriveResume?: string } | null>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchAboutData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [aboutRes, heroRes] = await Promise.all([
-        fetch("/api/about").then(res => {
-          if (!res.ok) throw new Error("Failed to fetch about data");
-          return res.json();
-        }),
-        fetch("/api/hero").then(res => res.json()).catch(() => null)
-      ]);
-      
+  useEffect(() => {
+    fetch("/api/settings").then(res => res.json()).then(data => setSettings(data)).catch(() => {});
+
+    const timestamp = Date.now();
+    Promise.all([
+      fetch(`/api/about?t=${timestamp}`, { cache: "no-store" }).then(res => res.json()),
+      fetch(`/api/hero?t=${timestamp}`, { cache: "no-store" }).then(res => res.json()).catch(() => null)
+    ]).then(([aboutRes, heroRes]) => {
       if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
         setData(aboutRes);
       }
       if (heroRes) setHeroData(heroRes);
-    } catch (err) {
-      console.error("Fetch error:", err);
-      if (!navigator.onLine) {
-        setError("You appear to be offline. Please check your internet connection.");
-      } else {
-        setError("Failed to load about details. The server might be busy or experiencing issues.");
-      }
-    } finally {
       setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAboutData();
+    }).catch(err => {
+      console.error("Fetch error:", err);
+      setLoading(false);
+    });
   }, []);
 
-  // ==========================================
-  // ERROR STATE UI
-  // ==========================================
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center pt-20">
-        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-red-100 dark:border-red-900/30">
-          <AlertTriangle className="w-10 h-10" />
-        </div>
-        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">Oops! Something went wrong</h2>
-        <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">{error}</p>
-        <button 
-          onClick={fetchAboutData} 
-          className="px-8 py-3.5 bg-primary text-white rounded-full font-bold hover:scale-105 hover:shadow-lg transition-all flex items-center gap-2"
-        >
-          <RefreshCw className="w-5 h-5" /> Try Again
-        </button>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // SKELETON LOADER UI
-  // ==========================================
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl">
+      <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl animate-pulse">
         <div className="flex flex-col md:flex-row gap-12 items-start mb-24">
           <div className="w-full md:w-1/3 shrink-0 flex flex-col gap-6">
-            <div className="w-full aspect-square rounded-3xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse"></div>
-            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse"></div>
-            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse"></div>
-          </div>
-          <div className="w-full md:w-2/3 space-y-6">
-            <div className="h-12 bg-gray-200 dark:bg-gray-800 rounded-xl w-1/2 animate-pulse"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-5/6 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-4/5 animate-pulse"></div>
-            </div>
-            <div className="flex gap-4 pt-4">
-              <div className="h-12 w-40 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
-              <div className="h-12 w-40 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
+            <div className="w-full aspect-square rounded-3xl bg-gray-200 dark:bg-gray-800" />
+            <div className="flex flex-col gap-3">
+              <div className="h-10 rounded-xl bg-gray-200 dark:bg-gray-800" />
+              <div className="h-10 rounded-xl bg-gray-200 dark:bg-gray-800" />
+              <div className="h-10 rounded-xl bg-gray-200 dark:bg-gray-800" />
             </div>
           </div>
+
+          <div className="w-full md:w-2/3">
+            <div className="h-12 w-2/3 rounded-lg bg-gray-200 dark:bg-gray-800 mb-6" />
+            <div className="space-y-4 mb-8">
+              <div className="h-5 w-full rounded bg-gray-200 dark:bg-gray-800" />
+              <div className="h-5 w-11/12 rounded bg-gray-200 dark:bg-gray-800" />
+              <div className="h-5 w-4/5 rounded bg-gray-200 dark:bg-gray-800" />
+            </div>
+            <div className="flex gap-4">
+              <div className="h-12 w-40 rounded-full bg-gray-200 dark:bg-gray-800" />
+              <div className="h-12 w-32 rounded-full bg-gray-200 dark:bg-gray-800" />
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-24">
+          <div className="h-10 w-64 rounded-lg bg-gray-200 dark:bg-gray-800 mb-10" />
+          <div className="h-64 rounded-3xl bg-gray-200 dark:bg-gray-800" />
+        </div>
+
+        <div className="mb-24">
+          <div className="h-10 w-72 rounded-lg bg-gray-200 dark:bg-gray-800 mb-10" />
+          <div className="h-48 rounded-3xl bg-gray-200 dark:bg-gray-800" />
         </div>
       </div>
     );
@@ -143,56 +118,97 @@ export default function AboutClient() {
     );
   }
 
+  // ✅ STRICTLY USE THE HOME PAGE IMAGE (No dedicated About image)
+  const rawImage = heroData?.profilePic || heroData?.gDriveProfilePic;
+  const driveImageMatch = rawImage?.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    const displayResume = heroData?.resumeUrl || heroData?.gDriveResume;
+  const customFontStyle = (font?: string) =>
+    font && font !== "Inter"
+      ? { fontFamily: `'${font}', sans-serif`, fontWeight: "normal" as const }
+      : undefined;
+
   return (
+
     <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl">
 
-      {/* 1. HERO & BIO SECTION */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .ql-align-justify { text-align: justify !important; }
+        .ql-align-center { text-align: center !important; }
+        .ql-align-right { text-align: right !important; }
+      `}} />
+
       <AnimatedSection direction="up">
         <div className="flex flex-col md:flex-row gap-12 items-start mb-24">
+          
           {/* Profile Image (Left) */}
           <div className="w-full md:w-1/3 shrink-0 flex flex-col gap-6">
             <div className="w-full aspect-square rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl">
-              {heroData?.profilePic ? (
-                <img src={heroData.profilePic} alt="Profile" className="w-full h-full object-cover" />
+              {rawImage ? (
+                rawImage.includes("<iframe") ? (
+                  <div className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full pointer-events-none" dangerouslySetInnerHTML={{ __html: rawImage }} />
+                ) : (
+                  <img 
+                    src={driveImageMatch ? `https://drive.google.com/thumbnail?id=${driveImageMatch[1]}&sz=w800` : rawImage} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover" 
+                    onContextMenu={(e) => e.preventDefault()}
+                    draggable={false}
+                  />
+                )
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 font-medium">No Image</div>
               )}
             </div>
             
-            {/* Quick Status Badges */}
             <div className="flex flex-col gap-3">
               {data.location && (
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl">
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl" style={customFontStyle(settings?.aboutLocationFont)}>
                   <MapPin className="w-4 h-4 text-primary" /> {data.location}
+
                 </div>
               )}
               {data.availability && (
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl">
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl" style={customFontStyle(settings?.aboutAvailabilityFont)}>
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" /> {data.availability}
+
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl">
+                            <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl" style={customFontStyle(settings?.aboutEducationFont)}>
                 <GraduationCap className="w-4 h-4 text-primary" /> Class of 2026
+
               </div>
             </div>
           </div>
 
           {/* Bio Content (Right) */}
           <div className="w-full md:w-2/3">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-white tracking-tight">
-              About Me
+            <h1
+              className="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-white tracking-tight"
+                            style={customFontStyle(settings?.aboutHeaderFont)}
+
+            >
+              {settings?.aboutHeader || "About Me"}
             </h1>
-            {/* 🟢 Added Tailwind selectors to respect Quill's alignment classes */}
-            <div
-              className="prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed mb-8 prose-a:text-primary prose-strong:text-gray-900 dark:prose-strong:text-white [&_.ql-align-justify]:text-justify [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right"
+            {settings?.aboutSubheader && (
+              <p
+                className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-6"
+                                style={customFontStyle(settings?.aboutSubheaderFont)}
+
+              >
+                {settings.aboutSubheader}
+              </p>
+            )}
+                        <div
+              className="prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed mb-8 prose-a:text-primary prose-strong:text-gray-900 dark:prose-strong:text-white"
+              style={customFontStyle(settings?.aboutBioFont)}
               dangerouslySetInnerHTML={{ __html: data.bio || "<p>No bio added yet.</p>" }}
+
             />
             
-            {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-4">
-              {heroData?.resumeUrl && (
+              {displayResume && (
                 <a 
-                  href={heroData.resumeUrl} 
+                  href={displayResume} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-full shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all"
@@ -213,22 +229,25 @@ export default function AboutClient() {
 
       {/* 2. TECHNICAL ARSENAL */}
       <AnimatedSection direction="up">
-        <div className="mb-24">
+                <div className="mb-24" style={customFontStyle(settings?.aboutSkillsFont)}>
           <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
             <Cpu className="w-8 h-8 mr-3 text-primary" /> Technical Arsenal
           </h2>
           <div className="bg-gray-50 dark:bg-gray-900/30 rounded-3xl border border-gray-200 dark:border-gray-800 p-8 md:p-10">
+
             <SkillKeyboard activeSkills={data.skills} />
+
           </div>
         </div>
       </AnimatedSection>
 
-      {/* 3. EXPERIENCE TIMELINE (NEW) */}
+      {/* 3. EXPERIENCE TIMELINE */}
       {data.experience && data.experience.length > 0 && (
         <AnimatedSection direction="up">
-          <div className="mb-24">
+                    <div className="mb-24" style={customFontStyle(settings?.aboutExperienceFont)}>
             <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
               <Briefcase className="w-8 h-8 mr-3 text-primary" /> Experience
+
             </h2>
             <div className="relative border-l-2 border-gray-200 dark:border-gray-800 ml-4 md:ml-6 space-y-12 pb-4">
               {data.experience.map((exp, idx) => (
@@ -267,9 +286,10 @@ export default function AboutClient() {
 
       {/* 4. EDUCATION TIMELINE */}
       <AnimatedSection direction="up">
-        <div className="mb-24">
-          <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
-            <BookOpen className="w-8 h-8 mr-3 text-primary" /> Education Journey
+                  <div className="mb-24" style={customFontStyle(settings?.aboutEducationFont)}>
+            <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
+              <BookOpen className="w-8 h-8 mr-3 text-primary" /> Education Journey
+
           </h2>
 
           {(!data.education || data.education.length === 0) ? (
@@ -342,12 +362,13 @@ export default function AboutClient() {
         </div>
       </AnimatedSection>
 
-      {/* 5. CERTIFICATIONS (NEW) */}
+      {/* 5. CERTIFICATIONS */}
       {data.certifications && data.certifications.length > 0 && (
         <AnimatedSection direction="up">
-          <div className="mb-24">
+                    <div className="mb-24" style={customFontStyle(settings?.aboutCertificationFont)}>
             <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
               <BadgeCheck className="w-8 h-8 mr-3 text-primary" /> Certifications
+
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {data.certifications.map((cert, idx) => (

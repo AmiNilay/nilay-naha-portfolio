@@ -1,10 +1,18 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, MoveHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Hand, MoveHorizontal } from "lucide-react";
+import { setPendingNavigationDirection } from "@/lib/navigationDirection";
 
 const pages = ["/", "/projects", "/blog", "/about", "/contact"];
+
+interface PointerStart {
+  x: number;
+  y: number;
+  time: number;
+  id: number;
+}
 
 export default function PageNavigation() {
   const router = useRouter();
@@ -12,9 +20,12 @@ export default function PageNavigation() {
   const [mounted, setMounted] = useState(false);
   const [showHints, setShowHints] = useState(false);
   const [showGlobalHint, setShowGlobalHint] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // ✅ Added 'time' to track how fast the swipe is
-  const touchStart = useRef<{ x: number; y: number; time: number } | null>(null);
+  const pointerStart = useRef<PointerStart | null>(null);
+  const wheelDistance = useRef(0);
+  const wheelLocked = useRef(false);
 
   const safePathname = pathname || "";
   const currentIndex = pages.indexOf(safePathname);
@@ -23,15 +34,14 @@ export default function PageNavigation() {
     setMounted(true);
   }, []);
 
-  // 1. Show Global Onboarding Hint
   useEffect(() => {
     if (!mounted || safePathname.startsWith("/admin") || safePathname !== "/") return;
+
     setShowGlobalHint(true);
     const timer = setTimeout(() => setShowGlobalHint(false), 4000);
     return () => clearTimeout(timer);
   }, [safePathname, mounted]);
 
-  // 2. Show Edge Hints Logic (Mobile Only)
   useEffect(() => {
     if (!mounted || safePathname.startsWith("/admin")) return;
     if (window.innerWidth < 768) {
@@ -41,70 +51,123 @@ export default function PageNavigation() {
     }
   }, [safePathname, mounted]);
 
-  // 3. Navigation Logic (Keyboard + Touch)
+  const navigateTo = (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= pages.length || nextIndex === currentIndex) return;
+
+    const direction = nextIndex > currentIndex ? 1 : -1;
+    setPendingNavigationDirection(direction);
+    setShowGlobalHint(false);
+    router.push(pages[nextIndex]);
+  };
+
   useEffect(() => {
     if (!mounted || safePathname.startsWith("/admin") || currentIndex === -1) return;
 
-    // --- KEYBOARD ---
+    const targetIsInteractive = (target: EventTarget | null) => {
+      const element = target as HTMLElement | null;
+      return Boolean(
+        element?.closest("a, button, input, textarea, select, [contenteditable='true']")
+      );
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (["INPUT", "TEXTAREA"].includes(target.tagName)) return;
-      
-      if (e.key === "ArrowRight" && currentIndex < pages.length - 1) {
-        setShowGlobalHint(false);
-        router.push(pages[currentIndex + 1]);
-      }
-      if (e.key === "ArrowLeft" && currentIndex > 0) {
-        setShowGlobalHint(false);
-        router.push(pages[currentIndex - 1]);
-      }
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+
+      if (e.key === "ArrowRight") navigateTo(currentIndex + 1);
+      if (e.key === "ArrowLeft") navigateTo(currentIndex - 1);
     };
 
-    // --- TOUCH ---
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStart.current = {
-        x: e.changedTouches[0].screenX,
-        y: e.changedTouches[0].screenY,
-        time: Date.now() // ✅ Record exact time of touch
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (targetIsInteractive(e.target)) return;
+
+      pointerStart.current = {
+        x: e.clientX,
+        y: e.clientY,
+        time: Date.now(),
+        id: e.pointerId,
       };
+      setDragX(0);
+      setIsDragging(true);
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (!touchStart.current) return;
+    const handlePointerMove = (e: PointerEvent) => {
+      const start = pointerStart.current;
+      if (!start || start.id !== e.pointerId) return;
 
-      const touchEndX = e.changedTouches[0].screenX;
-      const touchEndY = e.changedTouches[0].screenY;
-      const timeDiff = Date.now() - touchStart.current.time;
+      const diffX = e.clientX - start.x;
+      const diffY = e.clientY - start.y;
 
-      const diffX = touchStart.current.x - touchEndX;
-      const diffY = touchStart.current.y - touchEndY;
-
-      touchStart.current = null;
-
-      // ✅ CRITICAL FIX: Ignore slow swipes (over 600ms) or sloppy taps
-      if (timeDiff > 600) return;
-
-      // ✅ CRITICAL FIX: Must be a clear horizontal swipe (>100px) and not a diagonal scroll
-      if (Math.abs(diffX) > 100 && Math.abs(diffX) > Math.abs(diffY) * 2) {
-        setShowGlobalHint(false);
-        if (diffX > 0) {
-          // Swiped LEFT (Next)
-          if (currentIndex < pages.length - 1) router.push(pages[currentIndex + 1]);
-        } else {
-          // Swiped RIGHT (Prev)
-          if (currentIndex > 0) router.push(pages[currentIndex - 1]);
-        }
+      if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 12) {
+        pointerStart.current = null;
+        setDragX(0);
+        setIsDragging(false);
+        return;
       }
+
+      if (Math.abs(diffX) > 8) setDragX(Math.max(-180, Math.min(180, diffX)));
+    };
+
+    const finishPointerGesture = (e: PointerEvent) => {
+      const start = pointerStart.current;
+      if (!start || start.id !== e.pointerId) return;
+
+      const diffX = e.clientX - start.x;
+      const diffY = e.clientY - start.y;
+      const duration = Date.now() - start.time;
+
+      pointerStart.current = null;
+      setDragX(0);
+      setIsDragging(false);
+
+      if (
+        duration > 900 ||
+        Math.abs(diffX) < 80 ||
+        Math.abs(diffX) <= Math.abs(diffY) * 1.35
+      ) {
+        return;
+      }
+
+      if (diffX < 0) navigateTo(currentIndex + 1);
+      if (diffX > 0) navigateTo(currentIndex - 1);
+    };
+
+    const handlePointerCancel = () => {
+      pointerStart.current = null;
+      setDragX(0);
+      setIsDragging(false);
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || Math.abs(e.deltaX) < 4) return;
+
+      wheelDistance.current += e.deltaX;
+      if (Math.abs(wheelDistance.current) < 80 || wheelLocked.current) return;
+
+      const direction = wheelDistance.current > 0 ? 1 : -1;
+      wheelDistance.current = 0;
+      wheelLocked.current = true;
+      navigateTo(currentIndex + direction);
+      window.setTimeout(() => {
+        wheelLocked.current = false;
+      }, 700);
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerup", finishPointerGesture, { passive: true });
+    window.addEventListener("pointercancel", handlePointerCancel, { passive: true });
+    window.addEventListener("wheel", handleWheel, { passive: true });
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", finishPointerGesture);
+      window.removeEventListener("pointercancel", handlePointerCancel);
+      window.removeEventListener("wheel", handleWheel);
     };
   }, [mounted, safePathname, currentIndex, router]);
 
@@ -112,20 +175,38 @@ export default function PageNavigation() {
 
   return (
     <>
-      {/* GLOBAL ONBOARDING HINT */}
-      <div 
+      <div
         className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-700 ease-out pointer-events-none ${
           showGlobalHint ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         }`}
       >
         <div className="flex items-center gap-3 px-6 py-3 bg-primary text-white rounded-full shadow-2xl border border-primary/50">
           <MoveHorizontal className="w-5 h-5 animate-pulse text-white" />
-          <span className="text-sm font-bold tracking-wide text-white">Swipe or use arrow keys to navigate</span>
+          <span className="text-sm font-bold tracking-wide text-white">
+            Swipe, drag, or use arrow keys to navigate
+          </span>
         </div>
       </div>
 
-      {/* MOBILE VISUAL EDGE HINTS */}
-      <div 
+      <div
+        className={`fixed left-1/2 bottom-24 -translate-x-1/2 z-[100] md:hidden pointer-events-none transition-all duration-200 ${
+          isDragging ? "opacity-100 scale-100" : "opacity-0 scale-90"
+        }`}
+      >
+        <div
+          className="flex items-center gap-3 rounded-2xl border border-white/30 bg-gray-950/80 px-5 py-3 text-white shadow-2xl backdrop-blur-md"
+          style={{
+            transform: `translateX(${dragX * 0.2}px) rotate(${dragX * 0.02}deg)`,
+          }}
+        >
+          <Hand className="h-5 w-5" />
+          <span className="text-sm font-semibold whitespace-nowrap">
+            {dragX < 0 ? "Next page" : "Previous page"}
+          </span>
+        </div>
+      </div>
+
+      <div
         className={`fixed inset-0 z-50 pointer-events-none flex items-center justify-between px-4 transition-opacity duration-700 md:hidden ${
           showHints ? "opacity-100" : "opacity-0"
         }`}
@@ -147,7 +228,6 @@ export default function PageNavigation() {
         </div>
       </div>
 
-      {/* DESKTOP DOT NAVIGATION */}
       <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-4">
         {pages.map((path, idx) => (
           <div

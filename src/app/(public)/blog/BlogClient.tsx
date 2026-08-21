@@ -20,41 +20,34 @@ interface BlogPost {
 
 export default function BlogClient() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All Topics");
 
-  const fetchPosts = useCallback(async (forceRefresh = false) => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // 1. CACHING LOGIC
-      if (!forceRefresh) {
-        const cachedData = sessionStorage.getItem("portfolio_blog_cache");
-        const cacheTime = sessionStorage.getItem("portfolio_blog_cache_time");
-        
-        if (cachedData && cacheTime && (Date.now() - parseInt(cacheTime) < 3600000)) {
-          setPosts(JSON.parse(cachedData));
-          setLoading(false);
-          return;
-        }
-      }
+      const [blogRes, settingsRes] = await Promise.all([
+        fetch("/api/blog"),
+        fetch("/api/settings").catch(() => null)
+      ]);
 
-      // 2. API CALL
-      const res = await fetch("/api/blog");
-      if (!res.ok) throw new Error("Server error");
+      if (!blogRes.ok) throw new Error("Server error");
       
-      const data = await res.json();
-      const fetchedPosts = Array.isArray(data) ? data : (data.posts || []);
-      
+      const blogData = await blogRes.json();
+      const fetchedPosts = Array.isArray(blogData) ? blogData : (blogData.posts || []);
       setPosts(fetchedPosts);
-      sessionStorage.setItem("portfolio_blog_cache", JSON.stringify(fetchedPosts));
-      sessionStorage.setItem("portfolio_blog_cache_time", Date.now().toString());
 
+      if (settingsRes && settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        setSettings(settingsData);
+      }
     } catch (err) {
-      console.error("Failed to fetch blogs:", err);
+      console.error("Failed to fetch data:", err);
       if (!navigator.onLine) {
         setError("You appear to be offline. Please check your internet connection.");
       } else {
@@ -66,8 +59,8 @@ export default function BlogClient() {
   }, []);
 
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    fetchData();
+  }, [fetchData]);
 
   const allTags = Array.from(
     new Set(posts.flatMap((p) => p.tags || []).map((t) => t.trim()))
@@ -91,11 +84,25 @@ export default function BlogClient() {
 
       <AnimatedSection direction="up">
         <div className="max-w-4xl mx-auto mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-gray-900 dark:text-white">
-            Thoughts & Insights
+          {/* ✅ DYNAMIC HEADER FROM GLOBAL SETTINGS */}
+          <h1 
+            className="text-5xl md:text-6xl mb-6 tracking-tight text-gray-900 dark:text-white"
+            style={{ 
+              fontFamily: settings?.blogHeaderFont && settings.blogHeaderFont !== 'Inter' ? `'${settings.blogHeaderFont}', sans-serif` : 'inherit',
+              fontWeight: settings?.blogHeaderFont && settings.blogHeaderFont !== 'Inter' ? 'normal' : '800'
+            }}
+          >
+            {settings?.blogHeader || "Thoughts & Insights"}
           </h1>
-          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-10">
-            Tutorials, tech deep-dives, and updates on my journey in AI & Web Dev.
+          
+          {/* ✅ DYNAMIC SUBHEADER FROM GLOBAL SETTINGS */}
+          <p 
+            className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-10"
+            style={{ 
+              fontFamily: settings?.blogSubheaderFont && settings.blogSubheaderFont !== 'Inter' ? `'${settings.blogSubheaderFont}', sans-serif` : 'inherit'
+            }}
+          >
+            {settings?.blogSubheader || "Tutorials, tech deep-dives, and updates on my journey in AI & Web Dev."}
           </p>
           
           <div className="relative max-w-xl mx-auto mb-8">
@@ -138,7 +145,7 @@ export default function BlogClient() {
           <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">Oops! Something went wrong</h2>
           <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">{error}</p>
           <button 
-            onClick={() => fetchPosts(true)} 
+            onClick={() => fetchData()} 
             className="px-8 py-3.5 bg-primary text-white rounded-full font-bold hover:scale-105 hover:shadow-lg transition-all flex items-center gap-2"
           >
             <RefreshCw className="w-5 h-5" /> Try Again

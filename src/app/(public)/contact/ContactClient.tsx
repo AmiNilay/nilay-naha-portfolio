@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Mail, Linkedin, Github, Check, Copy, MapPin, 
@@ -17,6 +17,24 @@ export default function ContactClient() {
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(res => res.json())
+      .then(data => setSettings(data))
+      .catch(() => {});
+  }, []);
+
+  const customFontStyle = (font?: string) =>
+    font && font !== "Inter"
+      ? { fontFamily: `'${font}', sans-serif` }
+      : {};
+
+  const headingFontStyle = (font?: string) =>
+    font && font !== "Inter"
+      ? { fontFamily: `'${font}', sans-serif`, fontWeight: "normal" as const }
+      : {};
 
   const handleCopy = () => {
     navigator.clipboard.writeText(email);
@@ -55,6 +73,7 @@ export default function ContactClient() {
 
       {/* EMAIL COPY TOAST */}
       <div
+        style={customFontStyle(settings?.contactToastFont)}
         className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 ${
           copied ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
         }`}
@@ -67,12 +86,17 @@ export default function ContactClient() {
 
       <AnimatedSection direction="up">
         <div className="mb-16 text-center md:text-left">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-gray-900 dark:text-white">
-            Let's Build Something.
+          <h1
+            style={headingFontStyle(settings?.contactHeaderFont)}
+            className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-gray-900 dark:text-white"
+          >
+            {settings?.contactHeader || "Let's Build Something."}
           </h1>
-          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed">
-            I'm currently open to new opportunities, freelance projects, and creative collaborations. 
-            Reach out and let's chat!
+          <p
+            style={customFontStyle(settings?.contactSubheaderFont)}
+            className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed"
+          >
+            {settings?.contactSubheader || "I'm currently open to new opportunities, freelance projects, and creative collaborations. Reach out and let's chat!"}
           </p>
         </div>
       </AnimatedSection>
@@ -85,11 +109,11 @@ export default function ContactClient() {
           {/* Status Badges */}
           <AnimatedSection direction="up" delay={0.1}>
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 dark:bg-gray-900 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800">
+              <div style={customFontStyle(settings?.contactLocationFont)} className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 dark:bg-gray-900 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800">
                 <MapPin className="w-4 h-4 text-primary" />
                 Siliguri, India • IST (UTC+5:30)
               </div>
-              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 dark:bg-gray-900 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800">
+              <div style={customFontStyle(settings?.contactAvailabilityFont)} className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 dark:bg-gray-900 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800">
                 <Clock className="w-4 h-4 text-primary" />
                 Replies within 24 hours
               </div>
@@ -103,6 +127,7 @@ export default function ContactClient() {
             <StaggerItem>
               <button
                 onClick={handleCopy}
+                style={customFontStyle(settings?.contactCardsFont)}
                 className="w-full group flex items-center justify-between p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl hover:border-primary/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left"
               >
                 <div className="flex items-center gap-4">
@@ -125,6 +150,7 @@ export default function ContactClient() {
               <Link
                 href="https://www.linkedin.com/in/nilay-naha/"
                 target="_blank"
+                style={customFontStyle(settings?.contactCardsFont)}
                 className="w-full group flex items-center justify-between p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl hover:border-[#0A66C2]/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="flex items-center gap-4">
@@ -147,6 +173,7 @@ export default function ContactClient() {
               <Link
                 href="https://github.com/AmiNilay"
                 target="_blank"
+                style={customFontStyle(settings?.contactCardsFont)}
                 className="w-full group flex items-center justify-between p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl hover:border-gray-500/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="flex items-center gap-4">
@@ -172,7 +199,7 @@ export default function ContactClient() {
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-8 shadow-xl relative overflow-hidden">
             
             {/* Success Overlay */}
-            <div className={`absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center transition-all duration-500 ${submitStatus === "success" ? "opacity-100 visible" : "opacity-0 invisible"}`}>
+            <div style={customFontStyle(settings?.contactFormStatusFont)} className={`absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-10 flex flex-col items-center justify-center transition-all duration-500 ${submitStatus === "success" ? "opacity-100 visible" : "opacity-0 invisible"}`}>
               <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-4">
                 <Check className="w-8 h-8" />
               </div>
@@ -180,10 +207,10 @@ export default function ContactClient() {
               <p className="text-gray-500 text-center max-w-xs">Thank you for reaching out. I'll get back to you as soon as possible.</p>
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Send a Message</h2>
+            <h2 style={headingFontStyle(settings?.contactFormHeadingFont)} className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Send a Message</h2>
             
             {submitStatus === "error" && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3 text-red-600 dark:text-red-400">
+              <div style={customFontStyle(settings?.contactFormStatusFont)} className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3 text-red-600 dark:text-red-400">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <p className="text-sm font-medium">Failed to send message. Please try again or use the email link directly.</p>
               </div>
@@ -191,39 +218,42 @@ export default function ContactClient() {
 
             <form onSubmit={handleFormSubmit} className="space-y-5">
               <div>
-                <label htmlFor="name" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Your Name</label>
+                <label style={customFontStyle(settings?.contactFormLabelFont)} htmlFor="name" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Your Name</label>
                 <input 
                   id="name"
                   type="text" 
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  style={customFontStyle(settings?.contactFormFieldFont)}
                   className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   placeholder="John Doe"
                 />
               </div>
               
               <div>
-                <label htmlFor="email" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+                <label style={customFontStyle(settings?.contactFormLabelFont)} htmlFor="email" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
                 <input 
                   id="email"
                   type="email" 
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  style={customFontStyle(settings?.contactFormFieldFont)}
                   className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   placeholder="john@example.com"
                 />
               </div>
 
               <div>
-                <label htmlFor="message" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Message</label>
+                <label style={customFontStyle(settings?.contactFormLabelFont)} htmlFor="message" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Message</label>
                 <textarea 
                   id="message"
                   required
                   rows={5}
                   value={formData.message}
                   onChange={(e) => setFormData({...formData, message: e.target.value})}
+                  style={customFontStyle(settings?.contactFormFieldFont)}
                   className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
                   placeholder="How can I help you?"
                 />
@@ -232,6 +262,7 @@ export default function ContactClient() {
               <button 
                 type="submit" 
                 disabled={isSubmitting}
+                style={customFontStyle(settings?.contactFormButtonFont)}
                 className="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:translate-y-0"
               >
                 {isSubmitting ? (

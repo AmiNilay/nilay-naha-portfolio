@@ -1,8 +1,8 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Loader2, ArrowRight, Github, ExternalLink, Search, Image as ImageIcon } from "lucide-react";
+import { Loader2, ArrowRight, Github, ExternalLink, Search, Image as ImageIcon, AlertTriangle, RefreshCw } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { StaggerContainer, StaggerItem } from "@/components/ui/StaggerContainer";
 
@@ -21,28 +21,48 @@ interface Project {
 
 export default function PublicProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const res = await fetch("/api/projects");
-        if (!res.ok) {
-          setLoading(false);
-          return;
-        }
-        const data = await res.json();
-        setProjects(data.projects || []);
-      } catch (err) {
-        console.error("Fetch failed:", err);
-      } finally {
-        setLoading(false);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [projectsRes, settingsRes] = await Promise.all([
+        fetch("/api/projects"),
+        fetch("/api/settings").catch(() => null)
+      ]);
+
+      if (!projectsRes.ok) {
+        throw new Error("Failed to fetch projects");
       }
-    };
-    fetchProjects();
+      
+      const projectsData = await projectsRes.json();
+      setProjects(projectsData.projects || []);
+
+      if (settingsRes && settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        setSettings(settingsData);
+      }
+    } catch (err) {
+      console.error("Fetch failed:", err);
+      if (!navigator.onLine) {
+        setError("You appear to be offline. Please check your internet connection.");
+      } else {
+        setError("Failed to load projects. The server might be busy or experiencing issues.");
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const stripHtml = (html: string) => {
     if (!html) return "";
@@ -80,24 +100,30 @@ export default function PublicProjectsPage() {
     return matchesSearch && matchesFilter;
   });
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-24 max-w-7xl">
+    <div className="container mx-auto px-4 py-24 max-w-7xl min-h-screen">
       <AnimatedSection direction="up">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4">
-              My Projects
+            {/* ✅ DYNAMIC HEADER FROM GLOBAL SETTINGS */}
+            <h1 
+              className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4"
+              style={{ 
+                fontFamily: settings?.projectsHeaderFont && settings.projectsHeaderFont !== 'Inter' ? `'${settings.projectsHeaderFont}', sans-serif` : 'inherit',
+                fontWeight: settings?.projectsHeaderFont && settings.projectsHeaderFont !== 'Inter' ? 'normal' : '800'
+              }}
+            >
+              {settings?.projectsHeader || "My Projects"}
             </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl">
-              A collection of my recent work, ranging from full-stack applications to AI models and developer tools.
+            
+            {/* ✅ DYNAMIC SUBHEADER FROM GLOBAL SETTINGS */}
+            <p 
+              className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl"
+              style={{ 
+                fontFamily: settings?.projectsSubheaderFont && settings.projectsSubheaderFont !== 'Inter' ? `'${settings.projectsSubheaderFont}', sans-serif` : 'inherit'
+              }}
+            >
+              {settings?.projectsSubheader || "A collection of my recent work, ranging from full-stack applications to AI models and developer tools."}
             </p>
           </div>
           
@@ -134,7 +160,49 @@ export default function PublicProjectsPage() {
         </AnimatedSection>
       )}
 
-      {filteredProjects.length === 0 ? (
+      {/* ERROR STATE */}
+      {error && (
+        <div className="min-h-[40vh] flex flex-col items-center justify-center px-4 text-center">
+          <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-red-100 dark:border-red-900/30">
+            <AlertTriangle className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">Oops! Something went wrong</h2>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">{error}</p>
+          <button 
+            onClick={() => fetchData()} 
+            className="px-8 py-3.5 bg-primary text-white rounded-full font-bold hover:scale-105 hover:shadow-lg transition-all flex items-center gap-2"
+          >
+            <RefreshCw className="w-5 h-5" /> Try Again
+          </button>
+        </div>
+      )}
+
+      {/* SKELETON LOADER */}
+      {loading && !error && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex flex-col h-[400px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm animate-pulse">
+              <div className="w-full aspect-[16/9] bg-gray-200 dark:bg-gray-800"></div>
+              <div className="p-6 flex flex-col flex-1">
+                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-4"></div>
+                <div className="flex gap-2 mb-4">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded-md w-16"></div>
+                  <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded-md w-20"></div>
+                </div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full mb-2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-5/6 mb-6"></div>
+                <div className="mt-auto pt-5 border-t border-gray-100 dark:border-gray-800 flex justify-between">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-24"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-12"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* EMPTY STATE */}
+      {!loading && !error && filteredProjects.length === 0 && (
         <AnimatedSection direction="fade">
           <div className="text-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
             <p className="text-gray-500 text-lg font-medium">No projects found matching your criteria.</p>
@@ -143,7 +211,10 @@ export default function PublicProjectsPage() {
             </button>
           </div>
         </AnimatedSection>
-      ) : (
+      )}
+
+      {/* ACTUAL CONTENT */}
+      {!loading && !error && filteredProjects.length > 0 && (
         <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" staggerDelay={0.12}>
           {filteredProjects.map((project) => {
             const plainTextDesc = stripHtml(project.description);

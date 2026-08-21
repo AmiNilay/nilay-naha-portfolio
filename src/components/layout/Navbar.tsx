@@ -6,11 +6,11 @@ import { Moon, Sun, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import PushNotificationButton from "@/components/ui/PushNotificationButton";
+import { setPendingNavigationDirection } from "@/lib/navigationDirection";
 
 export default function Navbar() {
   const pathname = usePathname();
-  
-  // If we are in the admin panel, do not show this public navbar
+
   if (pathname?.startsWith("/admin")) {
     return null;
   }
@@ -31,16 +31,24 @@ export default function Navbar() {
     { name: "Contact", href: "/contact" },
   ];
 
+  const handleNavigation = (href: string) => {
+    const currentIndex = navLinks.findIndex((link) => link.href === pathname);
+    const nextIndex = navLinks.findIndex((link) => link.href === href);
+
+    if (currentIndex !== -1 && nextIndex !== -1 && currentIndex !== nextIndex) {
+      setPendingNavigationDirection(nextIndex > currentIndex ? 1 : -1);
+    }
+
+    setIsOpen(false);
+  };
+
   return (
     <nav className="fixed top-0 w-full bg-white/80 dark:bg-black/80 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        
-        {/* Logo */}
-        <Link href="/" className="text-xl font-bold tracking-tighter">
+        <Link href="/" onClick={() => handleNavigation("/")} className="text-xl font-bold tracking-tighter">
           Dev.<span className="text-primary">Portfolio</span>
         </Link>
 
-        {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-2 lg:gap-4">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
@@ -48,9 +56,10 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => handleNavigation(link.href)}
                 className={`px-4 py-2 rounded-full text-sm transition-all duration-300 ${
-                  isActive 
-                    ? "bg-primary/10 text-primary font-bold shadow-[0_0_15px] shadow-primary/50 border border-primary/30" 
+                  isActive
+                    ? "bg-primary/10 text-primary font-bold shadow-[0_0_15px] shadow-primary/50 border border-primary/30"
                     : "text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary"
                 }`}
               >
@@ -61,15 +70,14 @@ export default function Navbar() {
 
           <div className="flex items-center gap-4 ml-4 pl-4 border-l border-gray-200 dark:border-gray-700">
             <PushNotificationButton />
-            
-            {/* Theme Toggle Button */}
+
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label="Toggle Theme"
             >
               {!mounted ? (
-                <div className="w-5 h-5" /> 
+                <div className="w-5 h-5" />
               ) : theme === "dark" ? (
                 <Sun className="w-5 h-5 text-yellow-500" />
               ) : (
@@ -79,15 +87,14 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu Button */}
         <div className="md:hidden flex items-center gap-3">
           <PushNotificationButton />
-          
+
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-             {mounted && theme === "dark" ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-700" />}
+            {mounted && theme === "dark" ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-700" />}
           </button>
 
           <button onClick={() => setIsOpen(!isOpen)} className="p-2">
@@ -96,7 +103,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Dropdown */}
       {isOpen && (
         <div className="md:hidden absolute top-16 left-0 w-full bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2 shadow-xl">
           {navLinks.map((link) => {
@@ -105,10 +111,10 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                onClick={() => setIsOpen(false)}
+                onClick={() => handleNavigation(link.href)}
                 className={`block px-4 py-3 rounded-xl text-base transition-all duration-300 ${
-                  isActive 
-                    ? "bg-primary/10 text-primary font-bold border-l-4 border-primary shadow-[inset_0_0_20px] shadow-primary/20" 
+                  isActive
+                    ? "bg-primary/10 text-primary font-bold border-l-4 border-primary shadow-[inset_0_0_20px] shadow-primary/20"
                     : "text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
                 }`}
               >

@@ -327,26 +327,27 @@ export default function Chatbot() {
           links = contactLinks;
         }
       } else {
-        let bestRule: Rule | null = null;
-        let highestScore = 0;
-
-        rules.forEach((rule) => {
+        const bestMatch = rules.reduce<{
+          rule: Rule;
+          score: number;
+        } | null>((currentBest, rule) => {
           let score = 0;
 
           rule.keywords.forEach((keyword) => {
             if (isFuzzyMatch(trimmedText, keyword)) score += 1;
           });
 
-          if (score > highestScore) {
-            highestScore = score;
-            bestRule = rule;
+          if (!currentBest || score > currentBest.score) {
+            return { rule, score };
           }
-        });
 
-        if (bestRule && highestScore > 0) {
-          responseText = bestRule.answer;
-          quickReplies = bestRule.quickReplies || [];
-          links = bestRule.links || [];
+          return currentBest;
+        }, null);
+
+        if (bestMatch && bestMatch.score > 0) {
+          responseText = bestMatch.rule.answer;
+          quickReplies = bestMatch.rule.quickReplies || [];
+          links = bestMatch.rule.links || [];
         } else {
           links = contactLinks;
         }

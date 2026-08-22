@@ -10,6 +10,33 @@ import {
 import Link from "next/link";
 import Toast from "@/components/ui/Toast";
 
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 12000,
+  retries = 1
+): Promise<Response> => {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => window.setTimeout(resolve, 400));
+      }
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Request failed");
+};
+
 const CUSTOM_FONTS = [
   "Story Script", "Bitcount Prop Single", "Bitcount Prop Single Ink", 
   "Bitcount Grid Single", "Allura", "Italianno", "Alex Brush", 
@@ -30,6 +57,8 @@ export default function EditBlogPostPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSEO, setShowSEO] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,8 +83,11 @@ export default function EditBlogPostPage() {
 
   useEffect(() => {
     // ✅ Fetch all projects to populate the dropdown
-    fetch("/api/projects")
-      .then(res => res.json())
+    fetchWithTimeout("/api/projects", { cache: "no-store" }, 12000, 1)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch projects");
+        return res.json();
+      })
       .then(data => {
         if (data.projects) setAvailableProjects(data.projects);
       })
@@ -66,15 +98,32 @@ export default function EditBlogPostPage() {
       return;
     }
 
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      setLoadError("No blog post ID was provided by the route.");
+      return;
+    }
+
     const fetchPost = async () => {
       try {
-        const res = await fetch(`/api/blog?id=${id}`);
-        if (!res.ok) throw new Error("Failed to fetch");
+        const res = await fetchWithTimeout(`/api/blog?id=${id}`, { cache: "no-store" }, 12000, 1);
+        if (!res.ok) {
+          let message = "Failed to load this blog post.";
+          try {
+            const errorData = await res.json();
+            if (errorData?.error) message = errorData.error;
+          } catch {
+            // Keep the readable fallback when the server returns non-JSON.
+          }
+          throw new Error(message);
+        }
         const data = await res.json();
-        if (data.post) {
-          const p = data.post;
-          const formattedDate = p.publishDate ? new Date(p.publishDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
+        if (!data?.post) {
+          throw new Error("The server returned no post data.");
+        }
+
+        const p = data.post;
+        const formattedDate = p.publishDate ? new Date(p.publishDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
 
           setFormData({
             title: p.title || "", slug: p.slug || "", excerpt: p.excerpt || "",
@@ -85,17 +134,23 @@ export default function EditBlogPostPage() {
             metaDescription: p.metaDescription || "", canonicalUrl: p.canonicalUrl || "",
             relatedProject: p.relatedProject || "" // ✅ Load existing linked project
           });
-          setTags(p.tags || []);
-          setImagePreview(p.coverImage || null);
-        }
+        setTags(p.tags || []);
+        setImagePreview(p.coverImage || null);
       } catch (err) {
         console.error("Fetch error:", err);
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setLoadError("The server took too long to load this post. Please try again.");
+        } else if (err instanceof Error && err.message) {
+          setLoadError(`${err.message} Please try again.`);
+        } else {
+          setLoadError("The post could not be loaded because the server or network is unavailable.");
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchPost();
-  }, [id, isNew]);
+  }, [id, isNew, loadAttempt]);
 
   useEffect(() => {
     const text = formData.content.replace(/<[^>]+>/g, '').trim();
@@ -212,6 +267,28 @@ export default function EditBlogPostPage() {
   };
 
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin w-10 h-10 text-blue-600" /></div>;
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 text-center">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-white p-8 shadow-sm">
+          <h1 className="mb-3 text-2xl font-extrabold text-gray-900">Unable to load this post</h1>
+          <p className="mb-6 text-sm leading-6 text-gray-600">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoadError(null);
+              setLoading(true);
+              setLoadAttempt((attempt) => attempt + 1);
+            }}
+            className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen pb-32">

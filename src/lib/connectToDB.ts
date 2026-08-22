@@ -1,16 +1,6 @@
 import mongoose from "mongoose";
-import dns from "dns";
-
-// Force Node.js to use Google DNS servers (fixes MongoDB SRV lookup errors)
-dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local"
-  );
-}
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -28,30 +18,62 @@ if (!cached) {
 }
 
 export const connectToDB = async () => {
-  if (cached.conn) {
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    cached.conn = mongoose;
+    return cached.conn;
+  }
+
+  if (cached.promise) {
+    try {
+      const connection = await cached.promise;
+      if (connection.connection.readyState === 1) {
+        cached.conn = connection;
+        return connection;
+      }
+    } catch (error) {
+      console.error("❌ MongoDB pending connection failed:", error);
+    }
+
+    cached.conn = null;
+    cached.promise = null;
+  }
+
+  if (!MONGODB_URI) {
+    throw new Error(
+      "Please define the MONGODB_URI environment variable inside .env.local"
+    );
   }
 
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
       dbName: "portfolio",
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
+      socketTimeoutMS: 20000,
+      waitQueueTimeoutMS: 8000,
+      maxPoolSize: 10,
+      minPoolSize: 0,
     };
 
     console.log("Connecting to MongoDB...");
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((connection) => {
       console.log("✅ MongoDB connected");
-      return mongoose;
+      return connection;
     });
   }
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+  } catch (error) {
+    cached.conn = null;
     cached.promise = null;
-    console.error("❌ MongoDB connection failed:", e);
-    throw e;
+    console.error("❌ MongoDB connection failed:", error);
+    throw error;
   }
 
   return cached.conn;

@@ -6,6 +6,36 @@ import { Calendar, Clock, ArrowRight, Search, Tag, AlertTriangle, RefreshCw } fr
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { StaggerContainer, StaggerItem } from "@/components/ui/StaggerContainer";
 
+const BLOG_CACHE_KEY = "portfolio-blog-posts-v1";
+const BLOG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 12000,
+  retries = 1
+): Promise<Response> => {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => window.setTimeout(resolve, 400));
+      }
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Request failed");
+};
+
 interface BlogPost {
   _id: string;
   title: string;
@@ -30,17 +60,62 @@ export default function BlogClient() {
     setLoading(true);
     setError(null);
 
+    let hasCachedPosts = false;
+
+    try {
+      const cachedValue = sessionStorage.getItem(BLOG_CACHE_KEY);
+      if (cachedValue) {
+        const cachedData = JSON.parse(cachedValue) as {
+          posts?: BlogPost[];
+          savedAt?: number;
+        };
+
+        if (
+          Array.isArray(cachedData.posts) &&
+          typeof cachedData.savedAt === "number" &&
+          Date.now() - cachedData.savedAt < BLOG_CACHE_TTL_MS
+        ) {
+          setPosts(cachedData.posts);
+          hasCachedPosts = true;
+          setLoading(false);
+        }
+      }
+    } catch (cacheError) {
+      console.warn("Unable to read blog cache:", cacheError);
+    }
+
     try {
       const [blogRes, settingsRes] = await Promise.all([
-        fetch("/api/blog"),
-        fetch("/api/settings").catch(() => null)
+        fetchWithTimeout("/api/blog?public=1", {}, 12000, 1),
+        fetchWithTimeout("/api/settings", {}, 12000, 1).catch(() => null)
       ]);
 
-      if (!blogRes.ok) throw new Error("Server error");
-      
+      if (!blogRes.ok) {
+        let message = "The blog service returned an error.";
+        try {
+          const errorData = await blogRes.json();
+          if (errorData?.error) message = errorData.error;
+        } catch {
+          // Keep the clear fallback message when the server returns non-JSON.
+        }
+        throw new Error(message);
+      }
+
       const blogData = await blogRes.json();
-      const fetchedPosts = Array.isArray(blogData) ? blogData : (blogData.posts || []);
+      const fetchedPosts = Array.isArray(blogData)
+        ? blogData
+        : Array.isArray(blogData?.posts)
+          ? blogData.posts
+          : [];
       setPosts(fetchedPosts);
+      try {
+        sessionStorage.setItem(
+          BLOG_CACHE_KEY,
+          JSON.stringify({ posts: fetchedPosts, savedAt: Date.now() })
+        );
+      } catch (cacheError) {
+        console.warn("Unable to save blog cache:", cacheError);
+      }
 
       if (settingsRes && settingsRes.ok) {
         const settingsData = await settingsRes.json();
@@ -48,8 +123,17 @@ export default function BlogClient() {
       }
     } catch (err) {
       console.error("Failed to fetch data:", err);
-      if (!navigator.onLine) {
+      if (hasCachedPosts) {
+        setError(null);
+        return;
+      }
+
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("The server took too long to respond. Please try again.");
+      } else if (!navigator.onLine) {
         setError("You appear to be offline. Please check your internet connection.");
+      } else if (err instanceof Error && err.message) {
+        setError(`${err.message} Please try again.`);
       } else {
         setError("Failed to load articles. The server might be busy or experiencing issues.");
       }
@@ -71,7 +155,7 @@ export default function BlogClient() {
   const filteredPosts = posts.filter((post) => {
     const matchesSearch = 
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+      (post.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase());
     
     const pTags = post.tags || [];
     const matchesFilter = activeFilter === "All Topics" || pTags.some((t) => t.trim() === activeFilter);

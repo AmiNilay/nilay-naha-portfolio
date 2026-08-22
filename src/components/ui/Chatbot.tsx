@@ -16,9 +16,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+type LinkKind = "link" | "download" | "email";
+
 interface LinkItem {
   label: string;
   url: string;
+  kind?: LinkKind;
 }
 
 interface Rule {
@@ -69,7 +72,7 @@ const getLevenshteinDistance = (a: string, b: string) => {
           : Math.min(
               arr[i - 1][j] + 1,
               arr[i][j - 1] + 1,
-              arr[i - 1][j - 1] + (a[j - 1] === b[i - 1] ? 0 : 1)
+              arr[i - 1][j - 1] + (a[j - 1] === b[i - 1] ? 0 : 1),
             );
     }
   }
@@ -140,8 +143,8 @@ const getAdminSuggestedQuestions = (rules: Rule[]) =>
     new Set(
       rules
         .map((rule) => rule.suggestedQuestion?.trim())
-        .filter((question): question is string => Boolean(question))
-    )
+        .filter((question): question is string => Boolean(question)),
+    ),
   );
 
 export default function Chatbot() {
@@ -156,10 +159,10 @@ export default function Chatbot() {
   ]);
   const [showGreeting, setShowGreeting] = useState(true);
   const [suggestionPool, setSuggestionPool] = useState<string[]>(
-    FALLBACK_SUGGESTED_QUESTIONS
+    FALLBACK_SUGGESTED_QUESTIONS,
   );
-  const [visibleSuggestions, setVisibleSuggestions] = useState<string[]>(
-    () => FALLBACK_SUGGESTED_QUESTIONS.slice(0, INITIAL_SUGGESTION_COUNT)
+  const [visibleSuggestions, setVisibleSuggestions] = useState<string[]>(() =>
+    FALLBACK_SUGGESTED_QUESTIONS.slice(0, INITIAL_SUGGESTION_COUNT),
   );
   const [usedSuggestions, setUsedSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -191,7 +194,8 @@ export default function Chatbot() {
           const loadedRules: Rule[] = Array.isArray(rulesData.rules)
             ? rulesData.rules
             : [];
-          const adminSuggestedQuestions = getAdminSuggestedQuestions(loadedRules);
+          const adminSuggestedQuestions =
+            getAdminSuggestedQuestions(loadedRules);
           const nextSuggestionPool = adminSuggestedQuestions.length
             ? adminSuggestedQuestions
             : FALLBACK_SUGGESTED_QUESTIONS;
@@ -200,7 +204,7 @@ export default function Chatbot() {
           setSuggestionPool(nextSuggestionPool);
           setUsedSuggestions([]);
           setVisibleSuggestions(
-            nextSuggestionPool.slice(0, INITIAL_SUGGESTION_COUNT)
+            nextSuggestionPool.slice(0, INITIAL_SUGGESTION_COUNT),
           );
         }
 
@@ -242,7 +246,7 @@ export default function Chatbot() {
     input.trim().length > 1
       ? Array.from(new Set(rules.flatMap((rule) => rule.keywords)))
           .filter((keyword) =>
-            keyword.toLowerCase().includes(input.toLowerCase())
+            keyword.toLowerCase().includes(input.toLowerCase()),
           )
           .slice(0, 3)
       : [];
@@ -251,31 +255,30 @@ export default function Chatbot() {
     if (isTyping) return;
 
     const remainingSuggestions = visibleSuggestions.filter(
-      (suggestion) => suggestion !== question
+      (suggestion) => suggestion !== question,
     );
     let nextUsedSuggestions = [...usedSuggestions, question];
     let replacementCandidates = suggestionPool.filter(
       (suggestion) =>
         !nextUsedSuggestions.includes(suggestion) &&
-        !remainingSuggestions.includes(suggestion)
+        !remainingSuggestions.includes(suggestion),
     );
 
     if (replacementCandidates.length === 0) {
       nextUsedSuggestions = [question];
       replacementCandidates = suggestionPool.filter(
         (suggestion) =>
-          suggestion !== question &&
-          !remainingSuggestions.includes(suggestion)
+          suggestion !== question && !remainingSuggestions.includes(suggestion),
       );
     }
 
     if (replacementCandidates.length === 0) {
       const nextCycleSuggestions = suggestionPool.filter(
-        (suggestion) => suggestion !== question
+        (suggestion) => suggestion !== question,
       );
       setUsedSuggestions(nextUsedSuggestions);
       setVisibleSuggestions(
-        nextCycleSuggestions.slice(0, INITIAL_SUGGESTION_COUNT)
+        nextCycleSuggestions.slice(0, INITIAL_SUGGESTION_COUNT),
       );
     } else {
       const replacement = replacementCandidates[0];
@@ -417,7 +420,11 @@ export default function Chatbot() {
             <div className="relative flex items-center justify-between overflow-hidden border-b border-zinc-100 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-700 p-4 text-white dark:border-zinc-800 dark:from-zinc-100 dark:via-white dark:to-zinc-200 dark:text-zinc-900">
               <motion.div
                 animate={{ x: [0, 14, 0] }}
-                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 7,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
                 className="absolute -right-8 -top-12 h-36 w-36 rounded-full bg-emerald-400/20 blur-2xl"
               />
               <div className="relative flex items-center gap-3">
@@ -483,18 +490,26 @@ export default function Chatbot() {
                             whileTap={{ scale: 0.98 }}
                             href={link.url}
                             target={
+                              link.kind === "email" ||
                               link.url.startsWith("mailto:")
                                 ? undefined
                                 : "_blank"
                             }
                             rel={
+                              link.kind === "email" ||
                               link.url.startsWith("mailto:")
                                 ? undefined
                                 : "noopener noreferrer"
                             }
+                            download={
+                              link.kind === "download" ? true : undefined
+                            }
                             className="flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
                           >
-                            {link.url.startsWith("mailto:") ? (
+                            {link.kind === "download" ? (
+                              <Download className="h-3.5 w-3.5" />
+                            ) : link.kind === "email" ||
+                              link.url.startsWith("mailto:") ? (
                               <Mail className="h-3.5 w-3.5" />
                             ) : (
                               <ExternalLink className="h-3.5 w-3.5" />
@@ -531,22 +546,23 @@ export default function Chatbot() {
                       </div>
                     )}
 
-                    {message.quickReplies && message.quickReplies.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {message.quickReplies.map((quickReply, index) => (
-                          <motion.button
-                            key={`${quickReply}-${index}`}
-                            whileHover={{ y: -1 }}
-                            whileTap={{ scale: 0.96 }}
-                            disabled={isTyping}
-                            onClick={() => handleSend(quickReply)}
-                            className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                          >
-                            {quickReply}
-                          </motion.button>
-                        ))}
-                      </div>
-                    )}
+                    {message.quickReplies &&
+                      message.quickReplies.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {message.quickReplies.map((quickReply, index) => (
+                            <motion.button
+                              key={`${quickReply}-${index}`}
+                              whileHover={{ y: -1 }}
+                              whileTap={{ scale: 0.96 }}
+                              disabled={isTyping}
+                              onClick={() => handleSend(quickReply)}
+                              className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                            >
+                              {quickReply}
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
                   </div>
 
                   {message.role === "user" && (

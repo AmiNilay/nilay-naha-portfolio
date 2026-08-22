@@ -12,7 +12,15 @@ const formatGDriveUrl = (url: string | null) => {
   return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
 };
 
-export async function GET(req: Request  ) {
+const noStoreHeaders = {
+  "Cache-Control": "no-store, max-age=0",
+};
+
+const publicCacheHeaders = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+};
+
+export async function GET(req: Request) {
   try {
     await connectToDB();
     const { searchParams } = new URL(req.url);
@@ -20,18 +28,41 @@ export async function GET(req: Request  ) {
     const slug = searchParams.get("slug");
 
     if (id) {
-      const post = await Post.findById(id);
-      return post ? NextResponse.json({ post }) : NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-    if (slug) {
-      const post = await Post.findOne({ slug });
-      return post ? NextResponse.json({ post }) : NextResponse.json({ error: "Not found" }, { status: 404 });
+      const post = await Post.findById(id).lean().exec();
+      return post
+        ? NextResponse.json({ post }, { headers: noStoreHeaders })
+        : NextResponse.json(
+            { error: "Not found" },
+            { status: 404, headers: noStoreHeaders }
+          );
     }
 
-    const posts = await Post.find().sort({ publishDate: -1, createdAt: -1 });
-    return NextResponse.json({ posts: posts || [] });
-  } catch (error: any) {
-    return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
+    if (slug) {
+      const post = await Post.findOne({ slug }).lean().exec();
+      return post
+        ? NextResponse.json({ post }, { headers: noStoreHeaders })
+        : NextResponse.json(
+            { error: "Not found" },
+            { status: 404, headers: noStoreHeaders }
+          );
+    }
+
+    const posts = await Post.find()
+      .sort({ publishDate: -1, createdAt: -1 })
+      .lean()
+      .exec();
+    const isPublicRequest = searchParams.get("public") === "1";
+
+    return NextResponse.json(
+      { posts: posts || [] },
+      { headers: isPublicRequest ? publicCacheHeaders : noStoreHeaders }
+    );
+  } catch (error: unknown) {
+    console.error("GET /api/blog failed:", error);
+    return NextResponse.json(
+      { error: "The blog database is temporarily unavailable. Please try again." },
+      { status: 500, headers: noStoreHeaders }
+    );
   }
 }
 
@@ -46,7 +77,7 @@ export async function POST(req: Request) {
     const content = formData.get("content") as string;
     const publishDate = formData.get("publishDate") as string;
     const gDriveImage = formData.get("gDriveImage") as string;
-    const relatedProject = formData.get("relatedProject") as string; // ✅ Extract
+    const relatedProject = formData.get("relatedProject") as string;
     const imageFile = formData.get("image") as File;
 
     let coverImage = "";
@@ -56,20 +87,30 @@ export async function POST(req: Request) {
     }
 
     if (!title || !slug || !content) {
-      return NextResponse.json({ error: "Title, Slug, and Content are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Title, Slug, and Content are required" },
+        { status: 400 }
+      );
     }
 
     const newPost = await Post.create({
-      title, slug, excerpt, content, coverImage,
+      title,
+      slug,
+      excerpt,
+      content,
+      coverImage,
       gDriveImage: formatGDriveUrl(gDriveImage),
-      relatedProject: relatedProject || "", // ✅ Save
+      relatedProject: relatedProject || "",
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       readTime: Math.ceil(content.split(/\s+/).length / 200) || 5,
     });
 
     return NextResponse.json({ post: newPost }, { status: 201 });
   } catch (error: any) {
-    if (error.code === 11000) return NextResponse.json({ error: "Slug already exists." }, { status: 400 });
+    console.error("POST /api/blog failed:", error);
+    if (error.code === 11000) {
+      return NextResponse.json({ error: "Slug already exists." }, { status: 400 });
+    }
     return NextResponse.json({ error: "Failed to save post" }, { status: 500 });
   }
 }
@@ -85,12 +126,14 @@ export async function PUT(req: Request) {
     const post = await Post.findById(id);
     if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    post.title = formData.get("title") || post.title;
-    post.slug = formData.get("slug") || post.slug;
-    post.excerpt = formData.get("excerpt") || post.excerpt;
-    post.content = formData.get("content") || post.content;
+    post.title = (formData.get("title") as string) || post.title;
+    post.slug = (formData.get("slug") as string) || post.slug;
+    post.excerpt = (formData.get("excerpt") as string) || post.excerpt;
+    post.content = (formData.get("content") as string) || post.content;
 
-    if (formData.has("relatedProject")) post.relatedProject = formData.get("relatedProject") as string; // ✅ Update
+    if (formData.has("relatedProject")) {
+      post.relatedProject = formData.get("relatedProject") as string;
+    }
 
     const gDriveImage = formData.get("gDriveImage") as string;
     if (gDriveImage !== null) post.gDriveImage = formatGDriveUrl(gDriveImage);
@@ -107,6 +150,7 @@ export async function PUT(req: Request) {
     await post.save();
     return NextResponse.json({ post }, { status: 200 });
   } catch (error: any) {
+    console.error("PUT /api/blog failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -122,6 +166,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ message: "Deleted successfully" }, { status: 200 });
   } catch (error) {
+    console.error("DELETE /api/blog failed:", error);
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }

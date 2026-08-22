@@ -13,12 +13,17 @@ const ChatbotSchema = new mongoose.Schema(
         {
           label: String,
           url: String,
+          kind: {
+            type: String,
+            enum: ["link", "download", "email"],
+            default: "link",
+          },
         },
       ],
       default: [],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Chatbot =
@@ -26,7 +31,7 @@ const Chatbot =
 
 const normalizeKeywords = (
   keywords: unknown,
-  suggestedQuestion: unknown
+  suggestedQuestion: unknown,
 ): string[] => {
   const keywordValues = Array.isArray(keywords)
     ? keywords
@@ -64,15 +69,31 @@ const normalizeSuggestedQuestion = (suggestedQuestion: unknown): string =>
 
 const normalizeLinks = (links: unknown) =>
   Array.isArray(links)
-    ? links.filter(
-        (link): link is { label: string; url: string } =>
-          Boolean(
-            link &&
+    ? links
+        .filter(
+          (
+            link,
+          ): link is {
+            label: string;
+            url: string;
+            kind?: string;
+          } =>
+            Boolean(
+              link &&
               typeof link === "object" &&
               typeof (link as { label?: unknown }).label === "string" &&
-              typeof (link as { url?: unknown }).url === "string"
-          )
-      )
+              typeof (link as { url?: unknown }).url === "string",
+            ),
+        )
+        .map((link) => ({
+          label: link.label.trim(),
+          url: link.url.trim(),
+          kind:
+            link.kind === "download" || link.kind === "email"
+              ? link.kind
+              : "link",
+        }))
+        .filter((link) => Boolean(link.label && link.url))
     : [];
 
 export async function GET() {
@@ -84,7 +105,7 @@ export async function GET() {
     console.error("GET Chatbot Error:", error);
     return NextResponse.json(
       { error: "Failed to fetch chatbot rules" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -93,13 +114,22 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDB();
     const body = await req.json();
-    const suggestedQuestion = normalizeSuggestedQuestion(body.suggestedQuestion);
+    const suggestedQuestion = normalizeSuggestedQuestion(
+      body.suggestedQuestion,
+    );
     const keywordArray = normalizeKeywords(body.keywords, suggestedQuestion);
 
-    if (!keywordArray.length || typeof body.answer !== "string" || !body.answer.trim()) {
+    if (
+      !keywordArray.length ||
+      typeof body.answer !== "string" ||
+      !body.answer.trim()
+    ) {
       return NextResponse.json(
-        { error: "Add at least one trigger phrase or suggested question, plus an answer." },
-        { status: 400 }
+        {
+          error:
+            "Add at least one trigger phrase or suggested question, plus an answer.",
+        },
+        { status: 400 },
       );
     }
 
@@ -116,7 +146,7 @@ export async function POST(req: NextRequest) {
     console.error("POST Chatbot Error:", error);
     return NextResponse.json(
       { error: "Failed to create chatbot rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -125,17 +155,29 @@ export async function PUT(req: NextRequest) {
   try {
     await connectToDB();
     const body = await req.json();
-    const suggestedQuestion = normalizeSuggestedQuestion(body.suggestedQuestion);
+    const suggestedQuestion = normalizeSuggestedQuestion(
+      body.suggestedQuestion,
+    );
     const keywordArray = normalizeKeywords(body.keywords, suggestedQuestion);
 
     if (!body.id) {
-      return NextResponse.json({ error: "Rule ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Rule ID is required" },
+        { status: 400 },
+      );
     }
 
-    if (!keywordArray.length || typeof body.answer !== "string" || !body.answer.trim()) {
+    if (
+      !keywordArray.length ||
+      typeof body.answer !== "string" ||
+      !body.answer.trim()
+    ) {
       return NextResponse.json(
-        { error: "Add at least one trigger phrase or suggested question, plus an answer." },
-        { status: 400 }
+        {
+          error:
+            "Add at least one trigger phrase or suggested question, plus an answer.",
+        },
+        { status: 400 },
       );
     }
 
@@ -148,7 +190,7 @@ export async function PUT(req: NextRequest) {
         quickReplies: normalizeQuickReplies(body.quickReplies),
         links: normalizeLinks(body.links),
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!rule) {
@@ -160,7 +202,7 @@ export async function PUT(req: NextRequest) {
     console.error("PUT Chatbot Error:", error);
     return NextResponse.json(
       { error: "Failed to update chatbot rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -171,7 +213,10 @@ export async function DELETE(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Rule ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Rule ID is required" },
+        { status: 400 },
+      );
     }
 
     const deletedRule = await Chatbot.findByIdAndDelete(id);
@@ -185,7 +230,7 @@ export async function DELETE(req: NextRequest) {
     console.error("DELETE Chatbot Error:", error);
     return NextResponse.json(
       { error: "Failed to delete chatbot rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -11,9 +11,12 @@ import {
   Save,
 } from "lucide-react";
 
+type LinkKind = "link" | "download" | "email";
+
 interface LinkItem {
   label: string;
   url: string;
+  kind?: LinkKind;
 }
 
 interface Rule {
@@ -96,7 +99,12 @@ export default function ManageChatbot() {
     setKeywords(rule.keywords.join(", "));
     setAnswer(rule.answer);
     setQuickReplies(rule.quickReplies?.join(", ") || "");
-    setLinks(rule.links || []);
+    setLinks(
+      (rule.links || []).map((link) => ({
+        ...link,
+        kind: link.kind || "link",
+      })),
+    );
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -116,15 +124,27 @@ export default function ManageChatbot() {
     await fetchRules();
   };
 
-  const addLink = () => setLinks([...links, { label: "", url: "" }]);
+  const addLink = () =>
+    setLinks([...links, { label: "", url: "", kind: "link" }]);
+
+  const addPresetLink = (preset: { label: string; kind: LinkKind }) =>
+    setLinks([...links, { label: preset.label, url: "", kind: preset.kind }]);
 
   const updateLink = (
     index: number,
-    field: "label" | "url",
-    value: string
+    field: "label" | "url" | "kind",
+    value: string,
   ) => {
     const newLinks = [...links];
-    newLinks[index][field] = value;
+
+    if (field === "kind") {
+      newLinks[index].kind = value as LinkKind;
+    } else if (field === "label") {
+      newLinks[index].label = value;
+    } else {
+      newLinks[index].url = value;
+    }
+
     setLinks(newLinks);
   };
 
@@ -222,33 +242,75 @@ export default function ManageChatbot() {
           </p>
         </div>
 
-        <div className="space-y-2 border-t border-gray-200 pt-4">
-          <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
-            <LinkIcon className="h-4 w-4" />
-            Inline Links (Optional)
-          </label>
+        <div className="space-y-3 border-t border-gray-200 pt-4">
+          <div>
+            <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
+              <LinkIcon className="h-4 w-4" />
+              Action Buttons (Optional)
+            </label>
+            <p className="mt-1 text-xs text-gray-600">
+              Add buttons such as View Resume, Download Resume, Portfolio,
+              GitHub, LinkedIn, or Email. Each button needs its own destination
+              URL.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "View Resume", kind: "link" as LinkKind },
+              { label: "Download Resume", kind: "download" as LinkKind },
+              { label: "View Portfolio", kind: "link" as LinkKind },
+              { label: "Open GitHub", kind: "link" as LinkKind },
+              { label: "Open LinkedIn", kind: "link" as LinkKind },
+              { label: "Email Nilay", kind: "email" as LinkKind },
+            ].map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => addPresetLink(preset)}
+                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
+              >
+                + {preset.label}
+              </button>
+            ))}
+          </div>
 
           {links.map((link, i) => (
-            <div key={i} className="flex gap-2">
+            <div
+              key={i}
+              className="grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 md:grid-cols-[150px_1fr_1fr_auto]"
+            >
+              <select
+                aria-label={`Action button type ${i + 1}`}
+                value={link.kind || "link"}
+                onChange={(e) =>
+                  updateLink(i, "kind", e.target.value as LinkKind)
+                }
+                className="rounded-lg border bg-white p-2 text-sm text-gray-900"
+              >
+                <option value="link">Open link</option>
+                <option value="download">Download</option>
+                <option value="email">Email</option>
+              </select>
               <input
                 type="text"
-                placeholder="Button Label (e.g. View Project)"
+                placeholder="Button Label (e.g. View Portfolio)"
                 value={link.label}
                 onChange={(e) => updateLink(i, "label", e.target.value)}
-                className="flex-1 rounded-lg border bg-white p-2 text-sm text-gray-900 placeholder:text-gray-500"
+                className="rounded-lg border bg-white p-2 text-sm text-gray-900 placeholder:text-gray-500"
               />
               <input
                 type="text"
-                placeholder="URL (https://...)"
+                placeholder="URL (https://..., mailto:..., or /path)"
                 value={link.url}
                 onChange={(e) => updateLink(i, "url", e.target.value)}
-                className="flex-1 rounded-lg border bg-white p-2 text-sm text-gray-900 placeholder:text-gray-500"
+                className="rounded-lg border bg-white p-2 text-sm text-gray-900 placeholder:text-gray-500"
               />
               <button
                 type="button"
                 onClick={() => removeLink(i)}
                 className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                aria-label="Remove link"
+                aria-label={`Remove action button ${i + 1}`}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -258,10 +320,10 @@ export default function ManageChatbot() {
           <button
             type="button"
             onClick={addLink}
-            className="mt-2 flex items-center gap-1 text-sm font-bold text-blue-600"
+            className="flex items-center gap-1 text-sm font-bold text-blue-600"
           >
             <Plus className="h-4 w-4" />
-            Add Link Button
+            Add Custom Action Button
           </button>
         </div>
 
@@ -346,6 +408,20 @@ export default function ManageChatbot() {
                     <strong>Quick Replies:</strong>{" "}
                     {rule.quickReplies.join(", ")}
                   </p>
+                )}
+
+                {rule.links?.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                    <strong>Action Buttons:</strong>
+                    {rule.links.map((link, index) => (
+                      <span
+                        key={`${link.label}-${index}`}
+                        className="rounded-full bg-emerald-100 px-2 py-1 font-bold text-emerald-800"
+                      >
+                        {link.label || "Unnamed button"}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 

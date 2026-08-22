@@ -2,13 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-    BookOpen, Cpu, AlertCircle, GraduationCap, Award, 
- 
-  Calendar, MapPin, Download, ArrowRight, Mail, Briefcase, ExternalLink, BadgeCheck 
+import {
+  BookOpen,
+  Cpu,
+  AlertCircle,
+  GraduationCap,
+  Award,
+  Calendar,
+  MapPin,
+  Download,
+  ArrowRight,
+  Mail,
+  Briefcase,
+  ExternalLink,
+  BadgeCheck,
 } from "lucide-react";
 import SkillKeyboard from "@/components/ui/SkillKeyboard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import { waitForConfiguredFonts } from "@/lib/clientFonts";
 
 interface EducationEntry {
   degree: string;
@@ -45,30 +56,60 @@ interface AboutData {
 
 export default function AboutClient() {
   const [data, setData] = useState<AboutData | null>(null);
-  const [heroData, setHeroData] = useState<{ profilePic?: string; resumeUrl?: string; gDriveProfilePic?: string; gDriveResume?: string } | null>(null);
+  const [heroData, setHeroData] = useState<{
+    profilePic?: string;
+    resumeUrl?: string;
+    gDriveProfilePic?: string;
+    gDriveResume?: string;
+  } | null>(null);
   const [settings, setSettings] = useState<any>(null);
+  const [settingsReady, setSettingsReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/settings").then(res => res.json()).then(data => setSettings(data)).catch(() => {});
-
+    let isMounted = true;
     const timestamp = Date.now();
+
     Promise.all([
-      fetch(`/api/about?t=${timestamp}`, { cache: "no-store" }).then(res => res.json()),
-      fetch(`/api/hero?t=${timestamp}`, { cache: "no-store" }).then(res => res.json()).catch(() => null)
-    ]).then(([aboutRes, heroRes]) => {
-      if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
-        setData(aboutRes);
-      }
-      if (heroRes) setHeroData(heroRes);
-      setLoading(false);
-    }).catch(err => {
-      console.error("Fetch error:", err);
-      setLoading(false);
-    });
+      fetch("/api/settings", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null),
+      fetch(`/api/about?t=${timestamp}`, { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null),
+      fetch(`/api/hero?t=${timestamp}`, { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null),
+    ])
+      .then(async ([settingsRes, aboutRes, heroRes]) => {
+        if (!isMounted) return;
+
+        if (settingsRes && !settingsRes.error) setSettings(settingsRes);
+        if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
+          setData(aboutRes);
+        }
+        if (heroRes) setHeroData(heroRes);
+
+        await waitForConfiguredFonts(
+          settingsRes && !settingsRes.error ? settingsRes : null,
+        );
+
+        setLoading(false);
+        setSettingsReady(true);
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        if (!isMounted) return;
+        setLoading(false);
+        setSettingsReady(true);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  if (loading) {
+  if (loading || !settingsReady) {
     return (
       <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl animate-pulse">
         <div className="flex flex-col md:flex-row gap-12 items-start mb-24">
@@ -121,61 +162,78 @@ export default function AboutClient() {
   // ✅ STRICTLY USE THE HOME PAGE IMAGE (No dedicated About image)
   const rawImage = heroData?.profilePic || heroData?.gDriveProfilePic;
   const driveImageMatch = rawImage?.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    const displayResume = heroData?.resumeUrl || heroData?.gDriveResume;
+  const displayResume = heroData?.resumeUrl || heroData?.gDriveResume;
   const customFontStyle = (font?: string) =>
     font && font !== "Inter"
       ? { fontFamily: `'${font}', sans-serif`, fontWeight: "normal" as const }
       : undefined;
 
   return (
-
     <div className="container mx-auto px-4 py-24 min-h-screen max-w-5xl">
-
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .ql-align-justify { text-align: justify !important; }
         .ql-align-center { text-align: center !important; }
         .ql-align-right { text-align: right !important; }
-      `}} />
+      `,
+        }}
+      />
 
       <AnimatedSection direction="up">
         <div className="flex flex-col md:flex-row gap-12 items-start mb-24">
-          
           {/* Profile Image (Left) */}
           <div className="w-full md:w-1/3 shrink-0 flex flex-col gap-6">
             <div className="w-full aspect-square rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl">
               {rawImage ? (
                 rawImage.includes("<iframe") ? (
-                  <div className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full pointer-events-none" dangerouslySetInnerHTML={{ __html: rawImage }} />
+                  <div
+                    className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full pointer-events-none"
+                    dangerouslySetInnerHTML={{ __html: rawImage }}
+                  />
                 ) : (
-                  <img 
-                    src={driveImageMatch ? `https://drive.google.com/thumbnail?id=${driveImageMatch[1]}&sz=w800` : rawImage} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover" 
+                  <img
+                    src={
+                      driveImageMatch
+                        ? `https://drive.google.com/thumbnail?id=${driveImageMatch[1]}&sz=w800`
+                        : rawImage
+                    }
+                    alt="Profile"
+                    className="w-full h-full object-cover"
                     onContextMenu={(e) => e.preventDefault()}
                     draggable={false}
                   />
                 )
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 font-medium">No Image</div>
+                <div className="w-full h-full flex items-center justify-center text-gray-400 font-medium">
+                  No Image
+                </div>
               )}
             </div>
-            
+
             <div className="flex flex-col gap-3">
               {data.location && (
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl" style={customFontStyle(settings?.aboutLocationFont)}>
+                <div
+                  className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl"
+                  style={customFontStyle(settings?.aboutLocationFont)}
+                >
                   <MapPin className="w-4 h-4 text-primary" /> {data.location}
-
                 </div>
               )}
               {data.availability && (
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl" style={customFontStyle(settings?.aboutAvailabilityFont)}>
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" /> {data.availability}
-
+                <div
+                  className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl"
+                  style={customFontStyle(settings?.aboutAvailabilityFont)}
+                >
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />{" "}
+                  {data.availability}
                 </div>
               )}
-                            <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl" style={customFontStyle(settings?.aboutEducationFont)}>
+              <div
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-xl"
+                style={customFontStyle(settings?.aboutEducationFont)}
+              >
                 <GraduationCap className="w-4 h-4 text-primary" /> Class of 2026
-
               </div>
             </div>
           </div>
@@ -184,39 +242,38 @@ export default function AboutClient() {
           <div className="w-full md:w-2/3">
             <h1
               className="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-white tracking-tight"
-                            style={customFontStyle(settings?.aboutHeaderFont)}
-
+              style={customFontStyle(settings?.aboutHeaderFont)}
             >
               {settings?.aboutHeader || "About Me"}
             </h1>
             {settings?.aboutSubheader && (
               <p
                 className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-6"
-                                style={customFontStyle(settings?.aboutSubheaderFont)}
-
+                style={customFontStyle(settings?.aboutSubheaderFont)}
               >
                 {settings.aboutSubheader}
               </p>
             )}
-                        <div
+            <div
               className="prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed mb-8 prose-a:text-primary prose-strong:text-gray-900 dark:prose-strong:text-white"
               style={customFontStyle(settings?.aboutBioFont)}
-              dangerouslySetInnerHTML={{ __html: data.bio || "<p>No bio added yet.</p>" }}
-
+              dangerouslySetInnerHTML={{
+                __html: data.bio || "<p>No bio added yet.</p>",
+              }}
             />
-            
+
             <div className="flex flex-wrap items-center gap-4">
               {displayResume && (
-                <a 
-                  href={displayResume} 
-                  target="_blank" 
+                <a
+                  href={displayResume}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-full shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all"
                 >
                   <Download className="w-4 h-4" /> Download Resume
                 </a>
               )}
-              <Link 
+              <Link
                 href="/contact"
                 className="flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white font-bold rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 hover:-translate-y-0.5 transition-all"
               >
@@ -229,14 +286,15 @@ export default function AboutClient() {
 
       {/* 2. TECHNICAL ARSENAL */}
       <AnimatedSection direction="up">
-                <div className="mb-24" style={customFontStyle(settings?.aboutSkillsFont)}>
+        <div
+          className="mb-24"
+          style={customFontStyle(settings?.aboutSkillsFont)}
+        >
           <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
             <Cpu className="w-8 h-8 mr-3 text-primary" /> Technical Arsenal
           </h2>
           <div className="bg-gray-50 dark:bg-gray-900/30 rounded-3xl border border-gray-200 dark:border-gray-800 p-8 md:p-10">
-
             <SkillKeyboard activeSkills={data.skills} />
-
           </div>
         </div>
       </AnimatedSection>
@@ -244,10 +302,12 @@ export default function AboutClient() {
       {/* 3. EXPERIENCE TIMELINE */}
       {data.experience && data.experience.length > 0 && (
         <AnimatedSection direction="up">
-                    <div className="mb-24" style={customFontStyle(settings?.aboutExperienceFont)}>
+          <div
+            className="mb-24"
+            style={customFontStyle(settings?.aboutExperienceFont)}
+          >
             <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
               <Briefcase className="w-8 h-8 mr-3 text-primary" /> Experience
-
             </h2>
             <div className="relative border-l-2 border-gray-200 dark:border-gray-800 ml-4 md:ml-6 space-y-12 pb-4">
               {data.experience.map((exp, idx) => (
@@ -286,20 +346,24 @@ export default function AboutClient() {
 
       {/* 4. EDUCATION TIMELINE */}
       <AnimatedSection direction="up">
-                  <div className="mb-24" style={customFontStyle(settings?.aboutEducationFont)}>
-            <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
-              <BookOpen className="w-8 h-8 mr-3 text-primary" /> Education Journey
-
+        <div
+          className="mb-24"
+          style={customFontStyle(settings?.aboutEducationFont)}
+        >
+          <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
+            <BookOpen className="w-8 h-8 mr-3 text-primary" /> Education Journey
           </h2>
 
-          {(!data.education || data.education.length === 0) ? (
-            <p className="text-gray-500 italic">No education details added yet.</p>
+          {!data.education || data.education.length === 0 ? (
+            <p className="text-gray-500 italic">
+              No education details added yet.
+            </p>
           ) : (
             <div className="relative border-l-2 border-gray-200 dark:border-gray-800 ml-4 md:ml-6 space-y-12 pb-4">
               {data.education.map((edu, idx) => (
                 <div key={idx} className="relative pl-8 md:pl-12 group">
                   <div className="absolute -left-[11px] top-1.5 w-5 h-5 rounded-full bg-primary ring-4 ring-white dark:ring-background group-hover:scale-125 transition-transform duration-300" />
-                  
+
                   <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 hover:border-primary/50 transition-all duration-300 hover:shadow-xl">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                       <div>
@@ -326,34 +390,49 @@ export default function AboutClient() {
                         {edu.cgpa && (
                           <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5">
                             <Award className="w-4 h-4 text-primary" />
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">CGPA</span>
-                            <span className="text-sm font-extrabold text-gray-900 dark:text-white">{edu.cgpa}</span>
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                              CGPA
+                            </span>
+                            <span className="text-sm font-extrabold text-gray-900 dark:text-white">
+                              {edu.cgpa}
+                            </span>
                           </div>
                         )}
                         {edu.percentage && (
                           <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5">
                             <Award className="w-4 h-4 text-primary" />
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Score</span>
-                            <span className="text-sm font-extrabold text-gray-900 dark:text-white">{edu.percentage}</span>
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                              Score
+                            </span>
+                            <span className="text-sm font-extrabold text-gray-900 dark:text-white">
+                              {edu.percentage}
+                            </span>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {edu.relevantCoursework && edu.relevantCoursework.filter((c) => c.trim()).length > 0 && (
-                      <div className="pt-5 border-t border-gray-100 dark:border-gray-800">
-                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                          Relevant Coursework
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {edu.relevantCoursework.filter((c) => c.trim()).map((course, cIdx) => (
-                            <span key={cIdx} className="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-md">
-                              {course.trim()}
-                            </span>
-                          ))}
+                    {edu.relevantCoursework &&
+                      edu.relevantCoursework.filter((c) => c.trim()).length >
+                        0 && (
+                        <div className="pt-5 border-t border-gray-100 dark:border-gray-800">
+                          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                            Relevant Coursework
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {edu.relevantCoursework
+                              .filter((c) => c.trim())
+                              .map((course, cIdx) => (
+                                <span
+                                  key={cIdx}
+                                  className="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-md"
+                                >
+                                  {course.trim()}
+                                </span>
+                              ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </div>
               ))}
@@ -365,22 +444,39 @@ export default function AboutClient() {
       {/* 5. CERTIFICATIONS */}
       {data.certifications && data.certifications.length > 0 && (
         <AnimatedSection direction="up">
-                    <div className="mb-24" style={customFontStyle(settings?.aboutCertificationFont)}>
+          <div
+            className="mb-24"
+            style={customFontStyle(settings?.aboutCertificationFont)}
+          >
             <h2 className="text-3xl font-extrabold mb-10 flex items-center text-gray-900 dark:text-white">
-              <BadgeCheck className="w-8 h-8 mr-3 text-primary" /> Certifications
-
+              <BadgeCheck className="w-8 h-8 mr-3 text-primary" />{" "}
+              Certifications
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {data.certifications.map((cert, idx) => (
-                <div key={idx} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 hover:border-primary/50 transition-all duration-300 hover:shadow-lg flex flex-col justify-between">
+                <div
+                  key={idx}
+                  className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 hover:border-primary/50 transition-all duration-300 hover:shadow-lg flex flex-col justify-between"
+                >
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{cert.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-4">{cert.issuer}</p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                      {cert.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-4">
+                      {cert.issuer}
+                    </p>
                   </div>
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{cert.date}</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                      {cert.date}
+                    </span>
                     {cert.url && (
-                      <a href={cert.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm font-bold text-primary hover:underline">
+                      <a
+                        href={cert.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+                      >
                         View Credential <ExternalLink className="w-4 h-4" />
                       </a>
                     )}
@@ -399,9 +495,10 @@ export default function AboutClient() {
             Let's Build Something Great
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
-            Interested in working together or discussing backend architecture? I'm currently open to new opportunities.
+            Interested in working together or discussing backend architecture?
+            I'm currently open to new opportunities.
           </p>
-          <Link 
+          <Link
             href="/contact"
             className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white font-bold rounded-full shadow-lg hover:opacity-90 hover:-translate-y-1 transition-all"
           >
@@ -409,7 +506,6 @@ export default function AboutClient() {
           </Link>
         </div>
       </AnimatedSection>
-
     </div>
   );
 }

@@ -381,7 +381,7 @@ export default function Chatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.92 }}
             transition={{ type: "spring", stiffness: 300, damping: 22 }}
-            className="fixed bottom-[5.5rem] right-4 z-50 w-[min(250px,calc(100vw-2rem))] rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-[0_14px_40px_rgba(0,0,0,0.18)] dark:border-emerald-900/60 dark:bg-zinc-900 dark:!text-white sm:right-6"
+            className="fixed bottom-[8rem] right-4 z-50 w-[min(250px,calc(100vw-2rem))] rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-[0_14px_40px_rgba(0,0,0,0.18)] dark:border-emerald-900/60 dark:bg-zinc-900 dark:!text-white sm:right-6 md:bottom-[5.5rem]"
           >
             <span className="relative z-10">
               Hi! I&apos;m Nilay&apos;s assistant. How can I help?
@@ -396,7 +396,7 @@ export default function Chatbot() {
         whileHover={{ scale: 1.06, y: -2 }}
         whileTap={{ scale: 0.94 }}
         aria-label="Open Nilay's chatbot"
-        className={`fixed bottom-4 right-4 z-50 flex items-center justify-center rounded-full bg-gradient-to-br from-zinc-950 to-zinc-700 p-4 !text-white shadow-[0_12px_40px_rgba(0,0,0,0.24)] transition-all dark:from-white dark:to-zinc-200 dark:!text-zinc-900 sm:bottom-6 sm:right-6 ${
+        className={`fixed bottom-[4.75rem] right-4 z-50 flex items-center justify-center rounded-full bg-gradient-to-br from-zinc-950 to-zinc-700 p-4 !text-white shadow-[0_12px_40px_rgba(0,0,0,0.24)] transition-all dark:from-white dark:to-zinc-200 dark:!text-zinc-900 sm:bottom-6 sm:right-6 md:bottom-6 md:right-6 ${
           isOpen ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >
@@ -415,7 +415,7 @@ export default function Chatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.94 }}
             transition={{ type: "spring", stiffness: 280, damping: 24 }}
-            className="fixed bottom-3 right-3 z-50 flex h-[calc(100dvh-1.5rem)] max-h-[720px] w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.22)] dark:border-zinc-800 dark:bg-zinc-950 sm:bottom-6 sm:right-6 sm:h-[600px] sm:w-[380px]"
+            className="fixed bottom-2 right-2 z-50 flex h-[calc(100dvh-3.5rem)] max-h-[720px] w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.22)] dark:border-zinc-800 dark:bg-zinc-950 sm:bottom-6 sm:right-6 sm:h-[600px] sm:w-[380px]"
           >
             <div className="relative flex items-center justify-between overflow-hidden border-b border-zinc-100 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-700 p-4 text-white dark:border-zinc-800 dark:from-zinc-100 dark:via-white dark:to-zinc-200 dark:text-zinc-900">
               <motion.div

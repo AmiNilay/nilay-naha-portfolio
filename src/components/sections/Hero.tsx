@@ -252,7 +252,7 @@ export default function Hero() {
         }}
       />
 
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-10 lg:px-16 flex flex-col md:flex-row items-center justify-center md:justify-between gap-6 md:gap-12 lg:gap-16 h-full pb-16 md:pb-12 pt-16 md:pt-20">
+      <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-10 lg:px-16 flex flex-col md:flex-row items-center justify-start md:justify-between gap-3 sm:gap-6 md:gap-12 lg:gap-16 h-full pb-16 md:pb-12 pt-16 md:pt-20">
         {/* TEXT CONTENT */}
         <motion.div
           initial={{ opacity: 0, x: -40 }}
@@ -266,7 +266,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 mb-4 md:mb-6"
+              className="inline-flex items-center gap-2 mb-2 sm:mb-4 md:mb-6"
             >
               {data.showAvailability && (
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -284,7 +284,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.7, ease: easeOut }}
-            className="text-[28px] sm:text-4xl md:text-5xl lg:text-[52px] xl:text-[62px] font-extrabold tracking-tight leading-[1.1] w-full flex flex-col"
+            className="text-[25px] sm:text-4xl md:text-5xl lg:text-[52px] xl:text-[62px] font-extrabold tracking-tight leading-[1.1] w-full flex flex-col"
             style={customFontStyle(settings?.homeHeadlineFont)}
           >
             <span className="block whitespace-nowrap">
@@ -310,7 +310,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45, duration: 0.7, ease: easeOut }}
-              className="text-sm sm:text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-xl mt-4 md:mt-6 leading-relaxed font-medium w-full [&_p]:whitespace-normal [&_p]:text-center md:[&_p]:text-left"
+              className="text-sm sm:text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-xl mt-2 sm:mt-4 md:mt-6 leading-relaxed font-medium w-full [&_p]:whitespace-normal [&_p]:text-center md:[&_p]:text-left"
               style={customFontStyle(settings?.homeSubtitleFont)}
               dangerouslySetInnerHTML={{ __html: data.subtitle }}
             />
@@ -321,7 +321,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.7, ease: easeOut }}
-            className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 mt-6 md:mt-8 w-full"
+            className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 mt-4 sm:mt-6 md:mt-8 w-full"
           >
             <Link
               href="/projects"
@@ -382,7 +382,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.75, duration: 0.7, ease: easeOut }}
-              className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 mt-8 md:mt-12 w-full max-w-[650px]"
+              className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 mt-5 sm:mt-8 md:mt-12 w-full max-w-[650px]"
             >
               {data.stat1Value && (
                 <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl md:rounded-2xl p-3 md:p-5 flex flex-col items-center justify-center text-center shadow-sm">
@@ -441,7 +441,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.85, duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 mt-6 md:mt-8 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 rounded-full"
+              className="inline-flex max-w-[calc(100vw-2rem)] items-center justify-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 mt-3 sm:mt-6 md:mt-8 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 rounded-full"
             >
               <span className="w-2 h-2 rounded-full bg-green-500"></span>
               <span
@@ -459,7 +459,7 @@ export default function Hero() {
           initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
           animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
           transition={{ duration: 1, ease: easeOut, delay: 0.2 }}
-          className="relative shrink-0 order-1 md:order-2 z-10 flex items-center justify-center mb-4 md:mb-0"
+          className="relative shrink-0 order-1 md:order-2 z-10 flex items-center justify-center mb-2 md:mb-0"
           style={{ perspective: 1000 }}
         >
           <motion.div
@@ -471,7 +471,7 @@ export default function Hero() {
 
           <motion.div
             style={{ x: imageX, y: imageY }}
-            className="relative w-40 h-40 sm:w-56 sm:h-56 md:w-[320px] md:h-[320px] lg:w-[400px] lg:h-[400px] xl:w-[420px] xl:h-[420px] rounded-full overflow-hidden border-[4px] md:border-[8px] border-white dark:border-[#1A2234] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] bg-gray-50 dark:bg-gray-900"
+            className="relative w-36 h-36 sm:w-56 sm:h-56 md:w-[320px] md:h-[320px] lg:w-[400px] lg:h-[400px] xl:w-[420px] xl:h-[420px] rounded-full overflow-hidden border-[4px] md:border-[8px] border-white dark:border-[#1A2234] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] bg-gray-50 dark:bg-gray-900"
           >
             <Image
               key={imageKey}
@@ -497,7 +497,7 @@ export default function Hero() {
 
       {/* TECH STACK MARQUEE */}
       {techArray.length > 0 && (
-        <div className="absolute bottom-0 left-0 w-full border-t border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md py-3 sm:py-4 overflow-hidden z-20">
+        <div className="absolute bottom-0 left-0 w-full border-t border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md py-2 sm:py-4 overflow-hidden z-20">
           <div className="flex whitespace-nowrap w-max animate-custom-marquee hover:[animation-play-state:paused]">
             {[
               ...techArray,
@@ -511,7 +511,7 @@ export default function Hero() {
               return (
                 <div key={i} className="flex items-center">
                   <span
-                    className="mx-6 md:mx-12 text-xs md:text-sm font-bold text-gray-600 dark:text-gray-300 uppercase tracking-[0.15em] flex items-center gap-2 sm:gap-3"
+                    className="mx-4 sm:mx-6 md:mx-12 text-xs md:text-sm font-bold text-gray-600 dark:text-gray-300 uppercase tracking-[0.15em] flex items-center gap-2 sm:gap-3"
                     style={customFontStyle(settings?.homeTechStackFont)}
                   >
                     {logoUrl ? (

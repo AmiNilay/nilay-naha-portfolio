@@ -12,29 +12,56 @@ const formatGDriveUrl = (url: string | null) => {
   return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
 };
 
-export async function GET(req: Request  ) {
+export async function GET(req: Request) {
   try {
     await connectToDB();
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get("slug");
     const id = searchParams.get("id");
+    const isPublicList = !slug && !id && searchParams.get("public") === "1";
 
     if (slug) {
-      const project = await Project.findOne({ slug });
-      return project ? NextResponse.json({ project }) : NextResponse.json({ error: "Not Found" }, { status: 404 });
+      const project = await Project.findOne({ slug }).lean().exec();
+      return project
+        ? NextResponse.json(
+            { project },
+            { headers: { "Cache-Control": "no-store" } },
+          )
+        : NextResponse.json({ error: "Not Found" }, { status: 404 });
     }
 
     if (id) {
-      const project = id.match(/^[0-9a-fA-F]{24}$/) 
-        ? await Project.findById(id) 
-        : await Project.findOne({ slug: id });
-      return project ? NextResponse.json({ project }) : NextResponse.json({ error: "Not found" }, { status: 404 });
+      const project = id.match(/^[0-9a-fA-F]{24}$/)
+        ? await Project.findById(id).lean().exec()
+        : await Project.findOne({ slug: id }).lean().exec();
+      return project
+        ? NextResponse.json(
+            { project },
+            { headers: { "Cache-Control": "no-store" } },
+          )
+        : NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const projects = await Project.find().sort({ publishDate: -1, createdAt: -1 });
-    return NextResponse.json({ projects: projects || [] });
-  } catch (error: any) {
-    return NextResponse.json({ error: "Server Error", details: error.message }, { status: 500 });
+    const projects = await Project.find()
+      .sort({ publishDate: -1, createdAt: -1 })
+      .lean()
+      .exec();
+    return NextResponse.json(
+      { projects: projects || [] },
+      {
+        headers: {
+          "Cache-Control": isPublicList
+            ? "public, s-maxage=60, stale-while-revalidate=300"
+            : "no-store",
+        },
+      },
+    );
+  } catch (error) {
+    console.error("GET Projects Error:", error);
+    return NextResponse.json(
+      { error: "Projects are temporarily unavailable. Please try again." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }
 
@@ -42,7 +69,7 @@ export async function POST(req: Request) {
   try {
     await connectToDB();
     const formData = await req.formData();
-    
+
     const title = formData.get("title") as string;
     const slug = formData.get("slug") as string;
     const description = formData.get("description") as string;
@@ -66,12 +93,21 @@ export async function POST(req: Request) {
     }
 
     const newProject = await Project.create({
-      title, slug, description, image: imageUrl, githubLink, liveLink, appLink,
-      role, status, frameStyle, featured,
+      title,
+      slug,
+      description,
+      image: imageUrl,
+      githubLink,
+      liveLink,
+      appLink,
+      role,
+      status,
+      frameStyle,
+      featured,
       gDriveImage: formatGDriveUrl(gDriveImage),
       relatedBlog: relatedBlog || "", // ✅ Save
       publishDate: publishDate ? new Date(publishDate) : new Date(),
-      tags: tagsString ? tagsString.split(",").map(t => t.trim()) : []
+      tags: tagsString ? tagsString.split(",").map((t) => t.trim()) : [],
     });
 
     return NextResponse.json({ project: newProject }, { status: 201 });
@@ -86,13 +122,15 @@ export async function PUT(req: Request) {
     const formData = await req.formData();
     const id = formData.get("id") as string;
 
-    if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+    if (!id)
+      return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-    const project = id.match(/^[0-9a-fA-F]{24}$/) 
-      ? await Project.findById(id) 
+    const project = id.match(/^[0-9a-fA-F]{24}$/)
+      ? await Project.findById(id)
       : await Project.findOne({ slug: id });
 
-    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!project)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     project.title = formData.get("title") || project.title;
     project.slug = formData.get("slug") || project.slug;
@@ -103,18 +141,22 @@ export async function PUT(req: Request) {
     project.role = formData.get("role") || project.role;
     project.status = formData.get("status") || project.status;
     project.frameStyle = formData.get("frameStyle") || project.frameStyle;
-    
-    if (formData.has("featured")) project.featured = formData.get("featured") === "true";
-    if (formData.has("relatedBlog")) project.relatedBlog = formData.get("relatedBlog") as string; // ✅ Update
-    
+
+    if (formData.has("featured"))
+      project.featured = formData.get("featured") === "true";
+    if (formData.has("relatedBlog"))
+      project.relatedBlog = formData.get("relatedBlog") as string; // ✅ Update
+
     const gDriveImage = formData.get("gDriveImage") as string;
-    if (gDriveImage !== null) project.gDriveImage = formatGDriveUrl(gDriveImage);
+    if (gDriveImage !== null)
+      project.gDriveImage = formatGDriveUrl(gDriveImage);
 
     const publishDate = formData.get("publishDate") as string;
     if (publishDate) project.publishDate = new Date(publishDate);
-    
+
     const tagsString = formData.get("tags") as string;
-    if (tagsString) project.tags = tagsString.split(",").map((t: string) => t.trim());
+    if (tagsString)
+      project.tags = tagsString.split(",").map((t: string) => t.trim());
 
     const imageFile = formData.get("image") as File;
     if (imageFile && typeof imageFile !== "string" && imageFile.size > 0) {
@@ -134,7 +176,8 @@ export async function DELETE(req: Request) {
     await connectToDB();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+    if (!id)
+      return NextResponse.json({ error: "ID required" }, { status: 400 });
     if (id.match(/^[0-9a-fA-F]{24}$/)) await Project.findByIdAndDelete(id);
     else await Project.findOneAndDelete({ slug: id });
     return NextResponse.json({ message: "Deleted" }, { status: 200 });

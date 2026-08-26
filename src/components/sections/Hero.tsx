@@ -3,9 +3,46 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Github, Linkedin, Download, FileX } from "lucide-react";
+import {
+  ArrowRight,
+  Github,
+  Linkedin,
+  Download,
+  FileX,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { waitForConfiguredFonts } from "@/lib/clientFonts";
+
+const fetchWithTimeout = async (
+  url: string,
+  timeoutMs = 12000,
+  retries = 1,
+): Promise<Response> => {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(url, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => window.setTimeout(resolve, 400));
+      }
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Request failed");
+};
 
 // ✅ Helper to get REAL Tech Logos (SVGs) instead of emojis
 const getTechLogo = (tech: string) => {
@@ -63,6 +100,8 @@ export default function Hero() {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<any>(null);
   const [settingsReady, setSettingsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const mouseX = useMotionValue(0);
@@ -114,51 +153,72 @@ export default function Hero() {
   useEffect(() => {
     let isMounted = true;
 
-    Promise.all([
-      fetch(`/api/hero?timestamp=${Date.now()}`, { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null),
-      fetch("/api/settings", { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null),
-    ])
-      .then(async ([resData, settingsData]) => {
+    const loadHero = async () => {
+      setLoading(true);
+      setSettingsReady(false);
+      setError(null);
+
+      try {
+        const [heroResponse, settingsResponse] = await Promise.all([
+          fetchWithTimeout(`/api/hero?timestamp=${Date.now()}`, 12000, 1),
+          fetchWithTimeout("/api/settings", 12000, 1).catch(() => null),
+        ]);
+
+        if (!heroResponse.ok) throw new Error("Hero request failed");
+        const resData = await heroResponse.json();
+        if (
+          !resData ||
+          typeof resData !== "object" ||
+          Object.keys(resData).length === 0
+        ) {
+          throw new Error("Hero response was empty");
+        }
+
+        const settingsData =
+          settingsResponse && settingsResponse.ok
+            ? await settingsResponse.json()
+            : null;
+
         if (!isMounted) return;
 
-        if (resData) {
-          setData((prev) => ({
-            ...prev,
-            ...resData,
-            badgeText: resData.badgeText || resData.badge || "",
-            showAvailability: resData.showAvailability !== false,
-            line1Bold: resData.line1Bold || "Build",
-            line1Accent: resData.line1Accent || "clean backends",
-            line2Bold: resData.line2Bold || "Ship",
-            line2Accent: resData.line2Accent || "real products",
-          }));
-        }
+        setData((prev) => ({
+          ...prev,
+          ...resData,
+          badgeText: resData.badgeText || resData.badge || "",
+          showAvailability: resData.showAvailability !== false,
+          line1Bold: resData.line1Bold || "Build",
+          line1Accent: resData.line1Accent || "clean backends",
+          line2Bold: resData.line2Bold || "Ship",
+          line2Accent: resData.line2Accent || "real products",
+        }));
 
-        if (settingsData && !settingsData.error) {
-          setSettings(settingsData);
-        }
-
+        if (settingsData && !settingsData.error) setSettings(settingsData);
         await waitForConfiguredFonts(
           settingsData && !settingsData.error ? settingsData : null,
         );
+      } catch (loadError) {
+        console.error("Hero fetch failed:", loadError);
+        if (isMounted) {
+          const offline = typeof navigator !== "undefined" && !navigator.onLine;
+          setError(
+            offline
+              ? "You appear to be offline. Please check your internet connection."
+              : "The homepage is temporarily unavailable. Please try again.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          setSettingsReady(true);
+        }
+      }
+    };
 
-        setLoading(false);
-        setSettingsReady(true);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setLoading(false);
-        setSettingsReady(true);
-      });
-
+    loadHero();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [retryKey]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
@@ -206,6 +266,29 @@ export default function Hero() {
               className="h-4 w-24 flex-shrink-0 animate-pulse rounded bg-gray-200 dark:bg-gray-800"
             />
           ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="fixed inset-0 z-40 flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-[#FAFBFC] px-6 text-center dark:bg-gray-950">
+        <div className="flex max-w-md flex-col items-center">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <h1 className="mb-3 text-2xl font-extrabold text-gray-900 dark:text-white">
+            Homepage temporarily unavailable
+          </h1>
+          <p className="mb-7 text-gray-600 dark:text-gray-400">{error}</p>
+          <button
+            type="button"
+            onClick={() => setRetryKey((value) => value + 1)}
+            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-700"
+          >
+            <RefreshCw className="h-4 w-4" /> Try Again
+          </button>
         </div>
       </section>
     );

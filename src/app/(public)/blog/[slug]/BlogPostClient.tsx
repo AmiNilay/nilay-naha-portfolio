@@ -4,56 +4,135 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Eye, Maximize, Minimize, RefreshCw, FolderGit2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock,
+  Calendar,
+  Eye,
+  Maximize,
+  Minimize,
+  RefreshCw,
+  FolderGit2,
+  AlertTriangle,
+} from "lucide-react";
+
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 12000,
+) => {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
+};
 
 export default function BlogPostClient() {
   const params = useParams();
   const router = useRouter();
+  const rawSlug = params?.slug;
+  const slug = Array.isArray(rawSlug) ? rawSlug[0] : rawSlug;
   const [post, setPost] = useState<any>(null);
   const [linkedProject, setLinkedProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [viewCount, setViewCount] = useState<number>(0);
 
   useEffect(() => {
-    if (!params?.slug) return;
+    let cancelled = false;
+
+    if (!slug) {
+      setError("This post link is missing its slug.");
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const fetchPost = async () => {
-      try {
-        const res = await fetch(`/api/blog?slug=${params.slug}`);
-        const data = await res.json();
-        if (data.post) {
-          setPost(data.post);
-          setViewCount(data.post.views || 0);
-          
-          if (data.post.relatedProject) {
-            fetch(`/api/projects?id=${data.post.relatedProject}`)
-              .then(res => res.json())
-              .then(projData => {
-                if (projData.project) setLinkedProject(projData.project);
-              })
-              .catch(err => console.error("Failed to fetch linked project", err));
-          }
+      setLoading(true);
+      setError(null);
+      setPost(null);
+      setLinkedProject(null);
 
-          fetch("/api/views", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ slug: params.slug }),
-          })
-            .then((res) => res.json())
-            .then((viewData) => {
-              if (viewData.views) setViewCount(viewData.views);
-            });
+      try {
+        const res = await fetchWithTimeout(
+          `/api/blog?slug=${encodeURIComponent(slug)}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+        if (res.status === 404) {
+          if (!cancelled) setPost(null);
+          return;
         }
-      } catch (error) {
-        console.error("Failed to fetch post", error);
+        if (!res.ok) throw new Error("Post request failed");
+
+        const data = await res.json();
+        if (!data.post) {
+          if (!cancelled) setPost(null);
+          return;
+        }
+
+        if (cancelled) return;
+        setPost(data.post);
+        setViewCount(data.post.views || 0);
+
+        if (data.post.relatedProject) {
+          fetchWithTimeout(
+            `/api/projects?id=${encodeURIComponent(data.post.relatedProject)}`,
+          )
+            .then((projectResponse) =>
+              projectResponse.ok ? projectResponse.json() : null,
+            )
+            .then((projectData) => {
+              if (!cancelled && projectData?.project)
+                setLinkedProject(projectData.project);
+            })
+            .catch((projectError) =>
+              console.warn("Related project unavailable:", projectError),
+            );
+        }
+
+        fetchWithTimeout("/api/views", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug }),
+        })
+          .then((viewResponse) =>
+            viewResponse.ok ? viewResponse.json() : null,
+          )
+          .then((viewData) => {
+            if (!cancelled && viewData?.views) setViewCount(viewData.views);
+          })
+          .catch((viewError) =>
+            console.warn("View count unavailable:", viewError),
+          );
+      } catch (fetchError) {
+        console.error("Failed to fetch post:", fetchError);
+        if (!cancelled) {
+          const offline = typeof navigator !== "undefined" && !navigator.onLine;
+          setError(
+            offline
+              ? "You appear to be offline. Please check your internet connection."
+              : "This post is temporarily unavailable. Please try again.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchPost();
-  }, [params?.slug]);
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (!post?.content) return;
@@ -97,18 +176,45 @@ export default function BlogPostClient() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+        <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+          Unable to load post
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-semibold"
+        >
+          <RefreshCw className="w-4 h-4" /> Try Again
+        </button>
+      </div>
+    );
+  }
+
   if (!post) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Post Not Found</h1>
-        <button onClick={() => router.push("/blog")} className="text-primary hover:underline flex items-center gap-2">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          Post Not Found
+        </h1>
+        <button
+          onClick={() => router.push("/blog")}
+          className="text-primary hover:underline flex items-center gap-2"
+        >
           <ArrowLeft className="w-4 h-4" /> Back to Blog
         </button>
       </div>
     );
   }
 
-  const publishedDate = new Date(post.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const publishedDate = new Date(post.createdAt).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
   const updatedDate = new Date(post.updatedAt);
   const formattedLastUpdated = `${updatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${updatedDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 
@@ -116,7 +222,10 @@ export default function BlogPostClient() {
     <article className="min-h-screen pt-24 pb-20 transition-colors duration-300">
       {/* Header Section - Widened */}
       <header className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 mb-12 text-center">
-        <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors mb-8">
+        <Link
+          href="/blog"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors mb-8"
+        >
           <ArrowLeft className="w-4 h-4" /> Back to all posts
         </Link>
 
@@ -145,7 +254,7 @@ export default function BlogPostClient() {
             <Eye className="w-4 h-4" /> {viewCount} Views
           </div>
         </div>
-        
+
         <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
           <RefreshCw className="w-3 h-3" /> Last updated: {formattedLastUpdated}
         </div>
@@ -154,15 +263,22 @@ export default function BlogPostClient() {
       {/* Cover Image - Widened */}
       {(post.coverImage || post.gDriveImage) && (
         <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 mb-16">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden shadow-2xl bg-gray-100 dark:bg-gray-900">
-            <img 
-              src={post.coverImage || post.gDriveImage} 
-              alt={post.title} 
-              className="w-full h-full object-cover select-none" 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden shadow-2xl bg-gray-100 dark:bg-gray-900"
+          >
+            <img
+              src={post.coverImage || post.gDriveImage}
+              alt={post.title}
+              className="w-full h-full object-cover select-none"
               onContextMenu={(e) => e.preventDefault()}
               draggable={false}
               onError={(e) => {
-                if (post.gDriveImage && e.currentTarget.src !== post.gDriveImage) {
+                if (
+                  post.gDriveImage &&
+                  e.currentTarget.src !== post.gDriveImage
+                ) {
                   e.currentTarget.src = post.gDriveImage;
                 }
               }}
@@ -170,19 +286,27 @@ export default function BlogPostClient() {
           </motion.div>
         </div>
       )}
-            {/* Content Section - Widened */}
+      {/* Content Section - Widened */}
       <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 flex flex-col lg:flex-row gap-12 relative">
-        
         {/* Main Content */}
-        <div className={`flex-1 min-w-0 transition-all duration-500 ${focusMode ? "max-w-5xl mx-auto" : ""}`}>
-          
+        <div
+          className={`flex-1 min-w-0 transition-all duration-500 ${focusMode ? "max-w-5xl mx-auto" : ""}`}
+        >
           {/* Focus Mode Toggle */}
           <div className="flex justify-end mb-6">
             <button
               onClick={() => setFocusMode(!focusMode)}
               className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg"
             >
-              {focusMode ? <><Minimize className="w-4 h-4" /> Exit Focus Mode</> : <><Maximize className="w-4 h-4" /> Focus Mode</>}
+              {focusMode ? (
+                <>
+                  <Minimize className="w-4 h-4" /> Exit Focus Mode
+                </>
+              ) : (
+                <>
+                  <Maximize className="w-4 h-4" /> Focus Mode
+                </>
+              )}
             </button>
           </div>
 
@@ -195,10 +319,15 @@ export default function BlogPostClient() {
           {/* Tags */}
           {post.tags && post.tags.length > 0 && (
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Tags</h3>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+                Tags
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {post.tags.map((tag: string) => (
-                  <span key={tag} className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-lg">
+                  <span
+                    key={tag}
+                    className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-lg"
+                  >
                     #{tag}
                   </span>
                 ))}
@@ -211,12 +340,16 @@ export default function BlogPostClient() {
         {!focusMode && (
           <aside className="hidden lg:block w-80 xl:w-96 shrink-0">
             <div className="sticky top-24 space-y-8">
-              
               {/* Author Card */}
               <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Written by</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">
+                  Written by
+                </h3>
                 <p className="text-primary font-medium">Nilay Naha</p>
-                <p className="text-sm text-gray-500 mt-2">Software Developer specializing in Python, FastAPI, and modern backend systems.</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Software Developer specializing in Python, FastAPI, and modern
+                  backend systems.
+                </p>
               </div>
 
               {/* Linked Project Card */}
@@ -229,9 +362,10 @@ export default function BlogPostClient() {
                     {linkedProject.title}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
-                    {linkedProject.description?.replace(/<[^>]*>?/gm, '') || "Check out the full case study and code for this project."}
+                    {linkedProject.description?.replace(/<[^>]*>?/gm, "") ||
+                      "Check out the full case study and code for this project."}
                   </p>
-                  <Link 
+                  <Link
                     href={`/projects/${linkedProject.slug}`}
                     className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                   >
@@ -239,7 +373,6 @@ export default function BlogPostClient() {
                   </Link>
                 </div>
               )}
-
             </div>
           </aside>
         )}
@@ -247,4 +380,3 @@ export default function BlogPostClient() {
     </article>
   );
 }
-

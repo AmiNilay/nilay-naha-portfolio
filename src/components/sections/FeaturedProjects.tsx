@@ -2,18 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Github, ExternalLink, Star } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
-import { StaggerContainer, StaggerItem } from "@/components/ui/StaggerContainer";
+import {
+  StaggerContainer,
+  StaggerItem,
+} from "@/components/ui/StaggerContainer";
 
 interface Project {
   _id: string;
   title: string;
+  slug: string;
   description: string;
-  tags: string[];
-  imageUrl?: string;
-  githubUrl?: string;
-  demoUrl?: string;
+  image?: string;
+  gDriveImage?: string;
+  githubLink?: string;
+  liveLink?: string;
+  tags?: string[];
+  featured?: boolean;
 }
 
 export default function FeaturedProjects() {
@@ -23,11 +29,19 @@ export default function FeaturedProjects() {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const res = await fetch("/api/projects");
+        const res = await fetch("/api/projects?public=1");
         if (!res.ok) return;
         const data = await res.json();
-        const allProjects = Array.isArray(data) ? data : data.projects || [];
-        setProjects(allProjects.slice(0, 3));
+        const allProjects: Project[] = data.projects || [];
+
+        // Filter for featured projects first, fallback to latest 3
+        const featured = allProjects.filter((p) => p.featured);
+        const display =
+          featured.length >= 3
+            ? featured.slice(0, 6)
+            : allProjects.slice(0, 3);
+
+        setProjects(display);
       } catch (error) {
         console.error("Failed to load featured projects", error);
       } finally {
@@ -37,16 +51,24 @@ export default function FeaturedProjects() {
     fetchFeatured();
   }, []);
 
+  const stripHtml = (html: string) => {
+    if (!html) return "";
+    return html
+      .replace(/<[^>]*>?/gm, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
   return (
     <div className="container mx-auto px-4 max-w-6xl h-full flex flex-col justify-center">
-
       <AnimatedSection direction="up">
         <div className="text-center mb-10">
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
             Featured Work
           </h2>
           <p className="text-gray-700 dark:text-gray-300 max-w-2xl mx-auto font-medium text-lg">
-            Here are a few projects I&apos;ve worked on recently.
+            Hand-picked projects that showcase my best work.
           </p>
         </div>
       </AnimatedSection>
@@ -60,7 +82,7 @@ export default function FeaturedProjects() {
       {!loading && projects.length === 0 && (
         <AnimatedSection direction="fade">
           <div className="text-center py-10 border border-dashed border-gray-300 dark:border-gray-800 rounded-xl opacity-70">
-            <p className="text-gray-500">No projects added yet.</p>
+            <p className="text-gray-500">No featured projects yet.</p>
           </div>
         </AnimatedSection>
       )}
@@ -69,52 +91,92 @@ export default function FeaturedProjects() {
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
         staggerDelay={0.12}
       >
-        {projects.map((project) => (
-          <StaggerItem key={project._id}>
-            <div className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
-              <div className="relative h-48 w-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 shrink-0">
-                <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-bold text-lg p-4 text-center z-0">
-                  {project.title}
+        {projects.map((project) => {
+          const displayImage = project.image || project.gDriveImage;
+
+          return (
+            <StaggerItem key={project._id}>
+              <div className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+                <div className="relative h-48 w-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 shrink-0">
+                  <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-bold text-lg p-4 text-center z-0">
+                    {project.title}
+                  </div>
+                  {displayImage ? (
+                    <img
+                      src={displayImage}
+                      alt={project.title}
+                      className="relative z-10 object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : null}
+
+                  {/* Featured badge on image */}
+                  {project.featured && (
+                    <div className="absolute top-3 right-3 z-20 bg-yellow-500 text-white px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-lg">
+                      <Star className="w-3 h-3 fill-current" />
+                      Featured
+                    </div>
+                  )}
                 </div>
-                {project.imageUrl ? (
-                  <img
-                    src={project.imageUrl}
-                    alt={project.title}
-                    className="relative z-10 object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : null}
-              </div>
 
-              <div className="p-6 flex flex-col flex-1 relative z-20 bg-white dark:bg-gray-900">
-                <div className="flex gap-2 mb-3 flex-wrap">
-                  {project.tags?.slice(0, 3).map((tag) => (
-                    <span key={tag} className="px-2 py-1 text-xs font-bold rounded-full bg-primary/10 text-primary">
-                      {tag}
-                    </span>
-                  ))}
+                <div className="p-6 flex flex-col flex-1 relative z-20 bg-white dark:bg-gray-900">
+                  <div className="flex gap-2 mb-3 flex-wrap">
+                    {project.tags?.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-1 text-xs font-bold rounded-full bg-primary/10 text-primary"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                    {project.title}
+                  </h3>
+
+                  <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 line-clamp-2 flex-1 font-medium">
+                    {stripHtml(project.description)}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <Link
+                      href={`/projects/${project.slug}`}
+                      className="inline-flex items-center text-sm font-bold text-primary hover:underline"
+                    >
+                      View Project <ArrowRight className="ml-1 h-4 w-4" />
+                    </Link>
+
+                    <div className="flex items-center gap-2">
+                      {project.githubLink && (
+                        <a
+                          href={project.githubLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        >
+                          <Github className="w-4 h-4" />
+                        </a>
+                      )}
+                      {project.liveLink && (
+                        <a
+                          href={project.liveLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-400 hover:text-primary transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
-
-                <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                  {project.title}
-                </h3>
-
-                <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 line-clamp-2 flex-1 font-medium">
-                  {project.description}
-                </p>
-
-                <Link
-                  href={project.githubUrl || project.demoUrl || "/projects"}
-                  className="inline-flex items-center text-sm font-bold text-primary hover:underline mt-auto"
-                >
-                  View Project <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
               </div>
-            </div>
-          </StaggerItem>
-        ))}
+            </StaggerItem>
+          );
+        })}
       </StaggerContainer>
 
       {!loading && projects.length > 0 && (

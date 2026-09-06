@@ -9,7 +9,9 @@ export const revalidate = 0;
 const formatGDriveUrl = (url: string | null) => {
   if (!url) return "";
   const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+  return match
+    ? `https://drive.google.com/uc?export=view&id=${match[1]}`
+    : url;
 };
 
 const noStoreHeaders = {
@@ -60,7 +62,10 @@ export async function GET(req: Request) {
   } catch (error: unknown) {
     console.error("GET /api/blog failed:", error);
     return NextResponse.json(
-      { error: "The blog database is temporarily unavailable. Please try again." },
+      {
+        error:
+          "The blog database is temporarily unavailable. Please try again.",
+      },
       { status: 500, headers: noStoreHeaders }
     );
   }
@@ -78,10 +83,16 @@ export async function POST(req: Request) {
     const publishDate = formData.get("publishDate") as string;
     const gDriveImage = formData.get("gDriveImage") as string;
     const relatedProject = formData.get("relatedProject") as string;
+    const featured = formData.get("featured") === "true";
+    const published = formData.get("published") !== "false";
     const imageFile = formData.get("image") as File;
 
     let coverImage = "";
-    if (imageFile && typeof imageFile !== "string" && imageFile.name !== "undefined") {
+    if (
+      imageFile &&
+      typeof imageFile !== "string" &&
+      imageFile.name !== "undefined"
+    ) {
       const uploadedUrl = await uploadToGithub(imageFile);
       if (uploadedUrl) coverImage = uploadedUrl;
     }
@@ -101,6 +112,8 @@ export async function POST(req: Request) {
       coverImage,
       gDriveImage: formatGDriveUrl(gDriveImage),
       relatedProject: relatedProject || "",
+      featured,
+      published,
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       readTime: Math.ceil(content.split(/\s+/).length / 200) || 5,
     });
@@ -109,9 +122,15 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("POST /api/blog failed:", error);
     if (error.code === 11000) {
-      return NextResponse.json({ error: "Slug already exists." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Slug already exists." },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ error: "Failed to save post" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to save post" },
+      { status: 500 }
+    );
   }
 }
 
@@ -121,10 +140,12 @@ export async function PUT(req: Request) {
     const formData = await req.formData();
     const id = formData.get("id") as string;
 
-    if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+    if (!id)
+      return NextResponse.json({ error: "ID required" }, { status: 400 });
 
     const post = await Post.findById(id);
-    if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!post)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     post.title = (formData.get("title") as string) || post.title;
     post.slug = (formData.get("slug") as string) || post.slug;
@@ -135,8 +156,17 @@ export async function PUT(req: Request) {
       post.relatedProject = formData.get("relatedProject") as string;
     }
 
+    if (formData.has("featured")) {
+      post.featured = formData.get("featured") === "true";
+    }
+
+    if (formData.has("published")) {
+      post.published = formData.get("published") !== "false";
+    }
+
     const gDriveImage = formData.get("gDriveImage") as string;
-    if (gDriveImage !== null) post.gDriveImage = formatGDriveUrl(gDriveImage);
+    if (gDriveImage !== null)
+      post.gDriveImage = formatGDriveUrl(gDriveImage);
 
     const publishDate = formData.get("publishDate") as string;
     if (publishDate) post.publishDate = new Date(publishDate);
@@ -161,10 +191,14 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
-    if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+    if (!id)
+      return NextResponse.json({ error: "ID required" }, { status: 400 });
     await Post.findByIdAndDelete(id);
 
-    return NextResponse.json({ message: "Deleted successfully" }, { status: 200 });
+    return NextResponse.json(
+      { message: "Deleted successfully" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("DELETE /api/blog failed:", error);
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });

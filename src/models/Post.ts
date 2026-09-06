@@ -11,9 +11,10 @@ const PostSchema = new Schema(
     category: String,
     tags: [String],
     published: { type: Boolean, default: false },
+    featured: { type: Boolean, default: false },
     readTime: String,
     views: { type: Number, default: 0 },
-    relatedProject: { type: String, default: "" }, // ✅ NEW: Link to a Project
+    relatedProject: { type: String, default: "" },
   },
   { timestamps: true }
 );

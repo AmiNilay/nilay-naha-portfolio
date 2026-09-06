@@ -1,8 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderGit2, FileText, Home, User, LogOut, Bot, Command, X, BellRing, Settings } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  FolderGit2,
+  FileText,
+  Home,
+  User,
+  LogOut,
+  Bot,
+  Command,
+  X,
+  BellRing,
+  Settings,
+} from "lucide-react";
+import { useState } from "react";
 
 const navLinks = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -12,15 +25,31 @@ const navLinks = [
   { name: "About Page", href: "/admin/about", icon: User },
   { name: "Train Chatbot", href: "/admin/chatbot", icon: Bot },
   { name: "Notifications", href: "/admin/notifications", icon: BellRing },
-  { name: "Global Settings", href: "/admin/settings", icon: Settings }, // ✅ Added Global Settings
+  { name: "Global Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Even if the request fails, redirect to login
+    }
+
+    // Hard redirect to login — forces cookie re-evaluation
+    window.location.href = "/admin/login";
+  };
 
   return (
     <aside className="w-72 bg-white border-r border-gray-200 h-screen flex flex-col shadow-2xl lg:shadow-none">
-      {/* Premium Logo Area */}
+      {/* Logo Area */}
       <div className="h-20 flex items-center justify-between px-6 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
           <div className="bg-blue-600 p-1.5 rounded-lg text-white shadow-sm">
@@ -30,9 +59,11 @@ export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
             Dev<span className="text-blue-600">.Admin</span>
           </span>
         </div>
-        {/* Mobile Close Button */}
         {onClose && (
-          <button onClick={onClose} className="lg:hidden p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors">
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         )}
@@ -43,24 +74,28 @@ export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
         <div className="px-6 mb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           Menu
         </div>
-        
+
         {navLinks.map((link) => {
-          const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+          const isActive =
+            pathname === link.href ||
+            pathname.startsWith(`${link.href}/`);
           return (
             <Link
               key={link.name}
               href={link.href}
-              onClick={onClose} // Close sidebar on mobile when a link is clicked
+              onClick={onClose}
               className={`flex items-center gap-3 mx-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
                 isActive
                   ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`}
             >
-              <link.icon 
+              <link.icon
                 className={`w-5 h-5 transition-colors ${
-                  isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"
-                }`} 
+                  isActive
+                    ? "text-white"
+                    : "text-gray-400 group-hover:text-blue-600"
+                }`}
               />
               {link.name}
             </Link>
@@ -70,9 +105,13 @@ export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Footer / Sign Out */}
       <div className="p-4 border-t border-gray-100">
-        <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors group">
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors group disabled:opacity-50"
+        >
           <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-600 transition-colors" />
-          Sign Out
+          {loggingOut ? "Signing out..." : "Sign Out"}
         </button>
       </div>
     </aside>

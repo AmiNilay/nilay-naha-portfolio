@@ -9,7 +9,9 @@ export const revalidate = 0;
 const formatGDriveUrl = (url: string | null) => {
   if (!url) return "";
   const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+  return match
+    ? `https://drive.google.com/uc?export=view&id=${match[1]}`
+    : url;
 };
 
 export async function GET(req: Request) {
@@ -18,14 +20,15 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get("slug");
     const id = searchParams.get("id");
-    const isPublicList = !slug && !id && searchParams.get("public") === "1";
+    const isPublicList =
+      !slug && !id && searchParams.get("public") === "1";
 
     if (slug) {
       const project = await Project.findOne({ slug }).lean().exec();
       return project
         ? NextResponse.json(
             { project },
-            { headers: { "Cache-Control": "no-store" } },
+            { headers: { "Cache-Control": "no-store" } }
           )
         : NextResponse.json({ error: "Not Found" }, { status: 404 });
     }
@@ -37,7 +40,7 @@ export async function GET(req: Request) {
       return project
         ? NextResponse.json(
             { project },
-            { headers: { "Cache-Control": "no-store" } },
+            { headers: { "Cache-Control": "no-store" } }
           )
         : NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -54,13 +57,16 @@ export async function GET(req: Request) {
             ? "public, s-maxage=60, stale-while-revalidate=300"
             : "no-store",
         },
-      },
+      }
     );
   } catch (error) {
     console.error("GET Projects Error:", error);
     return NextResponse.json(
-      { error: "Projects are temporarily unavailable. Please try again." },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
+      {
+        error:
+          "Projects are temporarily unavailable. Please try again.",
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
@@ -83,7 +89,7 @@ export async function POST(req: Request) {
     const frameStyle = formData.get("frameStyle") as string;
     const featured = formData.get("featured") === "true";
     const gDriveImage = formData.get("gDriveImage") as string;
-    const relatedBlog = formData.get("relatedBlog") as string; // ✅ Extract
+    const relatedBlog = formData.get("relatedBlog") as string;
     const imageFile = formData.get("image") as File;
 
     let imageUrl = "";
@@ -105,7 +111,7 @@ export async function POST(req: Request) {
       frameStyle,
       featured,
       gDriveImage: formatGDriveUrl(gDriveImage),
-      relatedBlog: relatedBlog || "", // ✅ Save
+      relatedBlog: relatedBlog || "",
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       tags: tagsString ? tagsString.split(",").map((t) => t.trim()) : [],
     });
@@ -142,10 +148,13 @@ export async function PUT(req: Request) {
     project.status = formData.get("status") || project.status;
     project.frameStyle = formData.get("frameStyle") || project.frameStyle;
 
-    if (formData.has("featured"))
+    if (formData.has("featured")) {
       project.featured = formData.get("featured") === "true";
-    if (formData.has("relatedBlog"))
-      project.relatedBlog = formData.get("relatedBlog") as string; // ✅ Update
+    }
+
+    if (formData.has("relatedBlog")) {
+      project.relatedBlog = formData.get("relatedBlog") as string;
+    }
 
     const gDriveImage = formData.get("gDriveImage") as string;
     if (gDriveImage !== null)

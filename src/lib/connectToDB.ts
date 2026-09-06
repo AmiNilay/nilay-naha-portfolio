@@ -35,7 +35,7 @@ export const connectToDB = async () => {
         return connection;
       }
     } catch (error) {
-      console.error("❌ MongoDB pending connection failed:", error);
+      console.error("MongoDB pending connection failed:", error);
     }
 
     cached.conn = null;
@@ -62,7 +62,7 @@ export const connectToDB = async () => {
 
     console.log("Connecting to MongoDB...");
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((connection) => {
-      console.log("✅ MongoDB connected");
+      console.log("MongoDB connected");
       return connection;
     });
   }
@@ -72,7 +72,7 @@ export const connectToDB = async () => {
   } catch (error) {
     cached.conn = null;
     cached.promise = null;
-    console.error("❌ MongoDB connection failed:", error);
+    console.error("MongoDB connection failed:", error);
     throw error;
   }
 

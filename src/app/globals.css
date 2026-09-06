@@ -3,46 +3,48 @@
 @tailwind utilities;
 
 /* --- KaTeX Import for Math Formulas --- */
-@import 'katex/dist/katex.min.css';
+@import "katex/dist/katex.min.css";
 
 /* --- Highlight.js theme for code blocks --- */
-@import 'highlight.js/styles/github-dark.css';
+@import "highlight.js/styles/github-dark.css";
+
+/* ==========================================
+   CSS CUSTOM PROPERTIES (Light + Dark)
+   ========================================== */
 
 @layer base {
   :root {
-    /* Light Mode Colors */
-    --background: #FAFAFA;
+    --background: #fafafa;
     --foreground: #111827;
-    --card: #FFFFFF;
+    --card: #ffffff;
     --card-foreground: #111827;
-    --primary: #0F766E;
-    --primary-foreground: #FFFFFF;
-    --primary-hover: #0D5F58;
-    --muted: #F3F4F6;
-    --muted-foreground: #6B7280;
-    --border: #E5E7EB;
-    --input: #E5E7EB;
-    --ring: #0F766E;
-    --accent: #F3F4F6;
+    --primary: #0f766e;
+    --primary-foreground: #ffffff;
+    --primary-hover: #0d5f58;
+    --muted: #f3f4f6;
+    --muted-foreground: #6b7280;
+    --border: #e5e7eb;
+    --input: #e5e7eb;
+    --ring: #0f766e;
+    --accent: #f3f4f6;
     --accent-foreground: #111827;
   }
 
   .dark {
-    /* Dark Mode Colors */
-    --background: #0B0F14;
-    --foreground: #F9FAFB;
+    --background: #0b0f14;
+    --foreground: #f9fafb;
     --card: #111827;
-    --card-foreground: #F9FAFB;
-    --primary: #F59E0B;
-    --primary-foreground: #0B0F14;
-    --primary-hover: #D97706;
-    --muted: #1F2937;
-    --muted-foreground: #9CA3AF;
-    --border: #1F2937;
-    --input: #1F2937;
-    --ring: #F59E0B;
-    --accent: #1F2937;
-    --accent-foreground: #F9FAFB;
+    --card-foreground: #f9fafb;
+    --primary: #f59e0b;
+    --primary-foreground: #0b0f14;
+    --primary-hover: #d97706;
+    --muted: #1f2937;
+    --muted-foreground: #9ca3af;
+    --border: #1f2937;
+    --input: #1f2937;
+    --ring: #f59e0b;
+    --accent: #1f2937;
+    --accent-foreground: #f9fafb;
   }
 
   body {
@@ -51,11 +53,19 @@
     overflow-x: hidden;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply text-gray-900 dark:text-white font-bold;
   }
 
-  p, span, li, div {
+  p,
+  span,
+  li,
+  div {
     @apply text-gray-800 dark:text-gray-200;
   }
 
@@ -64,29 +74,10 @@
   }
 }
 
-/* --- SCROLL SNAP UTILITIES --- */
-.snap-container {
-  scroll-snap-type: y mandatory;
-  overflow-y: scroll;
-  height: 100vh;
-  scroll-behavior: smooth;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+/* ==========================================
+   SCROLLBAR
+   ========================================== */
 
-.snap-section {
-  scroll-snap-align: start;
-  height: 100vh;
-  width: 100%;
-  position: relative;
-  overflow-y: auto;
-}
-
-.snap-container::-webkit-scrollbar {
-  display: none;
-}
-
-/* --- SCROLLBAR --- */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -114,7 +105,35 @@
   scrollbar-width: none;
 }
 
-/* --- Reading Progress Bar --- */
+/* ==========================================
+   SNAP UTILITIES
+   ========================================== */
+
+.snap-container {
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  height: 100vh;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.snap-section {
+  scroll-snap-align: start;
+  height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow-y: auto;
+}
+
+.snap-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==========================================
+   READING PROGRESS BAR
+   ========================================== */
+
 .reading-progress-bar {
   position: fixed;
   top: 0;
@@ -126,102 +145,417 @@
   box-shadow: 0 0 10px rgba(15, 118, 110, 0.5);
 }
 
-/* --- Enhanced Prose Styling for Blog Content --- */
+/* ==========================================
+   BLOG + PROJECT CONTENT RENDERING
+   Fixes Quill inline styles for dark mode
+   ========================================== */
+
+/* --- Base --- */
 .blog-content {
   font-size: 1.125rem;
   line-height: 1.8;
+  word-break: break-word;
+  color: #1f2937;
+}
+
+.dark .blog-content {
+  color: #e5e7eb;
+}
+
+/* Force all children to inherit color (kills Quill inline color) */
+.blog-content *,
+.blog-content *::before,
+.blog-content *::after {
+  color: inherit;
+}
+
+/* --- Headings --- */
+.blog-content h1,
+.blog-content h2,
+.blog-content h3,
+.blog-content h4,
+.blog-content h5,
+.blog-content h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.dark .blog-content h1,
+.dark .blog-content h2,
+.dark .blog-content h3,
+.dark .blog-content h4,
+.dark .blog-content h5,
+.dark .blog-content h6 {
+  color: #f9fafb;
+}
+
+.blog-content h1 {
+  font-size: 2.25rem;
+  margin-top: 2.5rem;
 }
 
 .blog-content h2 {
-  @apply text-3xl font-bold mt-14 mb-5 pb-3 border-b border-gray-200 dark:border-gray-800 scroll-mt-24;
-  color: var(--foreground);
+  font-size: 1.875rem;
+  padding-bottom: 12px;
+  margin-top: 3rem;
+  border-bottom: 2px solid #f3f4f6;
   position: relative;
 }
 
+.dark .blog-content h2 {
+  border-bottom-color: #1f2937;
+}
+
 .blog-content h2::before {
-  content: '';
+  content: "";
   position: absolute;
-  left: -1rem;
-  top: 0.5rem;
-  bottom: 1rem;
-  width: 3px;
+  bottom: -2px;
+  left: 0;
+  width: 60px;
+  height: 2px;
   background: var(--primary);
-  border-radius: 2px;
+  border-radius: 1px;
 }
 
 .blog-content h3 {
-  @apply text-2xl font-semibold mt-10 mb-4 scroll-mt-24;
-  color: var(--foreground);
+  font-size: 1.5rem;
+  margin-top: 2.5rem;
 }
 
 .blog-content h4 {
-  @apply text-xl font-semibold mt-8 mb-3 scroll-mt-24;
-  color: var(--foreground);
+  font-size: 1.25rem;
+  margin-top: 2rem;
 }
 
+/* --- Paragraphs --- */
 .blog-content p {
-  @apply mb-6 text-gray-700 dark:text-gray-300;
+  margin-bottom: 1.25rem;
   line-height: 1.8;
+  color: #374151;
 }
 
+.dark .blog-content p {
+  color: #d1d5db;
+}
+
+/* --- Links --- */
 .blog-content a {
-  @apply font-medium underline underline-offset-4 transition-all;
+  color: var(--primary) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-thickness: 2px !important;
+  text-decoration-color: color-mix(in srgb, var(--primary) 40%, transparent) !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.blog-content a:hover {
+  text-decoration-color: var(--primary) !important;
+  opacity: 0.85;
+}
+
+/* --- Strong / Bold --- */
+.blog-content strong,
+.blog-content b {
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+
+.dark .blog-content strong,
+.dark .blog-content b {
+  color: #f9fafb !important;
+}
+
+/* --- Italic --- */
+.blog-content em,
+.blog-content i {
+  font-style: italic;
+  color: #4b5563;
+}
+
+.dark .blog-content em,
+.dark .blog-content i {
+  color: #9ca3af;
+}
+
+/* --- Lists --- */
+.blog-content ul,
+.blog-content ol {
+  margin: 1.25rem 0;
+  padding-left: 1.75rem;
+  color: #374151;
+}
+
+.dark .blog-content ul,
+.dark .blog-content ol {
+  color: #d1d5db;
+}
+
+.blog-content ul {
+  list-style-type: disc;
+}
+
+.blog-content ol {
+  list-style-type: decimal;
+}
+
+.blog-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+.blog-content ul li::marker {
   color: var(--primary);
-  text-decoration-color: color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
-.blog-content a
-:hover {
-  text-decoration-color: var(--primary);
+.blog-content ol li::marker {
+  color: var(--primary);
+  font-weight: 700;
 }
 
-.blog-content ul, .blog-content ol {
-  @apply my-6 ml-6 space-y-2 text-gray-700 dark:text-gray-300;
-}
-
-.blog-content ul { @apply list-disc; }
-.blog-content ol { @apply list-decimal; }
-
+/* --- Blockquote --- */
 .blog-content blockquote {
-  @apply pl-6 py-3 my-8 italic text-gray-700 dark:text-gray-300 rounded-r-lg;
   border-left: 4px solid var(--primary);
-  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
 }
 
-.blog-content code:not(pre code) {
-  @apply bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-sm font-mono;
-  color: var(--primary);
-  font-size: 0.9em;
+.blog-content blockquote p {
+  margin-bottom: 0;
+  color: #4b5563;
 }
 
+.dark .blog-content blockquote p {
+  color: #9ca3af;
+}
+
+/* --- Inline Code --- */
+.blog-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 0.85em;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #0f766e;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .blog-content :not(pre) > code {
+  background: #1f2937;
+  color: #5eead4;
+  border-color: #374151;
+}
+
+/* --- Code Blocks --- */
 .blog-content pre {
-  @apply my-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-lg;
   background: #0d1117 !important;
+  border: 1px solid #21262d !important;
+  border-radius: 12px !important;
+  margin: 1.5rem 0 !important;
+  overflow: hidden;
+  position: relative;
 }
 
 .blog-content pre code {
-  @apply block p-5 overflow-x-auto text-sm leading-relaxed;
+  display: block;
+  padding: 1.5rem !important;
+  padding-top: 2.5rem !important;
+  overflow-x: auto;
   background: transparent !important;
+  color: #e6edf3 !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 0.875rem !important;
+  line-height: 1.7 !important;
+  tab-size: 2;
 }
 
+/* --- Images --- */
 .blog-content img {
-  @apply my-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 w-full;
+  max-width: 100%;
+  margin: 2rem auto;
+  display: block;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
 
-.blog-content hr {
-  @apply my-12 border-gray-200 dark:border-gray-800;
+.dark .blog-content img {
+  border-color: #1f2937;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
+
+/* --- Horizontal Rule --- */
+.blog-content hr {
+  border: none;
+  height: 2px;
+  margin: 3rem 0;
+  background: linear-gradient(90deg, transparent, #e5e7eb 20%, #e5e7eb 80%,
+      transparent);
+}
+
+.dark .blog-content hr {
+  background: linear-gradient(90deg, transparent, #1f2937 20%, #1f2937 80%,
+      transparent);
+}
+
+/* ==========================================
+   TABLES: Full dark mode support
+   ========================================== */
 
 .blog-content table {
-  @apply w-full my-8 border-collapse rounded-lg overflow-hidden;
+  width: 100%;
+  margin: 2rem 0;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.dark .blog-content table {
+  border-color: #374151;
+}
+
+.blog-content thead {
+  background: #f9fafb;
+}
+
+.dark .blog-content thead {
+  background: #111827;
 }
 
 .blog-content th {
-  @apply bg-gray-100 dark:bg-gray-800 p-3 text-left font-semibold border border-gray-200 dark:border-gray-700;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.dark .blog-content th {
+  color: #9ca3af;
+  border-bottom-color: #374151;
+  border-right-color: #374151;
+}
+
+.blog-content th:last-child {
+  border-right: none;
 }
 
 .blog-content td {
-  @apply p-3 border border-gray-200 dark:border-gray-700;
+  padding: 12px 16px;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  border-right: 1px solid #f3f4f6;
+  background: #ffffff;
+}
+
+.dark .blog-content td {
+  color: #d1d5db;
+  border-bottom-color: #1f2937;
+  border-right-color: #1f2937;
+  background: #0b0f14;
+}
+
+.blog-content td:last-child {
+  border-right: none;
+}
+
+.blog-content tr:last-child td {
+  border-bottom: none;
+}
+
+.blog-content tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.dark .blog-content tbody tr:nth-child(even) {
+  background: rgba(17, 24, 39, 0.6);
+}
+
+.blog-content tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.dark .blog-content tbody tr:hover {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+/* Force table cells to inherit color */
+.blog-content table * {
+  color: inherit;
+}
+
+/* ==========================================
+   NUCLEAR OVERRIDES: Kill any surviving
+   Quill inline styles after sanitization
+   ========================================== */
+
+.blog-content [style*="background"] {
+  background: transparent !important;
+}
+
+.blog-content [style*="color"] {
+  color: inherit !important;
+}
+
+.blog-content [style*="font-family"] {
+  font-family: inherit !important;
+}
+
+.blog-content [style*="font-size"] {
+  font-size: inherit !important;
+}
+
+/* Quill class fallbacks (in case sanitizer missed any) */
+.blog-content .ql-editor {
+  padding: 0 !important;
+  border: none !important;
+}
+
+.blog-content .ql-syntax {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+  border: 1px solid #21262d !important;
+  border-radius: 12px !important;
+  padding: 1.5rem !important;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 0.875rem !important;
+}
+
+.blog-content .ql-align-center {
+  text-align: center;
+}
+.blog-content .ql-align-right {
+  text-align: right;
+}
+.blog-content .ql-align-justify {
+  text-align: justify;
+}
+
+.blog-content .ql-indent-1 {
+  padding-left: 2rem;
+}
+.blog-content .ql-indent-2 {
+  padding-left: 4rem;
+}
+.blog-content .ql-indent-3 {
+  padding-left: 6rem;
 }
 
 /* KaTeX Sizing */
@@ -230,8 +564,356 @@
 }
 
 /* ==========================================
-   🛡️ ADMIN PANEL LIGHT MODE OVERRIDE
+   PROJECT CONTENT: Shares blog-content styles
    ========================================== */
+
+.project-content {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  word-break: break-word;
+  color: #1f2937;
+}
+
+.dark .project-content {
+  color: #e5e7eb;
+}
+
+.project-content *,
+.project-content *::before,
+.project-content *::after {
+  color: inherit;
+}
+
+.project-content h1,
+.project-content h2,
+.project-content h3,
+.project-content h4,
+.project-content h5,
+.project-content h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.dark .project-content h1,
+.dark .project-content h2,
+.dark .project-content h3,
+.dark .project-content h4,
+.dark .project-content h5,
+.dark .project-content h6 {
+  color: #f9fafb;
+}
+
+.project-content h2 {
+  font-size: 1.875rem;
+  padding-bottom: 12px;
+  margin-top: 3rem;
+  border-bottom: 2px solid #f3f4f6;
+  position: relative;
+}
+
+.dark .project-content h2 {
+  border-bottom-color: #1f2937;
+}
+
+.project-content h2::before {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 1px;
+}
+
+.project-content h3 {
+  font-size: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.project-content h4 {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+}
+
+.project-content p {
+  margin-bottom: 1.25rem;
+  line-height: 1.8;
+  color: #374151;
+}
+
+.dark .project-content p {
+  color: #d1d5db;
+}
+
+.project-content a {
+  color: var(--primary) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-thickness: 2px !important;
+  text-decoration-color: color-mix(in srgb, var(--primary) 40%, transparent) !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.project-content a:hover {
+  text-decoration-color: var(--primary) !important;
+  opacity: 0.85;
+}
+
+.project-content strong,
+.project-content b {
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+
+.dark .project-content strong,
+.dark .project-content b {
+  color: #f9fafb !important;
+}
+
+.project-content em,
+.project-content i {
+  font-style: italic;
+  color: #4b5563;
+}
+
+.dark .project-content em,
+.dark .project-content i {
+  color: #9ca3af;
+}
+
+.project-content ul,
+.project-content ol {
+  margin: 1.25rem 0;
+  padding-left: 1.75rem;
+  color: #374151;
+}
+
+.dark .project-content ul,
+.dark .project-content ol {
+  color: #d1d5db;
+}
+
+.project-content ul {
+  list-style-type: disc;
+}
+
+.project-content ol {
+  list-style-type: decimal;
+}
+
+.project-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+.project-content ul li::marker {
+  color: var(--primary);
+}
+
+.project-content ol li::marker {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.project-content blockquote {
+  border-left: 4px solid var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
+}
+
+.project-content blockquote p {
+  margin-bottom: 0;
+  color: #4b5563;
+}
+
+.dark .project-content blockquote p {
+  color: #9ca3af;
+}
+
+.project-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 0.85em;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #0f766e;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .project-content :not(pre) > code {
+  background: #1f2937;
+  color: #5eead4;
+  border-color: #374151;
+}
+
+.project-content pre {
+  background: #0d1117 !important;
+  border: 1px solid #21262d !important;
+  border-radius: 12px !important;
+  margin: 1.5rem 0 !important;
+  overflow: hidden;
+  position: relative;
+}
+
+.project-content pre code {
+  display: block;
+  padding: 1.5rem !important;
+  padding-top: 2.5rem !important;
+  overflow-x: auto;
+  background: transparent !important;
+  color: #e6edf3 !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 0.875rem !important;
+  line-height: 1.7 !important;
+  tab-size: 2;
+}
+
+.project-content img {
+  max-width: 100%;
+  margin: 2rem auto;
+  display: block;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.dark .project-content img {
+  border-color: #1f2937;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.project-content hr {
+  border: none;
+  height: 2px;
+  margin: 3rem 0;
+  background: linear-gradient(90deg, transparent, #e5e7eb 20%, #e5e7eb 80%,
+      transparent);
+}
+
+.dark .project-content hr {
+  background: linear-gradient(90deg, transparent, #1f2937 20%, #1f2937 80%,
+      transparent);
+}
+
+/* Project tables */
+.project-content table {
+  width: 100%;
+  margin: 2rem 0;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.dark .project-content table {
+  border-color: #374151;
+}
+
+.project-content thead {
+  background: #0f766e;
+}
+
+.dark .project-content thead {
+  background: #115e59;
+}
+
+.project-content th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff !important;
+  border-bottom: 2px solid #0d5f58;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-content th:last-child {
+  border-right: none;
+}
+
+.project-content td {
+  padding: 12px 16px;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  border-right: 1px solid #f3f4f6;
+  background: #ffffff;
+}
+
+.dark .project-content td {
+  color: #d1d5db;
+  border-bottom-color: #1f2937;
+  border-right-color: #1f2937;
+  background: #0b0f14;
+}
+
+.project-content td:last-child {
+  border-right: none;
+}
+
+.project-content tr:last-child td {
+  border-bottom: none;
+}
+
+.project-content tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.dark .project-content tbody tr:nth-child(even) {
+  background: rgba(17, 24, 39, 0.6);
+}
+
+.project-content tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.dark .project-content tbody tr:hover {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+.project-content table * {
+  color: inherit;
+}
+
+.project-content th {
+  color: #ffffff !important;
+}
+
+/* Nuclear overrides */
+.project-content [style*="background"] {
+  background: transparent !important;
+}
+
+.project-content [style*="color"] {
+  color: inherit !important;
+}
+
+.project-content [style*="font-family"] {
+  font-family: inherit !important;
+}
+
+.project-content [style*="font-size"] {
+  font-size: inherit !important;
+}
+
+
+/* ==========================================
+   ADMIN PANEL LIGHT MODE OVERRIDE
+   ========================================== */
+
 html.dark .admin-root {
   background-color: #f9fafb !important;
   color: #111827 !important;
@@ -271,7 +953,6 @@ html.dark .admin-root .border-gray-300 {
   border-color: #d1d5db !important;
 }
 
-/* Force ReactQuill Editor to stay light */
 html.dark .admin-root .ql-toolbar,
 html.dark .admin-root .ql-container {
   background-color: #ffffff !important;
@@ -284,4 +965,23 @@ html.dark .admin-root .ql-editor {
 
 html.dark .admin-root .ql-editor.ql-blank::before {
   color: #9ca3af !important;
+}
+
+/* ==========================================
+   OFFLINE BANNER
+   ========================================== */
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
 }

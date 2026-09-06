@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,18 +12,16 @@ import {
   Loader2,
   Download,
   Calendar,
-  Share2,
-  Twitter,
-  Linkedin,
-  Copy,
-  Check,
   Layers,
   AlertTriangle,
   RefreshCw,
+  Star,
 } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import ReadingProgress from "@/components/blog/ReadingProgress";
 import TableOfContents from "@/components/blog/TableOfContents";
+import ShareButtons from "@/components/blog/ShareButtons";
+import { sanitizeRichText, htmlToPlainText } from "@/lib/sanitizeRichText";
 import { processContent } from "@/lib/markdownProcessor";
 
 const fetchWithTimeout = async (url: string, timeoutMs = 12000) => {
@@ -37,21 +36,21 @@ const fetchWithTimeout = async (url: string, timeoutMs = 12000) => {
 
 export default function ProjectDetails() {
   const params = useParams();
+  const router = useRouter();
   const rawSlug = params?.slug;
   const slug = Array.isArray(rawSlug) ? rawSlug[0] : rawSlug;
 
   const [project, setProject] = useState<any>(null);
   const [prevProject, setPrevProject] = useState<any>(null);
   const [nextProject, setNextProject] = useState<any>(null);
-  const [processedHTML, setProcessedHTML] = useState("");
+  const [cleanContent, setCleanContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [contentReady, setContentReady] = useState(false);
+  const [headingsReady, setHeadingsReady] = useState(false);
 
   const fetchProjectData = async () => {
     if (!slug) {
@@ -63,7 +62,10 @@ export default function ProjectDetails() {
     setLoading(true);
     setError(null);
     setProject(null);
-    setProcessedHTML("");
+    setCleanContent("");
+    setHeadingsReady(false);
+    setPrevProject(null);
+    setNextProject(null);
 
     try {
       const detailResponse = await fetchWithTimeout(
@@ -85,6 +87,25 @@ export default function ProjectDetails() {
 
       setProject(currentProject);
 
+      // Process and sanitize content
+      const rawContent =
+        currentProject.description || currentProject.content || "";
+      const isRawHtml =
+        /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(
+          rawContent,
+        );
+
+      let html: string;
+      if (isRawHtml) {
+        html = rawContent;
+      } else {
+        html = await processContent(rawContent);
+      }
+
+      const sanitized = sanitizeRichText(html);
+      setCleanContent(sanitized);
+
+      // Fetch prev/next projects for navigation
       try {
         const listResponse = await fetchWithTimeout("/api/projects?public=1");
         if (listResponse.ok) {
@@ -95,29 +116,17 @@ export default function ProjectDetails() {
           const currentIndex = projects.findIndex(
             (item: any) => item.slug === slug,
           );
-          setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
+          setPrevProject(
+            currentIndex > 0 ? projects[currentIndex - 1] : null,
+          );
           setNextProject(
             currentIndex >= 0 && currentIndex < projects.length - 1
               ? projects[currentIndex + 1]
               : null,
           );
         }
-      } catch (navigationError) {
-        console.warn("Project navigation data unavailable:", navigationError);
-        setPrevProject(null);
-        setNextProject(null);
-      }
-
-      const rawContent =
-        currentProject.description || currentProject.content || "";
-      const isRawHtml =
-        /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
-
-      if (isRawHtml) {
-        setProcessedHTML(rawContent);
-      } else {
-        const html = await processContent(rawContent);
-        setProcessedHTML(html);
+      } catch (navError) {
+        console.warn("Project navigation unavailable:", navError);
       }
     } catch (err) {
       console.error("Project detail fetch failed:", err);
@@ -136,101 +145,98 @@ export default function ProjectDetails() {
     fetchProjectData();
   }, [slug]);
 
+  // Auto-assign IDs to headings for ToC
   useEffect(() => {
-    if (!processedHTML) return;
+    if (!cleanContent) return;
+
     const timer = setTimeout(() => {
-      const container = document.querySelector(".blog-content");
+      const container = document.querySelector(".project-content");
       if (!container) return;
-      const headings = container.querySelectorAll("h2, h3");
+
+      const headings = container.querySelectorAll(
+        "h1, h2, h3, h4, h5, h6",
+      );
       headings.forEach((el, i) => {
-        if (!el.id) {
-          const headingSlug = (el.textContent || `heading-${i}`)
+        const heading = el as HTMLElement;
+        if (!heading.id) {
+          const text = heading.textContent?.trim() || "";
+          const generatedSlug = text
             .toLowerCase()
-            .replace(/[^\w\s-]/g, "")
-            .replace(/\s+/g, "-");
-          el.id = headingSlug;
+            .replace(/[^a-z0-9\s]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/(^-|-$)/g, "");
+          heading.id = generatedSlug || `section-${i}`;
         }
+        heading.style.scrollMarginTop = "120px";
       });
-      setContentReady(true);
-    }, 100);
+
+      setHeadingsReady(true);
+    }, 300);
+
     return () => clearTimeout(timer);
-  }, [processedHTML]);
+  }, [cleanContent]);
 
-  const handleCopyLink = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setToast({ message: "Link copied!", type: "success" });
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setToast({ message: "Failed to copy.", type: "error" });
-    }
-  };
+  // Add copy buttons to code blocks
+  useEffect(() => {
+    if (!cleanContent) return;
 
-  const shareOnTwitter = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const text = encodeURIComponent(
-      `Check out this project: ${project?.title}`,
-    );
-    const url = encodeURIComponent(window.location.href);
-    window.open(
-      `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
-      "_blank",
-      "width=600,height=500",
-    );
-  };
+    const timer = setTimeout(() => {
+      const preElements = document.querySelectorAll(
+        ".project-content pre",
+      );
+      preElements.forEach((preNode) => {
+        const pre = preNode as HTMLElement;
+        if (pre.querySelector(".code-toolbar")) return;
 
-  const shareOnLinkedIn = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const url = encodeURIComponent(window.location.href);
-    window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-      "_blank",
-      "width=600,height=500",
-    );
-  };
+        pre.style.position = "relative";
 
-  const ShareButtons = () => (
-    <div className="flex items-center gap-2 relative z-20">
-      <button
-        type="button"
-        onClick={shareOnTwitter}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1DA1F2] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
-      >
-        <Twitter className="w-4 h-4 pointer-events-none" />{" "}
-        <span className="pointer-events-none hidden sm:inline">Twitter</span>
-      </button>
-      <button
-        type="button"
-        onClick={shareOnLinkedIn}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0077B5] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
-      >
-        <Linkedin className="w-4 h-4 pointer-events-none" />{" "}
-        <span className="pointer-events-none hidden sm:inline">LinkedIn</span>
-      </button>
-      <button
-        type="button"
-        onClick={handleCopyLink}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-      >
-        {copied ? (
-          <Check className="w-4 h-4 pointer-events-none text-green-500" />
-        ) : (
-          <Share2 className="w-4 h-4 pointer-events-none" />
-        )}
-        <span className="pointer-events-none hidden sm:inline">
-          {copied ? "Copied" : "Copy"}
-        </span>
-      </button>
-    </div>
-  );
+        const toolbar = document.createElement("div");
+        toolbar.className = "code-toolbar";
+        toolbar.style.cssText =
+          "position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;z-index:10;";
+
+        const codeEl = pre.querySelector("code");
+        const langClass =
+          codeEl?.className?.match(/language-(\w+)/)?.[1] || "";
+
+        const left = document.createElement("div");
+        if (langClass) {
+          const langLabel = document.createElement("span");
+          langLabel.style.cssText =
+            "font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;font-family:monospace;";
+          langLabel.textContent = langClass;
+          left.appendChild(langLabel);
+        }
+        toolbar.appendChild(left);
+
+        const button = document.createElement("button");
+        button.style.cssText =
+          "display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#9ca3af;background:rgba(31,41,55,0.8);border:1px solid #374151;border-radius:6px;padding:4px 10px;cursor:pointer;backdrop-filter:blur(8px);transition:all 0.2s;font-family:inherit;";
+        button.textContent = "Copy";
+
+        button.addEventListener("click", async () => {
+          const code = codeEl?.innerText || pre.innerText;
+          await navigator.clipboard.writeText(code);
+          button.textContent = "Copied";
+          button.style.color = "#4ade80";
+          button.style.borderColor = "rgba(74,222,128,0.4)";
+          setTimeout(() => {
+            button.textContent = "Copy";
+            button.style.color = "#9ca3af";
+            button.style.borderColor = "#374151";
+          }, 2000);
+        });
+
+        toolbar.appendChild(button);
+        pre.insertBefore(toolbar, pre.firstChild);
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [cleanContent]);
 
   // ==========================================
-  // ERROR STATE UI
+  // ERROR STATE
   // ==========================================
   if (error) {
     return (
@@ -239,7 +245,7 @@ export default function ProjectDetails() {
           <AlertTriangle className="w-10 h-10" />
         </div>
         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">
-          Oops! Something went wrong
+          Unable to load project
         </h2>
         <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">
           {error}
@@ -255,34 +261,19 @@ export default function ProjectDetails() {
   }
 
   // ==========================================
-  // SKELETON LOADER UI
+  // LOADING STATE
   // ==========================================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6 bg-gray-50 dark:bg-gray-950">
-        <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-          Unable to load project
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">{error}</p>
-        <button
-          onClick={fetchProjectData}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-semibold"
-        >
-          <RefreshCw className="w-4 h-4" /> Try Again
-        </button>
-      </div>
-    );
-  }
-
+  // ==========================================
+  // NOT FOUND
+  // ==========================================
   if (!project) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-20">
@@ -302,13 +293,29 @@ export default function ProjectDetails() {
     );
   }
 
-  const techStack = project.techStack?.length
+  // ==========================================
+  // MAIN RENDER
+  // ==========================================
+  const techStack: string[] = project.techStack?.length
     ? project.techStack
     : project.tags || [];
   const displayImage = project.image || project.gDriveImage;
+
+  const publishDate = new Date(
+    project.publishDate || project.createdAt,
+  ).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const plainDescription =
+    project.description || htmlToPlainText(cleanContent).slice(0, 200);
+
   return (
     <div className="min-h-screen pb-20 bg-background">
       <ReadingProgress />
+
       {toast && (
         <Toast
           message={toast.message}
@@ -317,75 +324,62 @@ export default function ProjectDetails() {
         />
       )}
 
-      {/* 🔥 BULLETPROOF DARK MODE OVERRIDE FOR CUSTOM HTML 🔥 */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .dark .blog-content .portfolio-post {
-          background-color: transparent !important;
-          color: #e5e7eb !important;
-          box-shadow: none !important;
-        }
-        .dark .blog-content [style*="background-color: #ffffff"],
-        .dark .blog-content [style*="background-color: #fff"],
-        .dark .blog-content [style*="background-color: white"],
-        .dark .blog-content [style*="background-color: #f3f4f6"] {
-          background-color: transparent !important;
-        }
-        .dark .blog-content [style*="color: #334155"],
-        .dark .blog-content [style*="color: #000000"],
-        .dark .blog-content [style*="color: black"] {
-          color: #e5e7eb !important;
-        }
-        .dark .blog-content table,
-        .dark .blog-content th,
-        .dark .blog-content td {
-          border-color: #374151 !important;
-        }
-      `,
-        }}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 mb-8">
+      {/* ==========================================
+          BACK NAVIGATION
+          ========================================== */}
+      <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 pt-24 mb-8">
         <Link
           href="/projects"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors group"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group"
         >
-          <div className="p-1.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 group-hover:-translate-x-1 transition-transform">
+          <div className="p-1.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:-translate-x-1 transition-transform shadow-sm">
             <ArrowLeft className="w-3.5 h-3.5" />
           </div>
           Back to Portfolio
         </Link>
       </div>
 
-      <header className="max-w-4xl mx-auto px-4 md:px-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.15] mb-6">
+      {/* ==========================================
+          HEADER
+          ========================================== */}
+      <header className="w-full max-w-[1400px] mx-auto px-6 lg:px-12">
+        {project.featured && (
+          <div className="mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">
+              <Star className="w-3 h-3 fill-current" /> Featured Project
+            </span>
+          </div>
+        )}
+
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-[1.15] mb-4">
           {project.title}
         </h1>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-8 border-b border-gray-200 dark:border-gray-800">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-full w-fit">
+        <div className="flex flex-wrap items-center gap-4 mt-2 mb-8 pb-8 border-b border-gray-200 dark:border-gray-800">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full">
             <Calendar className="w-4 h-4" />
-            {new Date(
-              project.publishDate || project.createdAt,
-            ).toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {publishDate}
           </span>
 
-          <ShareButtons />
+          {project.category && (
+            <span className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 rounded-full">
+              {project.category}
+            </span>
+          )}
         </div>
 
-        {/* ✅ G-Drive Fallback & Iframe Support */}
+        {/* Hero Image */}
         {displayImage && (
-          <div className="w-full mt-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
+          >
             {project.frameStyle !== "None" && (
               <div className="h-10 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]" />
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]" />
+                <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]" />
               </div>
             )}
             <div className="relative aspect-[16/9] group bg-gray-50 dark:bg-black">
@@ -413,75 +407,71 @@ export default function ProjectDetails() {
                 />
               )}
             </div>
-          </div>
+          </motion.div>
         )}
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
-        <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_320px]">
-          <article className="w-full min-w-0">
+      {/* ==========================================
+          CONTENT + SIDEBAR
+          ========================================== */}
+      <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 mt-16">
+        <div className="flex flex-col lg:flex-row gap-12 relative">
+          {/* Main Content */}
+          <article className="flex-1 min-w-0">
             <div
-              className="blog-content prose prose-slate dark:prose-invert max-w-none w-full
-                prose-headings:font-bold prose-headings:tracking-tight 
-                prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-2 prose-h2:border-gray-200 dark:prose-h2:border-gray-800
-                prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
-                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                prose-img:rounded-2xl prose-img:shadow-md
-                prose-li:marker:text-primary
-                prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-xl"
-              dangerouslySetInnerHTML={{ __html: processedHTML }}
+              className="project-content blog-content prose prose-lg dark:prose-invert !max-w-none w-full"
+              dangerouslySetInnerHTML={{ __html: cleanContent }}
             />
 
-            <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800 relative z-20">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    Like this project?
-                  </p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
-                    Share it with your network
-                  </p>
-                </div>
-                <ShareButtons />
+            {/* Share Section (bottom only) */}
+            <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800">
+              <ShareButtons
+                title={project.title}
+                slug={project.slug}
+                description={plainDescription}
+              />
+            </div>
+
+            {/* Previous / Next Navigation */}
+            <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {prevProject ? (
+                  <Link
+                    href={`/projects/${prevProject.slug}`}
+                    className="flex flex-col p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group"
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-2 mb-2">
+                      <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+                      Previous Project
+                    </span>
+                    <span className="font-bold text-gray-900 dark:text-white line-clamp-1">
+                      {prevProject.title}
+                    </span>
+                  </Link>
+                ) : (
+                  <div />
+                )}
+
+                {nextProject ? (
+                  <Link
+                    href={`/projects/${nextProject.slug}`}
+                    className="flex flex-col items-end text-right p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group"
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-2 mb-2">
+                      Next Project
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <span className="font-bold text-gray-900 dark:text-white line-clamp-1">
+                      {nextProject.title}
+                    </span>
+                  </Link>
+                ) : (
+                  <div />
+                )}
               </div>
             </div>
 
-            <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {prevProject ? (
-                <Link
-                  href={`/projects/${prevProject.slug}`}
-                  className="flex flex-col p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group"
-                >
-                  <span className="text-sm text-gray-500 flex items-center gap-2 mb-2">
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />{" "}
-                    Previous Project
-                  </span>
-                  <span className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1">
-                    {prevProject.title}
-                  </span>
-                </Link>
-              ) : (
-                <div />
-              )}
-
-              {nextProject ? (
-                <Link
-                  href={`/projects/${nextProject.slug}`}
-                  className="flex flex-col items-end text-right p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group"
-                >
-                  <span className="text-sm text-gray-500 flex items-center gap-2 mb-2">
-                    Next Project{" "}
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <span className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1">
-                    {nextProject.title}
-                  </span>
-                </Link>
-              ) : (
-                <div />
-              )}
-            </div>
-
+            {/* View All Projects */}
             <div className="mt-12 flex justify-center">
               <Link
                 href="/projects"
@@ -492,9 +482,13 @@ export default function ProjectDetails() {
             </div>
           </article>
 
-          <aside className="hidden lg:block">
-            <div className="sticky top-32 space-y-8">
-              <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+          {/* ==========================================
+              STICKY SIDEBAR
+              ========================================== */}
+          <aside className="hidden lg:block w-80 xl:w-96 shrink-0">
+            <div className="sticky top-24 space-y-6">
+              {/* Resources Card */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
                   Resources
                 </h3>
@@ -509,22 +503,24 @@ export default function ProjectDetails() {
                       <span className="flex items-center gap-2">
                         <ExternalLink size={16} /> Live Preview
                       </span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
                   )}
+
                   {project.githubLink && (
                     <a
                       href={project.githubLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-900 dark:bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-semibold text-sm group shadow-md"
+                      className="flex items-center justify-between w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all font-semibold text-sm group"
                     >
                       <span className="flex items-center gap-2">
                         <Github size={16} /> Source Code
                       </span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
                   )}
+
                   {project.appLink && (
                     <a
                       href={project.appLink}
@@ -535,9 +531,10 @@ export default function ProjectDetails() {
                       <span className="flex items-center gap-2">
                         <Download size={16} /> Download App
                       </span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
                   )}
+
                   {!project.liveLink &&
                     !project.githubLink &&
                     !project.appLink && (
@@ -548,8 +545,9 @@ export default function ProjectDetails() {
                 </div>
               </div>
 
+              {/* Tech Stack Card */}
               {techStack.length > 0 && (
-                <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
                     Tech Stack
                   </h3>
@@ -557,20 +555,29 @@ export default function ProjectDetails() {
                     {techStack.map((tech: string, i: number) => (
                       <span
                         key={i}
-                        className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700"
+                        className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition-colors"
                       >
-                        {tech}
+                        {tech.trim()}
                       </span>
                     ))}
                   </div>
                 </div>
               )}
 
-              {contentReady && (
-                <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                  <TableOfContents contentSelector=".blog-content" />
-                </div>
+              {/* Table of Contents */}
+              {headingsReady && (
+                <TableOfContents contentSelector=".project-content" />
               )}
+
+              {/* Sidebar Share */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                <ShareButtons
+                  title={project.title}
+                  slug={project.slug}
+                  description={plainDescription}
+                  compact
+                />
+              </div>
             </div>
           </aside>
         </div>

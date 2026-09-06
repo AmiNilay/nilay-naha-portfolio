@@ -10,6 +10,7 @@ import {
   Tag,
   AlertTriangle,
   RefreshCw,
+  Star,
 } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import {
@@ -58,6 +59,20 @@ interface BlogPost {
   createdAt: string;
   readTime?: number;
   tags?: string[];
+  featured?: boolean;
+}
+
+/**
+ * Sorts posts so featured ones appear first, then by date descending.
+ */
+function sortPosts(posts: BlogPost[]): BlogPost[] {
+  return [...posts].sort((a, b) => {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    const dateA = new Date(a.createdAt || 0).getTime();
+    const dateB = new Date(b.createdAt || 0).getTime();
+    return dateB - dateA;
+  });
 }
 
 export default function BlogClient() {
@@ -115,16 +130,20 @@ export default function BlogClient() {
       }
 
       const blogData = await blogRes.json();
-      const fetchedPosts = Array.isArray(blogData)
+      const fetchedPosts: BlogPost[] = Array.isArray(blogData)
         ? blogData
         : Array.isArray(blogData?.posts)
           ? blogData.posts
           : [];
-      setPosts(fetchedPosts);
+
+      // Sort featured posts to the top
+      const sorted = sortPosts(fetchedPosts);
+      setPosts(sorted);
+
       try {
         sessionStorage.setItem(
           BLOG_CACHE_KEY,
-          JSON.stringify({ posts: fetchedPosts, savedAt: Date.now() }),
+          JSON.stringify({ posts: sorted, savedAt: Date.now() }),
         );
       } catch (cacheError) {
         console.warn("Unable to save blog cache:", cacheError);
@@ -167,16 +186,26 @@ export default function BlogClient() {
     fetchData();
   }, [fetchData]);
 
+  const hasFeaturedPosts = posts.some((p) => p.featured);
+
   const allTags = Array.from(
     new Set(posts.flatMap((p) => p.tags || []).map((t) => t.trim())),
   ).filter(Boolean);
 
-  const filterTabs = ["All Topics", ...allTags.slice(0, 5)];
+  const filterTabs = [
+    "All Topics",
+    ...(hasFeaturedPosts ? ["Featured"] : []),
+    ...allTags.slice(0, 5),
+  ];
 
   const filteredPosts = posts.filter((post) => {
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (post.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (activeFilter === "Featured") {
+      return matchesSearch && post.featured;
+    }
 
     const pTags = post.tags || [];
     const matchesFilter =
@@ -190,7 +219,6 @@ export default function BlogClient() {
     <div className="container mx-auto px-4 py-24 min-h-screen max-w-7xl">
       <AnimatedSection direction="up">
         <div className="max-w-4xl mx-auto mb-12 text-center">
-          {/* ✅ DYNAMIC HEADER FROM GLOBAL SETTINGS */}
           <h1
             className="text-5xl md:text-6xl mb-6 tracking-tight text-gray-900 dark:text-white"
             style={{
@@ -207,7 +235,6 @@ export default function BlogClient() {
             {settings?.blogHeader || "Thoughts & Insights"}
           </h1>
 
-          {/* ✅ DYNAMIC SUBHEADER FROM GLOBAL SETTINGS */}
           <p
             className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-10"
             style={{
@@ -241,11 +268,20 @@ export default function BlogClient() {
                   onClick={() => setActiveFilter(tab)}
                   className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
                     activeFilter === tab
-                      ? "bg-primary text-white shadow-md"
+                      ? tab === "Featured"
+                        ? "bg-yellow-500 text-white shadow-md"
+                        : "bg-primary text-white shadow-md"
                       : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
-                  {tab}
+                  {tab === "Featured" ? (
+                    <span className="flex items-center gap-1.5">
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      Featured
+                    </span>
+                  ) : (
+                    tab
+                  )}
                 </button>
               ))}
             </div>
@@ -306,7 +342,9 @@ export default function BlogClient() {
         <AnimatedSection direction="fade">
           <div className="text-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800 max-w-3xl mx-auto">
             <p className="text-xl text-gray-500 font-medium mb-2">
-              No articles found.
+              {activeFilter === "Featured"
+                ? "No featured articles yet."
+                : "No articles found."}
             </p>
             <p className="text-gray-400 text-sm mb-4">
               {searchQuery || activeFilter !== "All Topics"
@@ -374,6 +412,14 @@ export default function BlogClient() {
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-medium bg-gray-100 dark:bg-gray-800">
                         <Tag className="w-8 h-8 opacity-20" />
+                      </div>
+                    )}
+
+                    {/* Featured badge */}
+                    {post.featured && (
+                      <div className="absolute top-3 left-3 z-10 bg-yellow-500 text-white px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-lg">
+                        <Star className="w-3 h-3 fill-current" />
+                        Featured
                       </div>
                     )}
                   </div>

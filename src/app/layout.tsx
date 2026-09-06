@@ -4,16 +4,17 @@ import "./globals.css";
 
 import Navbar from "@/components/layout/Navbar";
 import PageNavigation from "@/components/layout/PageNavigation";
-import CommandPalette from "@/components/ui/CommandPalette"; // ✅ Added Command Palette Import
-import Chatbot from "@/components/ui/Chatbot"; // ✅ Added Chatbot Import
+import CommandPalette from "@/components/ui/CommandPalette";
+import Chatbot from "@/components/ui/Chatbot";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import OfflineBanner from "@/components/ui/OfflineBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
 const SITE_NAME = "Nilay Naha - Software Developer";
 const SITE_DESCRIPTION =
-  "Nilay Naha — Software Developer (Python  ) building secure REST APIs, backend systems, and full-stack apps with FastAPI, Node.js, MongoDB, and Next.js.";
+  "Nilay Naha -- Software Developer (Python) building secure REST APIs, backend systems, and full-stack apps with FastAPI, Node.js, MongoDB, and Next.js.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -81,7 +82,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: SITE_URL,
   },
-  manifest: "/manifest.json", // ✅ Added PWA Manifest Link
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -91,7 +92,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=Story+Script&family=Bitcount+Prop+Single&family=Bitcount+Prop+Single+Ink&family=Bitcount+Grid+Single&family=Allura&family=Italianno&family=Alex+Brush&family=Corinthia&family=Carattere&family=Kaushan+Script&family=Praise&family=Londrina+Shadow&family=Rouge+Script&family=Libertinus+Keyboard&family=Birthstone&family=Dancing+Script&display=swap"
           rel="stylesheet"
@@ -99,10 +104,11 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <OfflineBanner />
           <Navbar />
           <PageNavigation />
-          <CommandPalette /> {/* ✅ Added Command Palette Component */}
-          <Chatbot /> {/* ✅ Added Chatbot Component */}
+          <CommandPalette />
+          <Chatbot />
           {children}
         </ThemeProvider>
       </body>

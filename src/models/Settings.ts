@@ -5,13 +5,21 @@ const SettingsSchema = new Schema(
     // Blog Page
     blogHeader: { type: String, default: "Thoughts & Insights" },
     blogHeaderFont: { type: String, default: "Story Script" },
-    blogSubheader: { type: String, default: "Tutorials, tech deep-dives, and updates on my journey in AI & Web Dev." },
+    blogSubheader: {
+      type: String,
+      default:
+        "Tutorials, tech deep-dives, and updates on my journey in AI & Web Dev.",
+    },
     blogSubheaderFont: { type: String, default: "Bitcount Prop Single" },
 
     // Projects Page
     projectsHeader: { type: String, default: "My Projects" },
     projectsHeaderFont: { type: String, default: "Inter" },
-    projectsSubheader: { type: String, default: "A collection of my recent work, ranging from full-stack applications to AI models and developer tools." },
+    projectsSubheader: {
+      type: String,
+      default:
+        "A collection of my recent work, ranging from full-stack applications to AI models and developer tools.",
+    },
     projectsSubheaderFont: { type: String, default: "Inter" },
 
     // About Page
@@ -30,7 +38,10 @@ const SettingsSchema = new Schema(
     // Contact Page
     contactHeader: { type: String, default: "Get in Touch" },
     contactHeaderFont: { type: String, default: "Inter" },
-    contactSubheader: { type: String, default: "Have a question or want to work together? Drop me a message!" },
+    contactSubheader: {
+      type: String,
+      default: "Have a question or want to work together? Drop me a message!",
+    },
     contactSubheaderFont: { type: String, default: "Inter" },
     contactToastFont: { type: String, default: "Inter" },
     contactLocationFont: { type: String, default: "Inter" },
@@ -52,10 +63,22 @@ const SettingsSchema = new Schema(
     homeStatsLabelFont: { type: String, default: "Inter" },
     homeLastUpdatedFont: { type: String, default: "Inter" },
     homeTechStackFont: { type: String, default: "Inter" },
+
+    // Push Notification Welcome Message
+    pushWelcomeTitle: {
+      type: String,
+      default: "Welcome! You are now subscribed.",
+    },
+    pushWelcomeBody: {
+      type: String,
+      default:
+        "You will receive notifications when new projects or blog posts are published. Thank you for following my work!",
+    },
+    pushWelcomeUrl: { type: String, default: "/" },
   },
   { timestamps: true }
 );
 
-const Settings = models.Settings || model("Settings", SettingsSchema);
+const Settings =
+  models.Settings || model("Settings", SettingsSchema);
 export default Settings;
-

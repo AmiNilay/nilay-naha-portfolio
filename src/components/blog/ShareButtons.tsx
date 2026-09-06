@@ -207,7 +207,7 @@ export default function ShareButtons({
           )}
         </button>
 
-        {typeof navigator !== "undefined" && navigator.share && (
+                {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
           <button
             onClick={handleNativeShare}
             className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"

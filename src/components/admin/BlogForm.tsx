@@ -122,8 +122,8 @@ export default function BlogForm({
       submitData.append("relatedProject", formData.relatedProject);
       submitData.append(
         "publishDate",
-        initialData?.publishDate
-          ? new Date(initialData.publishDate).toISOString()
+        (initialData as any)?.publishDate
+          ? new Date((initialData as any).publishDate).toISOString()
           : new Date().toISOString()
       );
 

@@ -49,7 +49,7 @@ export default function BlogForm({
       setFormData({
         title: initialData.title || "",
         slug: initialData.slug || "",
-        excerpt: initialData.description || initialData.excerpt || "",
+        excerpt: initialData.description || (initialData as any).excerpt || "",
         content: initialData.content || "",
         coverImage: initialData.coverImage || "",
         gDriveImage: (initialData as any).gDriveImage || "",

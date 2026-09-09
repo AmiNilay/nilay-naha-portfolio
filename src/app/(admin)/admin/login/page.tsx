@@ -9,6 +9,7 @@ import {
   Copy,
   Check,
   AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 
 type Step = "email" | "verify";
@@ -25,7 +26,7 @@ export default function AdminLogin() {
   const [copied, setCopied] = useState(false);
   const codeInputRef = useRef<HTMLInputElement>(null);
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent, forceReset = false) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -34,7 +35,7 @@ export default function AdminLogin() {
       const res = await fetch("/api/auth/step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, reset: forceReset }),
       });
 
       const data = await res.json();
@@ -74,7 +75,6 @@ export default function AdminLogin() {
         return;
       }
 
-      // Show error but stay on the code input screen
       setError(data.error || "Email or code is entered wrong.");
       setCode("");
       codeInputRef.current?.focus();
@@ -92,6 +92,14 @@ export default function AdminLogin() {
     setNeedsSetup(false);
     setQrCode("");
     setSecret("");
+  };
+
+  const handleForceReset = (e: React.MouseEvent) => {
+    e.preventDefault();
+    handleEmailSubmit(
+      { preventDefault: () => {} } as React.FormEvent,
+      true
+    );
   };
 
   const copySecret = async () => {
@@ -132,7 +140,10 @@ export default function AdminLogin() {
 
         {/* Step 1: Email */}
         {step === "email" && (
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
+          <form
+            onSubmit={(e) => handleEmailSubmit(e, false)}
+            className="space-y-4"
+          >
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -163,6 +174,17 @@ export default function AdminLogin() {
               ) : (
                 "Continue"
               )}
+            </button>
+
+            {/* Reset Authenticator Link */}
+            <button
+              type="button"
+              onClick={handleForceReset}
+              disabled={loading || !email}
+              className="w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-red-500 transition-colors py-2 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Lost access to authenticator? Reset it
             </button>
           </form>
         )}

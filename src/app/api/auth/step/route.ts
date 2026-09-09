@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email } = await req.json();
+    const { email, reset } = await req.json();
 
     if (email !== process.env.ADMIN_EMAIL) {
       return NextResponse.json(
@@ -41,25 +41,24 @@ export async function POST(req: Request) {
 
     let admin = await Admin.findOne({ email });
 
-    // Check if existing admin's secret is still valid
-    let needsNewSecret = false;
+    // Check if existing secret is valid
+    let secretIsValid = false;
 
-    if (admin && admin.totpSecret) {
-      try {
-        const testDecrypt = decryptSecret(admin.totpSecret);
-        if (!testDecrypt || testDecrypt.length < 10) {
-          needsNewSecret = true;
+    if (admin && admin.totpSecret && admin.setupComplete) {
+      if (reset) {
+        // User explicitly asked to reset - skip validation
+        secretIsValid = false;
+      } else {
+        try {
+          const testDecrypt = decryptSecret(admin.totpSecret);
+          secretIsValid = testDecrypt && testDecrypt.length >= 10;
+        } catch {
+          secretIsValid = false;
         }
-      } catch {
-        console.warn("Stored TOTP secret is corrupted, regenerating...");
-        needsNewSecret = true;
       }
     }
 
-    // Decide if we need setup
-    const requiresSetup = !admin || !admin.setupComplete || needsNewSecret || !admin.totpSecret;
-
-    if (requiresSetup) {
+    if (!admin || !admin.setupComplete || !secretIsValid || !admin.totpSecret) {
       // Generate a fresh TOTP secret
       const secretBase32 = generateBase32Secret();
       const encryptedSecret = encryptSecret(secretBase32);

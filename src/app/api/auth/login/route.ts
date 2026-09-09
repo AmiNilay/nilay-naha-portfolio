@@ -71,7 +71,9 @@ export async function POST(req: Request) {
 
     if (!admin || !admin.totpSecret) {
       return NextResponse.json(
-        { error: "Account not set up. Please go back and enter your email again." },
+        {
+          error: "Account not set up. Go back and enter your email to set up.",
+        },
         { status: 401 }
       );
     }
@@ -81,17 +83,13 @@ export async function POST(req: Request) {
     try {
       decryptedSecret = decryptSecret(admin.totpSecret);
     } catch (decryptError) {
-      console.error("Secret decryption failed, clearing admin setup:", decryptError);
+      console.error("Secret decryption failed:", decryptError);
 
-      // Clear the bad secret so step route can regenerate it
-      admin.totpSecret = "";
-      admin.setupComplete = false;
-      await admin.save();
-
+      // Do NOT clear the admin here. Let the step route handle regeneration.
+      // Just return a normal error so the user stays on the code input screen.
       return NextResponse.json(
         {
-          error: "Session expired. Please go back and enter your email to set up again.",
-          needsReSetup: true,
+          error: "Authentication failed. Go back and re-enter your email to reset.",
         },
         { status: 401 }
       );
@@ -99,22 +97,33 @@ export async function POST(req: Request) {
 
     // Validate the TOTP code
     const trimmedCode = code.toString().trim();
-    const delta = validateTOTP(decryptedSecret, trimmedCode, 1);
 
-    if (delta === null) {
+    if (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
       return NextResponse.json(
-        { error: "Email or code is entered wrong." },
+        { error: "Please enter a valid 6-digit code." },
         { status: 401 }
       );
     }
 
+    const delta = validateTOTP(decryptedSecret, trimmedCode, 1);
+
+    if (delta === null) {
+      return NextResponse.json(
+        { error: "Invalid code. Make sure the code matches your authenticator app." },
+        { status: 401 }
+      );
+    }
+
+    // Mark setup as complete
     if (!admin.setupComplete) {
       admin.setupComplete = true;
       await admin.save();
     }
 
+    // Create session token
     const sessionToken = createSessionToken(email);
 
+    // Set session cookie
     cookies().set({
       name: "admin_token",
       value: sessionToken,

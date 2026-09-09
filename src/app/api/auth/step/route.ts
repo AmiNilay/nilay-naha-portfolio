@@ -44,11 +44,10 @@ export async function POST(req: Request) {
     // Check if existing admin's secret is still valid
     let needsNewSecret = false;
 
-    if (admin && admin.totpSecret && admin.setupComplete) {
-      // Verify the stored secret can still be decrypted
+    if (admin && admin.totpSecret) {
       try {
         const testDecrypt = decryptSecret(admin.totpSecret);
-        if (!testDecrypt || testDecrypt.length < 16) {
+        if (!testDecrypt || testDecrypt.length < 10) {
           needsNewSecret = true;
         }
       } catch {
@@ -57,7 +56,10 @@ export async function POST(req: Request) {
       }
     }
 
-    if (!admin || !admin.setupComplete || needsNewSecret) {
+    // Decide if we need setup
+    const requiresSetup = !admin || !admin.setupComplete || needsNewSecret || !admin.totpSecret;
+
+    if (requiresSetup) {
       // Generate a fresh TOTP secret
       const secretBase32 = generateBase32Secret();
       const encryptedSecret = encryptSecret(secretBase32);

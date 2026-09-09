@@ -71,27 +71,27 @@ export default function AdminLogin() {
 
       if (res.ok) {
         window.location.href = "/admin/dashboard";
-      } else {
-        if (data.needsReSetup) {
-          setStep("email");
-          setCode("");
-          setNeedsSetup(false);
-          setQrCode("");
-          setSecret("");
-          setError(
-            "Your session expired. Enter your email again to set up a new authenticator."
-          );
-        } else {
-          setError(data.error || "Email or code is entered wrong.");
-          setCode("");
-          codeInputRef.current?.focus();
-        }
+        return;
       }
+
+      // Show error but stay on the code input screen
+      setError(data.error || "Email or code is entered wrong.");
+      setCode("");
+      codeInputRef.current?.focus();
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const goBackToEmail = () => {
+    setStep("email");
+    setCode("");
+    setError("");
+    setNeedsSetup(false);
+    setQrCode("");
+    setSecret("");
   };
 
   const copySecret = async () => {
@@ -256,14 +256,7 @@ export default function AdminLogin() {
 
             <button
               type="button"
-              onClick={() => {
-                setStep("email");
-                setCode("");
-                setError("");
-                setNeedsSetup(false);
-                setQrCode("");
-                setSecret("");
-              }}
+              onClick={goBackToEmail}
               className="w-full text-sm text-gray-500 hover:text-gray-700 transition-colors py-2"
             >
               Use a different email

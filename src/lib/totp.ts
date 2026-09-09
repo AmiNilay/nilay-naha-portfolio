@@ -9,10 +9,6 @@ function getEncryptionKey(): Buffer {
   return crypto.createHash("sha256").update(keyMaterial).digest();
 }
 
-/**
- * Encrypts a plaintext string using AES-256-GCM.
- * Returns format: iv(hex):authTag(hex):ciphertext(hex)
- */
 export function encryptSecret(plaintext: string): string {
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(12);
@@ -25,12 +21,13 @@ export function encryptSecret(plaintext: string): string {
   return `${iv.toString("hex")}:${authTag}:${encrypted}`;
 }
 
-/**
- * Decrypts an AES-256-GCM encrypted string.
- * Expects format: iv(hex):authTag(hex):ciphertext(hex)
- */
 export function decryptSecret(encryptedData: string): string {
-  const [ivHex, authTagHex, encryptedHex] = encryptedData.split(":");
+  const parts = encryptedData.split(":");
+  if (parts.length !== 3) {
+    throw new Error("Invalid encrypted data format");
+  }
+
+  const [ivHex, authTagHex, encryptedHex] = parts;
 
   const key = getEncryptionKey();
   const iv = Buffer.from(ivHex, "hex");
@@ -45,9 +42,6 @@ export function decryptSecret(encryptedData: string): string {
   return decrypted;
 }
 
-/**
- * Generates a random base32 secret for TOTP.
- */
 export function generateBase32Secret(length: number = 20): string {
   const buffer = crypto.randomBytes(length);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -58,9 +52,6 @@ export function generateBase32Secret(length: number = 20): string {
   return result;
 }
 
-/**
- * Decodes a base32 string into a Buffer.
- */
 function base32Decode(encoded: string): Buffer {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
   const cleaned = encoded.replace(/[=\s]/g, "").toUpperCase();
@@ -80,10 +71,6 @@ function base32Decode(encoded: string): Buffer {
   return Buffer.from(bytes);
 }
 
-/**
- * Generates a TOTP code for the given secret and time.
- * Implements RFC 6238 with SHA1, 6 digits, 30-second period.
- */
 export function generateTOTP(
   secretBase32: string,
   time?: number
@@ -111,10 +98,6 @@ export function generateTOTP(
   return otp.toString().padStart(6, "0");
 }
 
-/**
- * Validates a TOTP token with a time window.
- * Returns 0 if valid at current time, +/-N for offset periods, null if invalid.
- */
 export function validateTOTP(
   secretBase32: string,
   token: string,
@@ -134,9 +117,6 @@ export function validateTOTP(
   return null;
 }
 
-/**
- * Constant-time string comparison to prevent timing attacks.
- */
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   const bufA = Buffer.from(a);
@@ -144,23 +124,17 @@ function timingSafeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-/**
- * Generates the otpauth:// URI for a TOTP secret.
- */
 export function generateOTPAuthURI(
   email: string,
   secretBase32: string
 ): string {
-  const issuer = "NilayNaha";
+  const issuer = "Nilay Naha Portfolio";
   const encodedIssuer = encodeURIComponent(issuer);
   const encodedEmail = encodeURIComponent(email);
 
   return `otpauth://totp/${encodedIssuer}:${encodedEmail}?secret=${secretBase32}&issuer=${encodedIssuer}&algorithm=SHA1&digits=6&period=30`;
 }
 
-/**
- * Generates a QR code data URL from an otpauth URI.
- */
 export async function generateQRCodeDataURL(
   email: string,
   secretBase32: string

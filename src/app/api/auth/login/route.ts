@@ -6,7 +6,6 @@ import { Admin } from "@/models/Admin";
 import { decryptSecret, validateTOTP } from "@/lib/totp";
 import { checkRateLimit, getClientIP } from "@/lib/rateLimit";
 
-// Ensure this runs on Node.js runtime, NOT Edge
 export const runtime = "nodejs";
 
 function createSessionToken(email: string): string {
@@ -23,7 +22,6 @@ function createSessionToken(email: string): string {
 
 export async function POST(req: Request) {
   try {
-    // Rate limiting
     const ip = getClientIP(req);
     const rateLimit = checkRateLimit(`login:${ip}`);
 
@@ -39,7 +37,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Parse request body
     let email: string;
     let code: string;
 
@@ -61,7 +58,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate email matches admin
     if (email !== process.env.ADMIN_EMAIL) {
       return NextResponse.json(
         { error: "Email or code is entered wrong." },
@@ -69,31 +65,39 @@ export async function POST(req: Request) {
       );
     }
 
-    // Connect to database
     await connectToDB();
 
     const admin = await Admin.findOne({ email });
 
     if (!admin || !admin.totpSecret) {
       return NextResponse.json(
-        { error: "Email or code is entered wrong." },
+        { error: "Account not set up. Please go back and enter your email again." },
         { status: 401 }
       );
     }
 
-    // Decrypt the stored TOTP secret
+    // Try to decrypt the stored secret
     let decryptedSecret: string;
     try {
       decryptedSecret = decryptSecret(admin.totpSecret);
     } catch (decryptError) {
-      console.error("Secret decryption failed:", decryptError);
+      console.error("Secret decryption failed, clearing admin setup:", decryptError);
+
+      // Clear the bad secret so step route can regenerate it
+      admin.totpSecret = "";
+      admin.setupComplete = false;
+      await admin.save();
+
       return NextResponse.json(
-        { error: "Server configuration error." },
-        { status: 500 }
+        {
+          error: "Session expired. Please go back and enter your email to set up again.",
+          needsReSetup: true,
+        },
+        { status: 401 }
       );
     }
 
-    // Validate the TOTP code using native crypto
+    // Validate the TOTP code
     const trimmedCode = code.toString().trim();
     const delta = validateTOTP(decryptedSecret, trimmedCode, 1);
 
@@ -104,16 +108,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Mark setup as complete if first login
     if (!admin.setupComplete) {
       admin.setupComplete = true;
       await admin.save();
     }
 
-    // Create session token
     const sessionToken = createSessionToken(email);
 
-    // Set session cookie
     cookies().set({
       name: "admin_token",
       value: sessionToken,

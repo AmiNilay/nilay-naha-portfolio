@@ -3,17 +3,16 @@ import { connectToDB } from "@/lib/connectToDB";
 import { Admin } from "@/models/Admin";
 import {
   encryptSecret,
+  decryptSecret,
   generateBase32Secret,
   generateQRCodeDataURL,
 } from "@/lib/totp";
 import { checkRateLimit, getClientIP } from "@/lib/rateLimit";
 
-// Ensure this runs on Node.js runtime, NOT Edge
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    // Rate limit by IP
     const ip = getClientIP(req);
     const rateLimit = checkRateLimit(`step:${ip}`);
 
@@ -31,7 +30,6 @@ export async function POST(req: Request) {
 
     const { email } = await req.json();
 
-    // Always return the same error to prevent email enumeration
     if (email !== process.env.ADMIN_EMAIL) {
       return NextResponse.json(
         { error: "Email or code is entered wrong." },
@@ -43,8 +41,24 @@ export async function POST(req: Request) {
 
     let admin = await Admin.findOne({ email });
 
-    if (!admin || !admin.setupComplete) {
-      // First time or incomplete setup: generate TOTP secret
+    // Check if existing admin's secret is still valid
+    let needsNewSecret = false;
+
+    if (admin && admin.totpSecret && admin.setupComplete) {
+      // Verify the stored secret can still be decrypted
+      try {
+        const testDecrypt = decryptSecret(admin.totpSecret);
+        if (!testDecrypt || testDecrypt.length < 16) {
+          needsNewSecret = true;
+        }
+      } catch {
+        console.warn("Stored TOTP secret is corrupted, regenerating...");
+        needsNewSecret = true;
+      }
+    }
+
+    if (!admin || !admin.setupComplete || needsNewSecret) {
+      // Generate a fresh TOTP secret
       const secretBase32 = generateBase32Secret();
       const encryptedSecret = encryptSecret(secretBase32);
       const qrCode = await generateQRCodeDataURL(email, secretBase32);
@@ -57,6 +71,7 @@ export async function POST(req: Request) {
         });
       } else {
         admin.totpSecret = encryptedSecret;
+        admin.setupComplete = false;
         await admin.save();
       }
 
@@ -67,7 +82,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Admin is fully set up, just needs the TOTP code
+    // Admin is fully set up with a valid secret
     return NextResponse.json({ needsSetup: false });
   } catch (error) {
     console.error("Auth step error:", error);

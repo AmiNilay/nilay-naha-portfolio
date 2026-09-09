@@ -67,13 +67,25 @@ export default function AdminLogin() {
         body: JSON.stringify({ email, code }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         window.location.href = "/admin/dashboard";
       } else {
-        const data = await res.json();
-        setError(data.error || "Email or code is entered wrong.");
-        setCode("");
-        codeInputRef.current?.focus();
+        if (data.needsReSetup) {
+          setStep("email");
+          setCode("");
+          setNeedsSetup(false);
+          setQrCode("");
+          setSecret("");
+          setError(
+            "Your session expired. Enter your email again to set up a new authenticator."
+          );
+        } else {
+          setError(data.error || "Email or code is entered wrong.");
+          setCode("");
+          codeInputRef.current?.focus();
+        }
       }
     } catch {
       setError("Network error. Please try again.");
@@ -88,7 +100,7 @@ export default function AdminLogin() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API may fail in some contexts
+      // Clipboard API may fail
     }
   };
 

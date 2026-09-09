@@ -46,20 +46,26 @@ export async function POST(req: Request) {
 
     if (admin && admin.totpSecret && admin.setupComplete) {
       if (reset) {
-        // User explicitly asked to reset - skip validation
         secretIsValid = false;
       } else {
         try {
           const testDecrypt = decryptSecret(admin.totpSecret);
-          secretIsValid = testDecrypt && testDecrypt.length >= 10;
+          if (testDecrypt && testDecrypt.length >= 10) {
+            secretIsValid = true;
+          }
         } catch {
           secretIsValid = false;
         }
       }
     }
 
-    if (!admin || !admin.setupComplete || !secretIsValid || !admin.totpSecret) {
-      // Generate a fresh TOTP secret
+    const requiresSetup =
+      !admin ||
+      !admin.setupComplete ||
+      !secretIsValid ||
+      !admin.totpSecret;
+
+    if (requiresSetup) {
       const secretBase32 = generateBase32Secret();
       const encryptedSecret = encryptSecret(secretBase32);
       const qrCode = await generateQRCodeDataURL(email, secretBase32);
@@ -83,7 +89,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // Admin is fully set up with a valid secret
     return NextResponse.json({ needsSetup: false });
   } catch (error) {
     console.error("Auth step error:", error);

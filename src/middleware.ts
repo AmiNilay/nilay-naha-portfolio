@@ -25,7 +25,10 @@ export async function middleware(request: NextRequest) {
 
   if (path.startsWith("/api/") && !publicApiRoutes.includes(path)) {
     if (request.method !== "GET" && !isValidToken) {
-      return NextResponse.json({ error: "Unauthorized Access" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized Access" },
+        { status: 401 }
+      );
     }
   }
 

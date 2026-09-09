@@ -3,21 +3,10 @@ import crypto from "crypto";
 import { connectToDB } from "@/lib/connectToDB";
 import { Admin } from "@/models/Admin";
 import { decryptSecret, validateTOTP } from "@/lib/totp";
+import { createSessionToken } from "@/lib/auth";
 import { checkRateLimit, getClientIP } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
-
-function createSessionToken(email: string): string {
-  const secret = process.env.ADMIN_SECRET || "";
-  const timestamp = Date.now();
-  const payload = `${email}:${timestamp}`;
-  const signature = crypto
-    .createHmac("sha256", secret)
-    .update(payload)
-    .digest("hex");
-
-  return Buffer.from(`${payload}:${signature}`).toString("base64");
-}
 
 export async function POST(req: Request) {
   try {
@@ -33,6 +22,15 @@ export async function POST(req: Request) {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfter) },
         }
+      );
+    }
+
+    // Validate ADMIN_SECRET exists
+    if (!process.env.ADMIN_SECRET) {
+      console.error("ADMIN_SECRET is not configured");
+      return NextResponse.json(
+        { error: "Server configuration error." },
+        { status: 500 }
       );
     }
 
@@ -70,9 +68,7 @@ export async function POST(req: Request) {
 
     if (!admin || !admin.totpSecret) {
       return NextResponse.json(
-        {
-          error: "Account not set up. Go back and enter your email.",
-        },
+        { error: "Account not set up. Go back and enter your email." },
         { status: 401 }
       );
     }
@@ -80,11 +76,11 @@ export async function POST(req: Request) {
     let decryptedSecret: string;
     try {
       decryptedSecret = decryptSecret(admin.totpSecret);
-    } catch (decryptError) {
-      console.error("Secret decryption failed:", decryptError);
+    } catch {
       return NextResponse.json(
         {
-          error: "Authentication failed. Go back and re-enter your email to reset.",
+          error:
+            "Authentication failed. Go back and re-enter your email to reset.",
         },
         { status: 401 }
       );
@@ -103,7 +99,7 @@ export async function POST(req: Request) {
 
     if (delta === null) {
       return NextResponse.json(
-        { error: "Invalid code. Make sure the code matches your authenticator app." },
+        { error: "Invalid code. Check your authenticator app and try again." },
         { status: 401 }
       );
     }
@@ -113,9 +109,10 @@ export async function POST(req: Request) {
       await admin.save();
     }
 
-    const sessionToken = createSessionToken(email);
+    // Create token using Web Crypto API (same as verification)
+    const sessionToken = await createSessionToken(email);
 
-    // Set cookie directly on the response object
+    // Set cookie directly on the response
     const response = NextResponse.json({ success: true });
 
     response.cookies.set({
@@ -125,6 +122,7 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     return response;

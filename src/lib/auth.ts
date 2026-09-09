@@ -40,7 +40,7 @@ async function importSignKey(secret: string): Promise<CryptoKey> {
 }
 
 function bufferToHex(buffer: ArrayBuffer): string {
-  return [...new Uint8Array(buffer)]
+  return Array.from(new Uint8Array(buffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }

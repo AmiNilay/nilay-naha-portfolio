@@ -1,5 +1,4 @@
 ﻿import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import crypto from "crypto";
 import { connectToDB } from "@/lib/connectToDB";
 import { Admin } from "@/models/Admin";
@@ -72,21 +71,17 @@ export async function POST(req: Request) {
     if (!admin || !admin.totpSecret) {
       return NextResponse.json(
         {
-          error: "Account not set up. Go back and enter your email to set up.",
+          error: "Account not set up. Go back and enter your email.",
         },
         { status: 401 }
       );
     }
 
-    // Try to decrypt the stored secret
     let decryptedSecret: string;
     try {
       decryptedSecret = decryptSecret(admin.totpSecret);
     } catch (decryptError) {
       console.error("Secret decryption failed:", decryptError);
-
-      // Do NOT clear the admin here. Let the step route handle regeneration.
-      // Just return a normal error so the user stays on the code input screen.
       return NextResponse.json(
         {
           error: "Authentication failed. Go back and re-enter your email to reset.",
@@ -95,7 +90,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate the TOTP code
     const trimmedCode = code.toString().trim();
 
     if (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
@@ -114,17 +108,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Mark setup as complete
     if (!admin.setupComplete) {
       admin.setupComplete = true;
       await admin.save();
     }
 
-    // Create session token
     const sessionToken = createSessionToken(email);
 
-    // Set session cookie
-    cookies().set({
+    // Set cookie directly on the response object
+    const response = NextResponse.json({ success: true });
+
+    response.cookies.set({
       name: "admin_token",
       value: sessionToken,
       httpOnly: true,
@@ -133,7 +127,7 @@ export async function POST(req: Request) {
       path: "/",
     });
 
-    return NextResponse.json({ success: true });
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { Admin } from "@/models/Admin";
-import { encryptSecret, createTOTP, generateQRCodeDataURL } from "@/lib/totp";
+import {
+  encryptSecret,
+  generateBase32Secret,
+  generateQRCodeDataURL,
+} from "@/lib/totp";
 import { checkRateLimit, getClientIP } from "@/lib/rateLimit";
+
+// Ensure this runs on Node.js runtime, NOT Edge
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +19,9 @@ export async function POST(req: Request) {
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
-        { error: `Too many attempts. Try again in ${rateLimit.retryAfter} seconds.` },
+        {
+          error: `Too many attempts. Try again in ${rateLimit.retryAfter} seconds.`,
+        },
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfter) },
@@ -36,9 +45,9 @@ export async function POST(req: Request) {
 
     if (!admin || !admin.setupComplete) {
       // First time or incomplete setup: generate TOTP secret
-      const { totp, secretBase32 } = createTOTP(email);
+      const secretBase32 = generateBase32Secret();
       const encryptedSecret = encryptSecret(secretBase32);
-      const qrCode = await generateQRCodeDataURL(totp);
+      const qrCode = await generateQRCodeDataURL(email, secretBase32);
 
       if (!admin) {
         admin = await Admin.create({
@@ -62,6 +71,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ needsSetup: false });
   } catch (error) {
     console.error("Auth step error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "An unexpected error occurred. Please try again." },
+      { status: 500 }
+    );
   }
 }

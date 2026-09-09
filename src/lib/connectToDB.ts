@@ -8,25 +8,28 @@ interface MongooseCache {
 }
 
 declare global {
-  var mongoose: MongooseCache;
+  var mongoose: MongooseCache | undefined;
 }
 
-let cached = global.mongoose;
+const cached: MongooseCache = global.mongoose || { conn: null, promise: null };
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+if (!global.mongoose) {
+  global.mongoose = cached;
 }
 
 export const connectToDB = async () => {
+  // If already connected with a live connection, return it immediately
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
-  if (mongoose.connection.readyState === 1) {
-    cached.conn = mongoose;
-    return cached.conn;
+  // If the connection exists but dropped, clear it
+  if (cached.conn && mongoose.connection.readyState !== 1) {
+    cached.conn = null;
+    cached.promise = null;
   }
 
+  // If a connection attempt is already in flight, wait for it
   if (cached.promise) {
     try {
       const connection = await cached.promise;
@@ -48,24 +51,27 @@ export const connectToDB = async () => {
     );
   }
 
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      dbName: "portfolio",
-      serverSelectionTimeoutMS: 8000,
-      connectTimeoutMS: 8000,
-      socketTimeoutMS: 20000,
-      waitQueueTimeoutMS: 8000,
-      maxPoolSize: 10,
-      minPoolSize: 0,
-    };
+  // Create a new connection promise and store it globally
+  const opts = {
+    bufferCommands: false,
+    dbName: "portfolio",
+    serverSelectionTimeoutMS: 8000,
+    connectTimeoutMS: 8000,
+    socketTimeoutMS: 20000,
+    waitQueueTimeoutMS: 8000,
+    maxPoolSize: 5,
+    minPoolSize: 0,
+    // Close idle connections after 10 seconds to free Atlas slots
+    maxIdleTimeMS: 10000,
+  };
 
-    console.log("Connecting to MongoDB...");
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((connection) => {
+  console.log("Connecting to MongoDB...");
+  cached.promise = mongoose
+    .connect(MONGODB_URI, opts)
+    .then((connection) => {
       console.log("MongoDB connected");
       return connection;
     });
-  }
 
   try {
     cached.conn = await cached.promise;

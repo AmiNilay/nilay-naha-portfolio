@@ -14,6 +14,8 @@ import {
   X,
   BellRing,
   Settings,
+  Upload,
+  Terminal,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -21,11 +23,13 @@ const navLinks = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
   { name: "Blog Posts", href: "/admin/blog", icon: FileText },
+  { name: "Uploads", href: "/admin/uploads", icon: Upload },
   { name: "Home Page", href: "/admin/home", icon: Home },
   { name: "About Page", href: "/admin/about", icon: User },
   { name: "Train Chatbot", href: "/admin/chatbot", icon: Bot },
   { name: "Notifications", href: "/admin/notifications", icon: BellRing },
   { name: "Global Settings", href: "/admin/settings", icon: Settings },
+  { name: "Terminal", href: "/admin/terminal", icon: Terminal },
 ];
 
 export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
@@ -43,7 +47,6 @@ export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
       // Even if the request fails, redirect to login
     }
 
-    // Hard redirect to login — forces cookie re-evaluation
     window.location.href = "/admin/login";
   };
 

@@ -67,10 +67,22 @@ interface AboutData {
   bio: string;
   location?: string;
   availability?: string;
+  gDriveProfilePic?: string;
   skills: string[];
   education: EducationEntry[];
   experience?: Experience[];
   certifications?: Certification[];
+}
+
+function getImageUrl(raw?: string): string | null {
+  if (!raw) return null;
+  const match =
+    raw.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+    raw.match(/id=([a-zA-Z0-9_-]+)/);
+  if (match) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+  }
+  return raw;
 }
 
 export default function AboutClient() {
@@ -140,7 +152,6 @@ export default function AboutClient() {
               <div className="h-10 rounded-xl bg-gray-200 dark:bg-gray-800" />
             </div>
           </div>
-
           <div className="w-full md:w-2/3">
             <div className="h-12 w-2/3 rounded-lg bg-gray-200 dark:bg-gray-800 mb-6" />
             <div className="space-y-4 mb-8">
@@ -154,12 +165,10 @@ export default function AboutClient() {
             </div>
           </div>
         </div>
-
         <div className="mb-24">
           <div className="h-10 w-64 rounded-lg bg-gray-200 dark:bg-gray-800 mb-10" />
           <div className="h-64 rounded-3xl bg-gray-200 dark:bg-gray-800" />
         </div>
-
         <div className="mb-24">
           <div className="h-10 w-72 rounded-lg bg-gray-200 dark:bg-gray-800 mb-10" />
           <div className="h-48 rounded-3xl bg-gray-200 dark:bg-gray-800" />
@@ -178,9 +187,15 @@ export default function AboutClient() {
     );
   }
 
-  const rawImage = heroData?.profilePic || heroData?.gDriveProfilePic;
-  const driveImageMatch = rawImage?.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  // Image priority: about-specific image > hero image
+  const aboutImage =
+    getImageUrl(data.gDriveProfilePic) ||
+    getImageUrl(heroData?.gDriveProfilePic) ||
+    getImageUrl(heroData?.profilePic) ||
+    null;
+
   const displayResume = heroData?.resumeUrl || heroData?.gDriveResume;
+
   const customFontStyle = (font?: string) =>
     font && font !== "Inter"
       ? { fontFamily: `'${font}', sans-serif`, fontWeight: "normal" as const }
@@ -203,19 +218,15 @@ export default function AboutClient() {
         <div className="flex flex-col md:flex-row gap-12 items-start mb-24">
           <div className="w-full md:w-1/3 shrink-0 flex flex-col gap-6">
             <div className="w-full aspect-square rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl">
-              {rawImage ? (
-                rawImage.includes("<iframe") ? (
+              {aboutImage ? (
+                aboutImage.includes("<iframe") ? (
                   <div
                     className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full pointer-events-none"
-                    dangerouslySetInnerHTML={{ __html: rawImage }}
+                    dangerouslySetInnerHTML={{ __html: aboutImage }}
                   />
                 ) : (
                   <img
-                    src={
-                      driveImageMatch
-                        ? `https://drive.google.com/thumbnail?id=${driveImageMatch[1]}&sz=w800`
-                        : rawImage
-                    }
+                    src={aboutImage}
                     alt="Profile"
                     className="w-full h-full object-cover"
                     onContextMenu={(e) => e.preventDefault()}
@@ -328,7 +339,7 @@ export default function AboutClient() {
             </h2>
             <div className="relative border-l-2 border-gray-200 dark:border-gray-800 ml-4 md:ml-6 space-y-12 pb-4">
               {data.experience.map((exp, idx) => {
-                // Build duration string from new fields or fallback to old
+                // Build duration string
                 const startStr =
                   exp.startMonth && exp.startYear
                     ? `${exp.startMonth.substring(0, 3)} ${exp.startYear}`
@@ -343,22 +354,22 @@ export default function AboutClient() {
                     ? `${startStr} - ${endStr}`
                     : exp.duration || startStr || endStr || "";
 
-                // Fallback old fields
                 const jobTitle = exp.jobTitle || exp.role || "";
                 const org = exp.organization || exp.company || "";
+                const logoUrl = getImageUrl(exp.companyLogo);
 
                 return (
                   <div key={idx} className="relative pl-8 md:pl-12 group">
                     <div className="absolute -left-[11px] top-1.5 w-5 h-5 rounded-full bg-primary ring-4 ring-white dark:ring-background group-hover:scale-125 transition-transform duration-300" />
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 hover:border-primary/50 transition-all duration-300 hover:shadow-xl">
-                      {/* Header Row */}
+                      {/* Header */}
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                         <div className="flex items-start gap-3">
                           {/* Company Logo */}
-                          {exp.companyLogo && (
+                          {logoUrl && (
                             <img
-                              src={exp.companyLogo}
-                              alt={org}
+                              src={logoUrl}
+                              alt={org || "Company"}
                               className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700 shrink-0"
                             />
                           )}
@@ -488,7 +499,6 @@ export default function AboutClient() {
               {data.education.map((edu, idx) => (
                 <div key={idx} className="relative pl-8 md:pl-12 group">
                   <div className="absolute -left-[11px] top-1.5 w-5 h-5 rounded-full bg-primary ring-4 ring-white dark:ring-background group-hover:scale-125 transition-transform duration-300" />
-
                   <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 hover:border-primary/50 transition-all duration-300 hover:shadow-xl">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                       <div>

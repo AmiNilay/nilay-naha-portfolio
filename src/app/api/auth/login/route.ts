@@ -1,5 +1,4 @@
 ﻿import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { connectToDB } from "@/lib/connectToDB";
 import { Admin } from "@/models/Admin";
 import { decryptSecret, validateTOTP } from "@/lib/totp";
@@ -22,15 +21,6 @@ export async function POST(req: Request) {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfter) },
         }
-      );
-    }
-
-    // Validate ADMIN_SECRET exists
-    if (!process.env.ADMIN_SECRET) {
-      console.error("ADMIN_SECRET is not configured");
-      return NextResponse.json(
-        { error: "Server configuration error." },
-        { status: 500 }
       );
     }
 
@@ -79,8 +69,7 @@ export async function POST(req: Request) {
     } catch {
       return NextResponse.json(
         {
-          error:
-            "Authentication failed. Go back and re-enter your email to reset.",
+          error: "Authentication failed. Go back and re-enter your email to reset.",
         },
         { status: 401 }
       );
@@ -109,10 +98,8 @@ export async function POST(req: Request) {
       await admin.save();
     }
 
-    // Create token using Web Crypto API (same as verification)
     const sessionToken = await createSessionToken(email);
 
-    // Set cookie directly on the response
     const response = NextResponse.json({ success: true });
 
     response.cookies.set({
@@ -122,7 +109,7 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     return response;

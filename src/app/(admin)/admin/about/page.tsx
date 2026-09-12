@@ -286,7 +286,7 @@ export default function AdminAbout() {
     value: unknown
   ) => {
     const newExp = [...experience];
-    (newExp[index] as Record<string, unknown>)[field] = value;
+    (newExp[index] as unknown as Record<string, unknown>)[field] = value;
     setExperience(newExp);
   };
 

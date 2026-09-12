@@ -7,8 +7,8 @@ const AboutSchema = new Schema(
     location: { type: String },
     availability: { type: String },
     skills: { type: [String], default: [] },
-    image: { type: String }, // Old image field
-    gDriveProfilePic: { type: String }, // ✅ New G-Drive field
+    image: { type: String },
+    gDriveProfilePic: { type: String },
     education: [
       {
         degree: { type: String },
@@ -17,15 +17,47 @@ const AboutSchema = new Schema(
         relevantCoursework: { type: [String], default: [] },
         cgpa: { type: String },
         percentage: { type: String },
-      }
+      },
     ],
     experience: [
       {
-        role: { type: String },
-        company: { type: String },
-        duration: { type: String },
+        jobTitle: { type: String },
+        organization: { type: String },
+        companyLogo: { type: String },
+        location: { type: String },
+        locationType: {
+          type: String,
+          enum: ["", "On-site", "Remote", "Hybrid"],
+          default: "",
+        },
+        employmentType: {
+          type: String,
+          enum: [
+            "",
+            "Full-time",
+            "Part-time",
+            "Contract",
+            "Internship",
+            "Freelance",
+            "Self-employed",
+          ],
+          default: "",
+        },
+        currentlyWorking: { type: Boolean, default: false },
+        startMonth: { type: String },
+        startYear: { type: String },
+        endMonth: { type: String },
+        endYear: { type: String },
         description: { type: String },
-      }
+        highlights: { type: [String], default: [] },
+        skills: { type: [String], default: [] },
+        media: [
+          {
+            name: { type: String },
+            url: { type: String },
+          },
+        ],
+      },
     ],
     certifications: [
       {
@@ -33,8 +65,8 @@ const AboutSchema = new Schema(
         issuer: { type: String },
         date: { type: String },
         url: { type: String },
-      }
-    ]
+      },
+    ],
   },
   { timestamps: true }
 );

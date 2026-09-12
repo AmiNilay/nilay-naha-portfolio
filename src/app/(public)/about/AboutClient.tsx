@@ -30,11 +30,30 @@ interface EducationEntry {
   percentage: string;
 }
 
+interface ExperienceMedia {
+  name: string;
+  url: string;
+}
+
 interface Experience {
-  role: string;
-  company: string;
-  duration: string;
-  description: string;
+  jobTitle?: string;
+  role?: string;
+  organization?: string;
+  company?: string;
+  companyLogo?: string;
+  location?: string;
+  locationType?: string;
+  employmentType?: string;
+  currentlyWorking?: boolean;
+  startMonth?: string;
+  startYear?: string;
+  endMonth?: string;
+  endYear?: string;
+  duration?: string;
+  description?: string;
+  highlights?: string[];
+  skills?: string[];
+  media?: ExperienceMedia[];
 }
 
 interface Certification {
@@ -91,7 +110,7 @@ export default function AboutClient() {
         if (heroRes) setHeroData(heroRes);
 
         await waitForConfiguredFonts(
-          settingsRes && !settingsRes.error ? settingsRes : null,
+          settingsRes && !settingsRes.error ? settingsRes : null
         );
 
         setLoading(false);
@@ -159,7 +178,6 @@ export default function AboutClient() {
     );
   }
 
-  // ✅ STRICTLY USE THE HOME PAGE IMAGE (No dedicated About image)
   const rawImage = heroData?.profilePic || heroData?.gDriveProfilePic;
   const driveImageMatch = rawImage?.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   const displayResume = heroData?.resumeUrl || heroData?.gDriveResume;
@@ -180,9 +198,9 @@ export default function AboutClient() {
         }}
       />
 
+      {/* 1. PROFILE + BIO */}
       <AnimatedSection direction="up">
         <div className="flex flex-col md:flex-row gap-12 items-start mb-24">
-          {/* Profile Image (Left) */}
           <div className="w-full md:w-1/3 shrink-0 flex flex-col gap-6">
             <div className="w-full aspect-square rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl">
               {rawImage ? (
@@ -238,7 +256,6 @@ export default function AboutClient() {
             </div>
           </div>
 
-          {/* Bio Content (Right) */}
           <div className="w-full md:w-2/3">
             <h1
               className="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-white tracking-tight"
@@ -310,35 +327,143 @@ export default function AboutClient() {
               <Briefcase className="w-8 h-8 mr-3 text-primary" /> Experience
             </h2>
             <div className="relative border-l-2 border-gray-200 dark:border-gray-800 ml-4 md:ml-6 space-y-12 pb-4">
-              {data.experience.map((exp, idx) => (
-                <div key={idx} className="relative pl-8 md:pl-12 group">
-                  <div className="absolute -left-[11px] top-1.5 w-5 h-5 rounded-full bg-primary ring-4 ring-white dark:ring-background group-hover:scale-125 transition-transform duration-300" />
-                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 hover:border-primary/50 transition-all duration-300 hover:shadow-xl">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                      <div>
-                        <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
-                          {exp.role}
-                        </h3>
-                        <p className="mt-2 flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 font-medium">
-                          <MapPin className="w-4 h-4 text-primary" />
-                          {exp.company}
-                        </p>
-                      </div>
-                      {exp.duration && (
-                        <div className="flex items-center gap-1.5 text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg shrink-0">
-                          <Calendar className="w-4 h-4" />
-                          {exp.duration}
+              {data.experience.map((exp, idx) => {
+                // Build duration string from new fields or fallback to old
+                const startStr =
+                  exp.startMonth && exp.startYear
+                    ? `${exp.startMonth.substring(0, 3)} ${exp.startYear}`
+                    : exp.startYear || "";
+                const endStr = exp.currentlyWorking
+                  ? "Present"
+                  : exp.endMonth && exp.endYear
+                    ? `${exp.endMonth.substring(0, 3)} ${exp.endYear}`
+                    : exp.endYear || "";
+                const durationStr =
+                  startStr && endStr
+                    ? `${startStr} - ${endStr}`
+                    : exp.duration || startStr || endStr || "";
+
+                // Fallback old fields
+                const jobTitle = exp.jobTitle || exp.role || "";
+                const org = exp.organization || exp.company || "";
+
+                return (
+                  <div key={idx} className="relative pl-8 md:pl-12 group">
+                    <div className="absolute -left-[11px] top-1.5 w-5 h-5 rounded-full bg-primary ring-4 ring-white dark:ring-background group-hover:scale-125 transition-transform duration-300" />
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 hover:border-primary/50 transition-all duration-300 hover:shadow-xl">
+                      {/* Header Row */}
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+                        <div className="flex items-start gap-3">
+                          {/* Company Logo */}
+                          {exp.companyLogo && (
+                            <img
+                              src={exp.companyLogo}
+                              alt={org}
+                              className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700 shrink-0"
+                            />
+                          )}
+                          <div>
+                            <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+                              {jobTitle}
+                            </h3>
+                            <p className="mt-1.5 text-sm text-gray-700 dark:text-gray-300 font-semibold">
+                              {org}
+                            </p>
+                            {/* Meta badges */}
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              {exp.employmentType && (
+                                <span className="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-md">
+                                  {exp.employmentType}
+                                </span>
+                              )}
+                              {exp.locationType && (
+                                <span className="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-md">
+                                  {exp.locationType}
+                                </span>
+                              )}
+                              {exp.location && (
+                                <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                  <MapPin className="w-3 h-3" />
+                                  {exp.location}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
+                        {durationStr && (
+                          <div className="flex items-center gap-1.5 text-sm font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg shrink-0">
+                            <Calendar className="w-4 h-4" />
+                            {durationStr}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      {exp.description && (
+                        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-wrap mb-4">
+                          {exp.description}
+                        </p>
                       )}
+
+                      {/* Highlights */}
+                      {exp.highlights &&
+                        exp.highlights.filter((h) => h.trim()).length > 0 && (
+                          <ul className="space-y-2 mb-4">
+                            {exp.highlights
+                              .filter((h) => h.trim())
+                              .map((hl, hlIdx) => (
+                                <li
+                                  key={hlIdx}
+                                  className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+                                >
+                                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                  <span>{hl}</span>
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+
+                      {/* Skills */}
+                      {exp.skills &&
+                        exp.skills.filter((s) => s.trim()).length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {exp.skills
+                              .filter((s) => s.trim())
+                              .map((sk, skIdx) => (
+                                <span
+                                  key={skIdx}
+                                  className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-full"
+                                >
+                                  {sk.trim()}
+                                </span>
+                              ))}
+                          </div>
+                        )}
+
+                      {/* Media */}
+                      {exp.media &&
+                        exp.media.filter((m) => m.url).length > 0 && (
+                          <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-3">
+                            {exp.media
+                              .filter((m) => m.url)
+                              .map((m, mIdx) => (
+                                <a
+                                  key={mIdx}
+                                  href={m.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  {m.name || "Link"}
+                                </a>
+                              ))}
+                          </div>
+                        )}
                     </div>
-                    {exp.description && (
-                      <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">
-                        {exp.description}
-                      </p>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </AnimatedSection>
@@ -492,11 +617,11 @@ export default function AboutClient() {
       <AnimatedSection direction="up">
         <div className="bg-primary/5 border border-primary/20 rounded-3xl p-8 md:p-12 text-center max-w-3xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-4">
-            Let's Build Something Great
+            Let&apos;s Build Something Great
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
             Interested in working together or discussing backend architecture?
-            I'm currently open to new opportunities.
+            I&apos;m currently open to new opportunities.
           </p>
           <Link
             href="/contact"

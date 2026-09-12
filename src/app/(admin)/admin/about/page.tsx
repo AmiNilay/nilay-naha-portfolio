@@ -13,9 +13,15 @@ import {
   Eye,
   X,
   Image as ImageIcon,
+  Briefcase,
+  MapPin,
+  Calendar,
+  Sparkles,
+  Link as LinkIcon,
 } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import { SKILL_CATEGORIES } from "@/lib/skillData";
+import ImageUploader from "@/components/admin/ImageUploader";
 
 interface Education {
   degree: string;
@@ -26,11 +32,27 @@ interface Education {
   relevantCoursework: string[];
 }
 
+interface ExperienceMedia {
+  name: string;
+  url: string;
+}
+
 interface Experience {
-  role: string;
-  company: string;
-  duration: string;
+  jobTitle: string;
+  organization: string;
+  companyLogo: string;
+  location: string;
+  locationType: string;
+  employmentType: string;
+  currentlyWorking: boolean;
+  startMonth: string;
+  startYear: string;
+  endMonth: string;
+  endYear: string;
   description: string;
+  highlights: string[];
+  skills: string[];
+  media: ExperienceMedia[];
 }
 
 interface Certification {
@@ -40,18 +62,63 @@ interface Certification {
   url: string;
 }
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const LOCATION_TYPES = ["", "On-site", "Remote", "Hybrid"];
+
+const EMPLOYMENT_TYPES = [
+  "",
+  "Full-time",
+  "Part-time",
+  "Contract",
+  "Internship",
+  "Freelance",
+  "Self-employed",
+];
+
+function emptyExperience(): Experience {
+  return {
+    jobTitle: "",
+    organization: "",
+    companyLogo: "",
+    location: "",
+    locationType: "",
+    employmentType: "",
+    currentlyWorking: false,
+    startMonth: "",
+    startYear: "",
+    endMonth: "",
+    endYear: "",
+    description: "",
+    highlights: [],
+    skills: [],
+    media: [],
+  };
+}
+
 export default function AdminAbout() {
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [availability, setAvailability] = useState("");
   const [gDriveProfilePic, setGDriveProfilePic] = useState("");
   const [previewImage, setPreviewImage] = useState("");
-
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [experience, setExperience] = useState<Experience[]>([]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{
@@ -74,11 +141,13 @@ export default function AdminAbout() {
             const match =
               data.gDriveProfilePic.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
               data.gDriveProfilePic.match(/id=([a-zA-Z0-9_-]+)/);
-            if (match)
+            if (match) {
               setPreviewImage(
-                `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`,
+                `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`
               );
-            else setPreviewImage(data.gDriveProfilePic);
+            } else {
+              setPreviewImage(data.gDriveProfilePic);
+            }
           }
 
           if (Array.isArray(data.skills)) setSelectedSkills(data.skills);
@@ -87,11 +156,33 @@ export default function AdminAbout() {
               data.skills
                 .split(",")
                 .map((s: string) => s.trim())
-                .filter(Boolean),
+                .filter(Boolean)
             );
 
           setEducation(data.education || []);
-          setExperience(data.experience || []);
+
+          // Migrate old experience format to new
+          const migratedExp = (data.experience || []).map(
+            (exp: Record<string, unknown>) => ({
+              jobTitle: exp.jobTitle || exp.role || "",
+              organization: exp.organization || exp.company || "",
+              companyLogo: exp.companyLogo || "",
+              location: exp.location || "",
+              locationType: exp.locationType || "",
+              employmentType: exp.employmentType || "",
+              currentlyWorking: exp.currentlyWorking || false,
+              startMonth: exp.startMonth || "",
+              startYear: exp.startYear || "",
+              endMonth: exp.endMonth || "",
+              endYear: exp.endYear || "",
+              description: exp.description || "",
+              highlights: exp.highlights || [],
+              skills: exp.skills || [],
+              media: exp.media || [],
+            })
+          );
+          setExperience(migratedExp);
+
           setCertifications(data.certifications || []);
         }
         setLoading(false);
@@ -99,7 +190,7 @@ export default function AdminAbout() {
       .catch(() => setLoading(false));
   }, []);
 
-  // --- G-DRIVE IMAGE CONTROLS ---
+  // Image controls
   const handleExtractImage = () => {
     if (!gDriveProfilePic) {
       setToast({ message: "Please paste a link first.", type: "error" });
@@ -110,7 +201,7 @@ export default function AdminAbout() {
       gDriveProfilePic.match(/id=([a-zA-Z0-9_-]+)/);
     if (match) {
       setPreviewImage(
-        `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`,
+        `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`
       );
       setToast({ message: "Image extracted successfully!", type: "success" });
     } else {
@@ -134,7 +225,7 @@ export default function AdminAbout() {
     else setSelectedSkills((prev) => [...prev, skillName]);
   };
 
-  // --- EDUCATION CONTROLS ---
+  // Education controls
   const addEducation = () =>
     setEducation([
       ...education,
@@ -147,10 +238,11 @@ export default function AdminAbout() {
         relevantCoursework: [],
       },
     ]);
+
   const updateEducation = (
     index: number,
     field: keyof Education,
-    value: string,
+    value: string
   ) => {
     const newEdu = [...education];
     if (field === "relevantCoursework")
@@ -160,8 +252,10 @@ export default function AdminAbout() {
     else newEdu[index][field] = value as never;
     setEducation(newEdu);
   };
+
   const removeEducation = (index: number) =>
     setEducation(education.filter((_, i) => i !== index));
+
   const moveEducation = (index: number, direction: "up" | "down") => {
     if (
       (direction === "up" && index === 0) ||
@@ -173,6 +267,7 @@ export default function AdminAbout() {
     [newEdu[index], newEdu[swapIndex]] = [newEdu[swapIndex], newEdu[index]];
     setEducation(newEdu);
   };
+
   const removeCoursework = (eduIndex: number, courseIndex: number) => {
     const newEdu = [...education];
     newEdu[eduIndex].relevantCoursework = newEdu[
@@ -181,23 +276,23 @@ export default function AdminAbout() {
     setEducation(newEdu);
   };
 
-  // --- EXPERIENCE CONTROLS ---
+  // Experience controls
   const addExperience = () =>
-    setExperience([
-      ...experience,
-      { role: "", company: "", duration: "", description: "" },
-    ]);
+    setExperience([...experience, emptyExperience()]);
+
   const updateExperience = (
     index: number,
     field: keyof Experience,
-    value: string,
+    value: unknown
   ) => {
     const newExp = [...experience];
-    newExp[index][field] = value;
+    (newExp[index] as Record<string, unknown>)[field] = value;
     setExperience(newExp);
   };
+
   const removeExperience = (index: number) =>
     setExperience(experience.filter((_, i) => i !== index));
+
   const moveExperience = (index: number, direction: "up" | "down") => {
     if (
       (direction === "up" && index === 0) ||
@@ -210,18 +305,99 @@ export default function AdminAbout() {
     setExperience(newExp);
   };
 
-  // --- CERTIFICATION CONTROLS ---
+  const addHighlight = (expIndex: number) => {
+    const newExp = [...experience];
+    newExp[expIndex].highlights = [...newExp[expIndex].highlights, ""];
+    setExperience(newExp);
+  };
+
+  const updateHighlight = (
+    expIndex: number,
+    hlIndex: number,
+    value: string
+  ) => {
+    const newExp = [...experience];
+    newExp[expIndex].highlights[hlIndex] = value;
+    setExperience(newExp);
+  };
+
+  const removeHighlight = (expIndex: number, hlIndex: number) => {
+    const newExp = [...experience];
+    newExp[expIndex].highlights = newExp[expIndex].highlights.filter(
+      (_, i) => i !== hlIndex
+    );
+    setExperience(newExp);
+  };
+
+  const addExpSkill = (expIndex: number) => {
+    const newExp = [...experience];
+    newExp[expIndex].skills = [...newExp[expIndex].skills, ""];
+    setExperience(newExp);
+  };
+
+  const updateExpSkill = (
+    expIndex: number,
+    skIndex: number,
+    value: string
+  ) => {
+    const newExp = [...experience];
+    newExp[expIndex].skills[skIndex] = value;
+    setExperience(newExp);
+  };
+
+  const removeExpSkill = (expIndex: number, skIndex: number) => {
+    const newExp = [...experience];
+    newExp[expIndex].skills = newExp[expIndex].skills.filter(
+      (_, i) => i !== skIndex
+    );
+    setExperience(newExp);
+  };
+
+  const addMedia = (expIndex: number) => {
+    const newExp = [...experience];
+    newExp[expIndex].media = [
+      ...newExp[expIndex].media,
+      { name: "", url: "" },
+    ];
+    setExperience(newExp);
+  };
+
+  const updateMedia = (
+    expIndex: number,
+    mediaIndex: number,
+    field: "name" | "url",
+    value: string
+  ) => {
+    const newExp = [...experience];
+    newExp[expIndex].media[mediaIndex][field] = value;
+    setExperience(newExp);
+  };
+
+  const removeMedia = (expIndex: number, mediaIndex: number) => {
+    const newExp = [...experience];
+    newExp[expIndex].media = newExp[expIndex].media.filter(
+      (_, i) => i !== mediaIndex
+    );
+    setExperience(newExp);
+  };
+
+  // Certification controls
   const addCertification = () =>
-    setCertifications([...certifications, { name: "", issuer: "", date: "", url: "" }]);
+    setCertifications([
+      ...certifications,
+      { name: "", issuer: "", date: "", url: "" },
+    ]);
+
   const updateCertification = (
     index: number,
     field: keyof Certification,
-    value: string,
+    value: string
   ) => {
     const newCert = [...certifications];
     newCert[index][field] = value;
     setCertifications(newCert);
   };
+
   const removeCertification = (index: number) =>
     setCertifications(certifications.filter((_, i) => i !== index));
 
@@ -259,7 +435,7 @@ export default function AdminAbout() {
   const filteredCategories = SKILL_CATEGORIES.map((cat) => ({
     ...cat,
     skills: cat.skills.filter((s) =>
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      s.name.toLowerCase().includes(searchTerm.toLowerCase())
     ),
   })).filter((cat) => cat.skills.length > 0);
 
@@ -315,7 +491,6 @@ export default function AdminAbout() {
               Profile & Biography
             </h3>
 
-            {/* G-Drive Image Section */}
             <div className="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
               <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2">
                 <ImageIcon size={14} /> Dedicated About Page Image (G-Drive)
@@ -419,7 +594,6 @@ export default function AdminAbout() {
                   key={index}
                   className="p-5 border border-gray-200 rounded-xl bg-gray-50 relative group"
                 >
-                  {/* Controls */}
                   <div className="absolute -top-3 -right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => moveEducation(index, "up")}
@@ -525,7 +699,7 @@ export default function AdminAbout() {
                         updateEducation(
                           index,
                           "relevantCoursework",
-                          e.target.value,
+                          e.target.value
                         )
                       }
                       className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black mb-2"
@@ -617,11 +791,12 @@ export default function AdminAbout() {
             </div>
           </div>
 
-          {/* Experience & Internships */}
+          {/* Experience Section */}
           <div className="p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
             <div className="flex items-center justify-between mb-6 border-b pb-2">
-              <h3 className="font-bold text-lg text-black">
-                Experience & Internships
+              <h3 className="font-bold text-lg text-black flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-blue-600" />
+                Experience
               </h3>
               <button
                 onClick={addExperience}
@@ -630,14 +805,15 @@ export default function AdminAbout() {
                 <Plus className="w-4 h-4" /> Add
               </button>
             </div>
-            <div className="space-y-4">
+
+            <div className="space-y-6">
               {experience.map((exp, index) => (
                 <div
                   key={index}
-                  className="p-4 border border-gray-200 rounded-xl bg-gray-50 relative group"
+                  className="border border-gray-200 rounded-xl bg-gray-50 relative group"
                 >
-                  {/* Move + Delete Controls */}
-                  <div className="absolute -top-3 -right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Top controls */}
+                  <div className="absolute -top-3 -right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button
                       onClick={() => moveExperience(index, "up")}
                       disabled={index === 0}
@@ -660,57 +836,441 @@ export default function AdminAbout() {
                     </button>
                   </div>
 
-                  <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
-                    Role
-                  </label>
-                  <input
-                    value={exp.role}
-                    onChange={(e) =>
-                      updateExperience(index, "role", e.target.value)
-                    }
-                    className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm font-bold text-black"
-                    placeholder="e.g. Backend Intern"
-                  />
-                  <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
-                    Company
-                  </label>
-                  <input
-                    value={exp.company}
-                    onChange={(e) =>
-                      updateExperience(index, "company", e.target.value)
-                    }
-                    className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm text-black"
-                    placeholder="Company name"
-                  />
-                  <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
-                    Duration
-                  </label>
-                  <input
-                    value={exp.duration}
-                    onChange={(e) =>
-                      updateExperience(index, "duration", e.target.value)
-                    }
-                    className="w-full p-2 mb-2 border border-gray-300 rounded-lg text-sm text-black"
-                    placeholder="e.g. Jan 2024 - Present"
-                  />
-                  <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
-                    Description
-                  </label>
-                  <textarea
-                    value={exp.description}
-                    onChange={(e) =>
-                      updateExperience(index, "description", e.target.value)
-                    }
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm text-black"
-                    placeholder="Key contributions..."
-                    rows={2}
-                  />
+                  {/* Header */}
+                  <div className="px-5 py-4 border-b border-gray-200 bg-white rounded-t-xl">
+                    <p className="text-sm font-bold text-gray-700">
+                      {exp.jobTitle || "New Experience"}
+                      {exp.organization && (
+                        <span className="text-gray-400 font-normal">
+                          {" "}
+                          at {exp.organization}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="p-5 space-y-5">
+                    {/* Row 1: Job Title + Organization */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                          Job Title *
+                        </label>
+                        <input
+                          value={exp.jobTitle}
+                          onChange={(e) =>
+                            updateExperience(index, "jobTitle", e.target.value)
+                          }
+                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                          placeholder="e.g. Senior Product Manager"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                          Organization *
+                        </label>
+                        <input
+                          value={exp.organization}
+                          onChange={(e) =>
+                            updateExperience(
+                              index,
+                              "organization",
+                              e.target.value
+                            )
+                          }
+                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                          placeholder="e.g. Microsoft"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 2: Location + Location Type */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                          <MapPin size={10} /> Location
+                        </label>
+                        <input
+                          value={exp.location}
+                          onChange={(e) =>
+                            updateExperience(index, "location", e.target.value)
+                          }
+                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                          placeholder="City or region"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                          Location Type
+                        </label>
+                        <select
+                          value={exp.locationType}
+                          onChange={(e) =>
+                            updateExperience(
+                              index,
+                              "locationType",
+                              e.target.value
+                            )
+                          }
+                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                          {LOCATION_TYPES.map((lt) => (
+                            <option key={lt} value={lt}>
+                              {lt || "Please select"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Row 3: Employment Type + Currently Working */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                          Employment Type
+                        </label>
+                        <select
+                          value={exp.employmentType}
+                          onChange={(e) =>
+                            updateExperience(
+                              index,
+                              "employmentType",
+                              e.target.value
+                            )
+                          }
+                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                          {EMPLOYMENT_TYPES.map((et) => (
+                            <option key={et} value={et}>
+                              {et || "Please select"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-end pb-1">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={exp.currentlyWorking}
+                            onChange={(e) =>
+                              updateExperience(
+                                index,
+                                "currentlyWorking",
+                                e.target.checked
+                              )
+                            }
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm font-semibold text-gray-700">
+                            I currently work here
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Row 4: Start Date */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                          <Calendar size={10} /> Start Month
+                        </label>
+                        <select
+                          value={exp.startMonth}
+                          onChange={(e) =>
+                            updateExperience(
+                              index,
+                              "startMonth",
+                              e.target.value
+                            )
+                          }
+                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                          <option value="">Select</option>
+                          {MONTHS.map((m) => (
+                            <option key={m} value={m}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                          Start Year *
+                        </label>
+                        <input
+                          value={exp.startYear}
+                          onChange={(e) =>
+                            updateExperience(index, "startYear", e.target.value)
+                          }
+                          className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                          placeholder="2026"
+                          type="text"
+                          maxLength={4}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 5: End Date (hidden if currently working) */}
+                    {!exp.currentlyWorking && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                            End Month
+                          </label>
+                          <select
+                            value={exp.endMonth}
+                            onChange={(e) =>
+                              updateExperience(
+                                index,
+                                "endMonth",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          >
+                            <option value="">Select</option>
+                            {MONTHS.map((m) => (
+                              <option key={m} value={m}>
+                                {m}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                            End Year
+                          </label>
+                          <input
+                            value={exp.endYear}
+                            onChange={(e) =>
+                              updateExperience(
+                                index,
+                                "endYear",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="2028"
+                            type="text"
+                            maxLength={4}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                        Description
+                      </label>
+                      <textarea
+                        value={exp.description}
+                        onChange={(e) =>
+                          updateExperience(
+                            index,
+                            "description",
+                            e.target.value
+                          )
+                        }
+                        className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none resize-y min-h-[60px]"
+                        placeholder="Describe your role and responsibilities..."
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Highlights */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
+                          <Sparkles size={10} /> Highlights
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => addHighlight(index)}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1"
+                        >
+                          <Plus size={12} /> Add
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {exp.highlights.map((hl, hlIdx) => (
+                          <div key={hlIdx} className="flex items-center gap-2">
+                            <span className="text-gray-300 text-xs">
+                              {hlIdx + 1}.
+                            </span>
+                            <input
+                              value={hl}
+                              onChange={(e) =>
+                                updateHighlight(index, hlIdx, e.target.value)
+                              }
+                              className="flex-1 p-2 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                              placeholder="Key achievement or highlight..."
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeHighlight(index, hlIdx)}
+                              className="p-1 text-red-400 hover:text-red-600"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Skills for this role */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase block">
+                          Skills
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => addExpSkill(index)}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1"
+                        >
+                          <Plus size={12} /> Add
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {exp.skills.map((sk, skIdx) => (
+                          <div
+                            key={skIdx}
+                            className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1"
+                          >
+                            <input
+                              value={sk}
+                              onChange={(e) =>
+                                updateExpSkill(index, skIdx, e.target.value)
+                              }
+                              className="w-20 p-0.5 border-none text-xs text-black focus:ring-0 outline-none bg-transparent"
+                              placeholder="Skill"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeExpSkill(index, skIdx)}
+                              className="text-red-400 hover:text-red-600"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Media */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
+                          <LinkIcon size={10} /> Media
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => addMedia(index)}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1"
+                        >
+                          <Plus size={12} /> Add
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {exp.media.map((m, mIdx) => (
+                          <div
+                            key={mIdx}
+                            className="flex items-center gap-2"
+                          >
+                            <input
+                              value={m.name}
+                              onChange={(e) =>
+                                updateMedia(
+                                  index,
+                                  mIdx,
+                                  "name",
+                                  e.target.value
+                                )
+                              }
+                              className="w-1/3 p-2 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                              placeholder="Name"
+                            />
+                            <input
+                              value={m.url}
+                              onChange={(e) =>
+                                updateMedia(
+                                  index,
+                                  mIdx,
+                                  "url",
+                                  e.target.value
+                                )
+                              }
+                              className="flex-1 p-2 border border-gray-300 rounded-lg text-sm text-black focus:ring-2 focus:ring-blue-500 outline-none"
+                              placeholder="https://..."
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeMedia(index, mIdx)}
+                              className="p-1 text-red-400 hover:text-red-600"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Company Logo Upload */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 flex items-center gap-1 block">
+                        <ImageIcon size={10} /> Company Logo
+                      </label>
+                      <ImageUploader
+                        defaultCategory="about"
+                        fixedFilename={
+                          exp.organization
+                            ? `${exp.organization.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-logo`
+                            : undefined
+                        }
+                        onUpload={(url) =>
+                          updateExperience(index, "companyLogo", url)
+                        }
+                      />
+                      {exp.companyLogo && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <img
+                            src={exp.companyLogo}
+                            alt="Logo"
+                            className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                          />
+                          <span className="text-xs text-gray-400 font-mono truncate flex-1">
+                            {exp.companyLogo}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateExperience(index, "companyLogo", "")
+                            }
+                            className="text-red-400 hover:text-red-600"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
+
               {experience.length === 0 && (
-                <p className="text-xs text-gray-400 italic">
-                  No experience added.
-                </p>
+                <div className="text-center py-8">
+                  <Briefcase className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                  <p className="text-sm text-gray-400">
+                    No experience added yet.
+                  </p>
+                  <button
+                    onClick={addExperience}
+                    className="mt-3 text-sm text-blue-600 font-bold hover:text-blue-700"
+                  >
+                    + Add your first experience
+                  </button>
+                </div>
               )}
             </div>
           </div>

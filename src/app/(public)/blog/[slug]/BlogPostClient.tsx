@@ -3,248 +3,634 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Eye, Maximize, Minimize, RefreshCw, FolderGit2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  Clock,
+  Calendar,
+  Eye,
+  Maximize2,
+  Minimize2,
+  Share2,
+  Check,
+  FolderGit2,
+  Sparkles,
+  ArrowUp,
+  ArrowUpRight,
+  BookOpen,
+  User,
+} from "lucide-react";
+import ReadingProgress from "@/components/blog/ReadingProgress";
+import TableOfContents from "@/components/blog/TableOfContents";
+
+// Apple WWDC fluid spring physics
+const appleSpring = {
+  type: "spring" as const,
+  stiffness: 380,
+  damping: 30,
+};
+
+interface BlogPost {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  content: string;
+  coverImage?: string;
+  gDriveImage?: string;
+  category?: string;
+  tags?: string[];
+  views?: number;
+  readTime?: number | string;
+  createdAt: string;
+  updatedAt?: string;
+  publishDate?: string;
+  relatedProject?: string;
+}
+
+interface LinkedProject {
+  _id: string;
+  title: string;
+  slug: string;
+  description: string;
+  tags?: string[];
+}
 
 export default function BlogPostClient() {
   const params = useParams();
   const router = useRouter();
-  const [post, setPost] = useState<any>(null);
-  const [linkedProject, setLinkedProject] = useState<any>(null);
+
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [linkedProject, setLinkedProject] = useState<LinkedProject | null>(null);
+  const [heroAuthor, setHeroAuthor] = useState<{ profilePic?: string; gDriveProfilePic?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [viewCount, setViewCount] = useState<number>(0);
+  const [copied, setCopied] = useState(false);
+  const [showReadingDock, setShowReadingDock] = useState(false);
 
+  // Fetch article data, related project, author avatar, and increment view count
   useEffect(() => {
     if (!params?.slug) return;
+
+    let isMounted = true;
 
     const fetchPost = async () => {
       try {
         const res = await fetch(`/api/blog?slug=${params.slug}`);
         const data = await res.json();
-        if (data.post) {
+
+        if (isMounted && data.post) {
           setPost(data.post);
           setViewCount(data.post.views || 0);
-          
+
+          // Fetch related project if linked
           if (data.post.relatedProject) {
             fetch(`/api/projects?id=${data.post.relatedProject}`)
-              .then(res => res.json())
-              .then(projData => {
-                if (projData.project) setLinkedProject(projData.project);
+              .then((r) => r.json())
+              .then((projData) => {
+                if (isMounted && projData.project) {
+                  setLinkedProject(projData.project);
+                }
               })
-              .catch(err => console.error("Failed to fetch linked project", err));
+              .catch((err) => console.error("Failed to load linked project:", err));
           }
 
+          // Fetch author hero avatar
+          fetch("/api/hero")
+            .then((r) => r.json())
+            .then((hero) => {
+              if (isMounted && hero) setHeroAuthor(hero);
+            })
+            .catch(() => {});
+
+          // Increment views atomically
           fetch("/api/views", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ slug: params.slug }),
           })
-            .then((res) => res.json())
-            .then((viewData) => {
-              if (viewData.views) setViewCount(viewData.views);
-            });
+            .then((r) => r.json())
+            .then((vData) => {
+              if (isMounted && vData.views) setViewCount(vData.views);
+            })
+            .catch(() => {});
         }
       } catch (error) {
-        console.error("Failed to fetch post", error);
+        console.error("Failed to fetch article:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchPost();
+
+    return () => {
+      isMounted = false;
+    };
   }, [params?.slug]);
 
+  // Scroll listener to reveal the floating bottom reading dock when scrolled past hero
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowReadingDock(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Enhance code blocks with macOS Terminal styling & copy button
   useEffect(() => {
     if (!post?.content) return;
 
-    const preElements = document.querySelectorAll(".prose pre");
+    const preElements = document.querySelectorAll(".blog-content pre");
     preElements.forEach((preNode) => {
       const pre = preNode as HTMLElement;
 
-      if (pre.querySelector(".copy-button")) return;
+      if (pre.querySelector(".mac-code-header")) return;
 
       pre.style.position = "relative";
-      pre.classList.add("group");
+      pre.classList.add("group", "pt-10", "rounded-2xl", "overflow-hidden");
 
+      // Create macOS Window Header Bar
+      const headerBar = document.createElement("div");
+      headerBar.className =
+        "mac-code-header absolute top-0 left-0 right-0 h-9 px-4 bg-black/40 dark:bg-black/60 border-b border-white/10 flex items-center justify-between pointer-events-none select-none z-10";
+
+      // Traffic Light Dots
+      const dots = document.createElement("div");
+      dots.className = "flex items-center gap-1.5";
+      dots.innerHTML = `
+        <span class="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90 border border-[#e0443e]/50 inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90 border border-[#dea123]/50 inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90 border border-[#1aab29]/50 inline-block"></span>
+      `;
+      headerBar.appendChild(dots);
+
+      // Copy Action Button
       const button = document.createElement("button");
       button.className =
-        "copy-button absolute top-3 right-3 bg-gray-800/80 hover:bg-gray-700 text-gray-300 text-xs px-2.5 py-1.5 rounded-md backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 flex items-center gap-1.5 border border-gray-600";
-      button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy`;
+        "copy-button pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all border border-white/10 active:scale-95";
+      button.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <span>Copy</span>
+      `;
 
       button.addEventListener("click", async () => {
         const code = pre.querySelector("code")?.innerText || pre.innerText;
         await navigator.clipboard.writeText(code);
 
-        button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> <span class="text-green-400">Copied!</span>`;
-        button.classList.add("border-green-500/50");
+        button.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <span style="color:#34d399">Copied</span>
+        `;
 
         setTimeout(() => {
-          button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy`;
-          button.classList.remove("border-green-500/50");
+          button.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy</span>
+          `;
         }, 2000);
       });
 
-      pre.appendChild(button);
+      headerBar.appendChild(button);
+      pre.prepend(headerBar);
     });
   }, [post?.content]);
 
+  // Share handler
+  const handleShare = async () => {
+    if (typeof window === "undefined") return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post?.title,
+          text: post?.excerpt || "Check out this article by Nilay Naha",
+          url: window.location.href,
+        });
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2400);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Loading Screen
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+        <div className="relative w-12 h-12 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          <BookOpen className="w-5 h-5 text-primary absolute" />
+        </div>
+        <p className="mt-4 text-xs font-semibold tracking-widest text-muted-foreground uppercase animate-pulse">
+          Loading Article...
+        </p>
       </div>
     );
   }
 
+  // Not Found Screen
   if (!post) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Post Not Found</h1>
-        <button onClick={() => router.push("/blog")} className="text-primary hover:underline flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" /> Back to Blog
-        </button>
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6 bg-background">
+        <div className="w-16 h-16 rounded-3xl bg-black/[0.04] dark:bg-white/[0.05] border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-center text-muted-foreground mb-6">
+          <BookOpen className="w-8 h-8 stroke-1" />
+        </div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
+          Article Not Found
+        </h1>
+        <p className="text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
+          The requested publication could not be located. It may have been renamed, archived, or removed.
+        </p>
+        <Link
+          href="/blog"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-semibold text-sm shadow-md active:scale-95 transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Return to Articles</span>
+        </Link>
       </div>
     );
   }
 
-  const publishedDate = new Date(post.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const updatedDate = new Date(post.updatedAt);
-  const formattedLastUpdated = `${updatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${updatedDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
+  const formattedDate = post.publishDate || post.createdAt
+    ? new Date(post.publishDate || post.createdAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Recent";
+
+  const authorAvatarUrl = heroAuthor?.profilePic || heroAuthor?.gDriveProfilePic || "";
 
   return (
-    <article className="min-h-screen pt-24 pb-20 transition-colors duration-300">
-      {/* Header Section - Widened */}
-      <header className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 mb-12 text-center">
-        <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors mb-8">
-          <ArrowLeft className="w-4 h-4" /> Back to all posts
-        </Link>
+    <article className="relative min-h-screen bg-background text-foreground pt-24 sm:pt-28 pb-28">
+      {/* 1. Global Reading Progress Bar at the absolute top of viewport */}
+      <ReadingProgress />
 
-        {post.category && (
-          <div className="mb-6">
-            <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 rounded-full">
-              {post.category}
-            </span>
-          </div>
-        )}
+      {/* 2. Apple Ambient Glow Behind Header */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-50 dark:opacity-30"
+      >
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-3xl rounded-full" />
+      </div>
 
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-6 text-balance">
-          {post.title}
-        </h1>
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6">
+        {/* ========================================================================= */}
+        {/* 3. INTEGRATED TOP ACTION BAR (Clean in-flow layout, never overlaps title) */}
+        {/* ========================================================================= */}
+        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-black/[0.06] dark:border-white/[0.08]">
+          {/* Back Navigation Button */}
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] active:scale-95 transition-all"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-primary" />
+            <span>All Articles</span>
+          </Link>
 
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500 dark:text-gray-400 font-medium">
+          {/* Right Action Suite: Category, Read time, Focus Mode, Share */}
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" /> {publishedDate}
-          </div>
-          {post.readTime && (
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" /> {post.readTime}
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-            <Eye className="w-4 h-4" /> {viewCount} Views
-          </div>
-        </div>
-        
-        <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-          <RefreshCw className="w-3 h-3" /> Last updated: {formattedLastUpdated}
-        </div>
-      </header>
+            {post.category && (
+              <span className="hidden sm:inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-primary/10 text-primary border border-primary/20">
+                {post.category}
+              </span>
+            )}
 
-      {/* Cover Image - Widened */}
-      {(post.coverImage || post.gDriveImage) && (
-        <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 mb-16">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden shadow-2xl bg-gray-100 dark:bg-gray-900">
-            <img 
-              src={post.coverImage || post.gDriveImage} 
-              alt={post.title} 
-              className="w-full h-full object-cover select-none" 
-              onContextMenu={(e) => e.preventDefault()}
-              draggable={false}
-              onError={(e) => {
-                if (post.gDriveImage && e.currentTarget.src !== post.gDriveImage) {
-                  e.currentTarget.src = post.gDriveImage;
-                }
-              }}
-            />
-          </motion.div>
-        </div>
-      )}
-            {/* Content Section - Widened */}
-      <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 flex flex-col lg:flex-row gap-12 relative">
-        
-        {/* Main Content */}
-        <div className={`flex-1 min-w-0 transition-all duration-500 ${focusMode ? "max-w-5xl mx-auto" : ""}`}>
-          
-          {/* Focus Mode Toggle */}
-          <div className="flex justify-end mb-6">
+            {/* Focus Mode Toggle */}
             <button
               onClick={() => setFocusMode(!focusMode)}
-              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-all border ${
+                focusMode
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground bg-black/[0.02] dark:bg-white/[0.04] border-black/[0.06] dark:border-white/[0.08]"
+              }`}
+              title={focusMode ? "Exit Focus Mode" : "Distraction-free Focus Mode"}
+              aria-label={focusMode ? "Exit Focus Mode" : "Distraction-free Focus Mode"}
             >
-              {focusMode ? <><Minimize className="w-4 h-4" /> Exit Focus Mode</> : <><Maximize className="w-4 h-4" /> Focus Mode</>}
+              {focusMode ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Exit Focus</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Focus</span>
+                </>
+              )}
+            </button>
+
+            {/* Share Button */}
+            <button
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.08] active:scale-95 transition-all"
+              title="Share article"
+              aria-label="Share article"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-emerald-500 font-bold hidden sm:inline">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Share</span>
+                </>
+              )}
             </button>
           </div>
-
-          {/* ✅ CRITICAL FIX: !max-w-none w-full forces the text to stretch to the edges! */}
-          <div
-            className="prose prose-lg md:prose-xl dark:prose-invert !max-w-none w-full prose-headings:scroll-mt-24 prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:border prose-pre:border-gray-800 prose-a:text-primary hover:prose-a:text-primary/80"
-            dangerouslySetInnerHTML={{ __html: post.content }}
-          />
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Tags</h3>
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag: string) => (
-                  <span key={tag} className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-lg">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Sticky Sidebar (Hidden in Focus Mode) */}
-        {!focusMode && (
-          <aside className="hidden lg:block w-80 xl:w-96 shrink-0">
-            <div className="sticky top-24 space-y-8">
-              
-              {/* Author Card */}
-              <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Written by</h3>
-                <p className="text-primary font-medium">Nilay Naha</p>
-                <p className="text-sm text-gray-500 mt-2">Software Developer specializing in Python, FastAPI, and modern backend systems.</p>
-              </div>
+        {/* ========================================================================= */}
+        {/* 4. COMPACT ARTICLE HEADER (No text clipping, rapid scan) */}
+        {/* ========================================================================= */}
+        <header className="mb-6">
+          {/* Mobile Category Pill (shown on small screens if hidden in top bar) */}
+          {post.category && (
+            <div className="sm:hidden mb-3">
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-primary/10 text-primary border border-primary/20">
+                {post.category}
+              </span>
+            </div>
+          )}
 
-              {/* Linked Project Card */}
-              {linkedProject && (
-                <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-sm">
-                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-wider mb-3">
-                    <FolderGit2 className="w-4 h-4" /> Related Project
-                  </div>
-                  <h4 className="font-bold text-gray-900 dark:text-white text-lg mb-2 line-clamp-2">
-                    {linkedProject.title}
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
-                    {linkedProject.description?.replace(/<[^>]*>?/gm, '') || "Check out the full case study and code for this project."}
-                  </p>
-                  <Link 
-                    href={`/projects/${linkedProject.slug}`}
-                    className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                  >
-                    View Project <ArrowLeft className="w-4 h-4 rotate-180" />
-                  </Link>
+          {/* Article Title: Confident, crisp typography with optical tracking */}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-foreground leading-[1.18] mb-3 text-balance">
+            {post.title}
+          </h1>
+
+          {/* Subtitle / Excerpt: Clean single paragraph */}
+          {post.excerpt && (
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4">
+              {post.excerpt}
+            </p>
+          )}
+
+          {/* Compact Inline Author & Meta Byline */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground pt-1">
+            <div className="flex items-center gap-2">
+              {authorAvatarUrl ? (
+                <img
+                  src={authorAvatarUrl}
+                  alt="Nilay Naha"
+                  className="w-5 h-5 rounded-full object-cover border border-black/10 dark:border-white/10"
+                  draggable={false}
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">
+                  NN
                 </div>
               )}
-
+              <span className="font-semibold text-foreground">Nilay Naha</span>
             </div>
-          </aside>
+
+            <span>•</span>
+
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-primary" />
+              <span>{formattedDate}</span>
+            </span>
+
+            {post.readTime && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-primary" />
+                  <span>{post.readTime} min read</span>
+                </span>
+              </>
+            )}
+
+            {typeof viewCount === "number" && viewCount > 0 && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1.5 text-foreground/80">
+                  <Eye className="w-3.5 h-3.5 text-primary" />
+                  <span>{viewCount} views</span>
+                </span>
+              </>
+            )}
+          </div>
+        </header>
+
+        {/* ========================================================================= */}
+        {/* 5. COMPACT COVER IMAGE (Constrained height to bring text immediately to view) */}
+        {/* ========================================================================= */}
+        {(post.coverImage || post.gDriveImage) && (
+          <div className="mb-8">
+            <div className="relative h-52 sm:h-64 md:h-72 w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.1] border-t-white/80 dark:border-t-white/20 shadow-md">
+              <img
+                src={post.coverImage || post.gDriveImage}
+                alt={post.title}
+                className="w-full h-full object-cover select-none"
+                onContextMenu={(e) => e.preventDefault()}
+                draggable={false}
+                onError={(e) => {
+                  if (post.gDriveImage && e.currentTarget.src !== post.gDriveImage) {
+                    e.currentTarget.src = post.gDriveImage;
+                  } else {
+                    e.currentTarget.style.display = "none";
+                  }
+                }}
+              />
+            </div>
+          </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* 6. MAIN READING BODY & STICKY SIDEBAR */}
+        {/* ========================================================================= */}
+        <div className={`flex flex-col lg:flex-row gap-10 lg:gap-14 items-start ${focusMode ? "justify-center" : ""}`}>
+          
+          {/* Main Reading Column (Strict 700px - 740px Line Length for Ergonomic Reading) */}
+          <div className={`w-full min-w-0 transition-all duration-300 ${focusMode ? "max-w-2xl mx-auto" : "max-w-2xl lg:max-w-[680px] xl:max-w-[720px]"}`}>
+            
+            {/* The Markdown Content Container */}
+            <div
+              className="blog-content prose prose-base sm:prose-lg dark:prose-invert max-w-none prose-headings:scroll-mt-28 prose-headings:tracking-tight prose-headings:font-bold prose-h2:text-2xl prose-h2:sm:text-3xl prose-h3:text-xl prose-h3:sm:text-2xl prose-p:leading-[1.8] prose-p:text-gray-800 dark:prose-p:text-gray-200 prose-a:text-primary prose-a:font-semibold prose-a:no-underline hover:prose-a:underline prose-code:font-mono prose-code:text-primary dark:prose-code:text-primary prose-code:bg-black/[0.04] dark:prose-code:bg-white/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-blockquote:border-l-4 prose-blockquote:border-primary/80 prose-blockquote:bg-black/[0.02] dark:prose-blockquote:bg-white/[0.03] prose-blockquote:rounded-r-2xl prose-blockquote:py-2 prose-blockquote:px-5 prose-blockquote:italic"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+
+            {/* Article Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="mt-12 pt-6 border-t border-black/[0.08] dark:border-white/[0.1]">
+                <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span>Topics Covered</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1 rounded-full text-xs font-semibold bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-foreground transition-colors"
+                    >
+                      #{tag.trim()}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Actions */}
+            <div className="mt-10 pt-6 border-t border-black/[0.08] dark:border-white/[0.1] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <Link
+                href="/blog"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-sm font-semibold text-foreground transition-all active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4 text-primary" />
+                <span>Explore More Articles</span>
+              </Link>
+
+              <button
+                onClick={handleShare}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-md hover:opacity-90 active:scale-95 transition-all"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                <span>{copied ? "Link Copied" : "Share This Article"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Sticky Apple Sidebar (Table of Contents + Author + Project Link) */}
+          <AnimatePresence>
+            {!focusMode && (
+              <motion.aside
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 16 }}
+                transition={appleSpring}
+                className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-28 space-y-5"
+              >
+                {/* 1. Dynamic Table of Contents */}
+                <TableOfContents contentSelector=".blog-content" />
+
+                {/* 2. Apple Author Card */}
+                <div className="rounded-2xl p-5 bg-white/70 dark:bg-[#12161f]/70 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] border-t-white/80 dark:border-t-white/20 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2.5">
+                    {authorAvatarUrl ? (
+                      <img
+                        src={authorAvatarUrl}
+                        alt="Nilay Naha"
+                        className="w-9 h-9 rounded-full object-cover border border-black/10 dark:border-white/10"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
+                        NN
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">Nilay Naha</h4>
+                      <p className="text-[11px] text-primary font-medium">Software Developer</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                    Specializing in Python, FastAPI, Next.js, and high-performance backend systems.
+                  </p>
+                  <Link
+                    href="/about"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                  >
+                    About the Author <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </div>
+
+                {/* 3. Linked Project Card */}
+                {linkedProject && (
+                  <div className="rounded-2xl p-5 bg-primary/[0.04] dark:bg-primary/[0.08] border border-primary/20 border-t-primary/30 shadow-sm">
+                    <div className="flex items-center gap-2 text-primary font-bold text-[11px] uppercase tracking-wider mb-2">
+                      <FolderGit2 className="w-3.5 h-3.5" />
+                      <span>Featured Project</span>
+                    </div>
+                    <h5 className="font-bold text-foreground text-xs sm:text-sm mb-1.5 line-clamp-2">
+                      {linkedProject.title}
+                    </h5>
+                    <p className="text-xs text-muted-foreground line-clamp-3 mb-3 leading-relaxed">
+                      {linkedProject.description?.replace(/<[^>]*>?/gm, "") ||
+                        "Explore the full architecture and source code for this project."}
+                    </p>
+                    <Link
+                      href={`/projects/${linkedProject.slug}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                    >
+                      View Case Study <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </motion.aside>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 7. FLOATING APPLE DOCK (Appears smoothly when scrolling through article) */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {showReadingDock && (
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.95 }}
+            transition={appleSpring}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 rounded-full px-4 py-2 bg-white/85 dark:bg-[#12161f]/85 backdrop-blur-2xl border border-black/[0.08] dark:border-white/[0.12] border-t-white/80 dark:border-t-white/20 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.6)] flex items-center gap-3 text-xs max-w-[92vw] sm:max-w-md"
+          >
+            {/* Truncated Article Title */}
+            <span className="font-semibold text-foreground truncate max-w-[140px] sm:max-w-[200px]">
+              {post.title}
+            </span>
+
+            <span className="text-muted-foreground/30">•</span>
+
+            {/* Focus Mode Toggle */}
+            <button
+              onClick={() => setFocusMode(!focusMode)}
+              className="inline-flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground active:scale-95 transition-all"
+              title={focusMode ? "Exit Focus Mode" : "Focus Mode"}
+            >
+              {focusMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{focusMode ? "Exit" : "Focus"}</span>
+            </button>
+
+            <span className="text-muted-foreground/30">•</span>
+
+            {/* Share Action */}
+            <button
+              onClick={handleShare}
+              className="inline-flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground active:scale-95 transition-all"
+              title="Share"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{copied ? "Copied" : "Share"}</span>
+            </button>
+
+            <span className="text-muted-foreground/30">•</span>
+
+            {/* Scroll to Top Action */}
+            <button
+              onClick={scrollToTop}
+              className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary active:scale-95 transition-all"
+              title="Scroll to top"
+              aria-label="Scroll to top"
+            >
+              <ArrowUp className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </article>
   );
 }
-

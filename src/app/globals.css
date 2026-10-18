@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -55,8 +55,12 @@
     @apply text-gray-900 dark:text-white font-bold;
   }
 
-  p, span, li, div {
+  p, li {
     @apply text-gray-800 dark:text-gray-200;
+  }
+
+  button, input, select, textarea {
+    color: inherit;
   }
 
   a {
@@ -284,4 +288,27 @@ html.dark .admin-root .ql-editor {
 
 html.dark .admin-root .ql-editor.ql-blank::before {
   color: #9ca3af !important;
+}
+
+/* ── Hero tech-stack marquee ───────────────────────────────────────────── */
+@keyframes hero-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.hero-marquee-track {
+  display: flex;
+  width: max-content;          /* shrinks to content, NOT viewport */
+  animation: hero-scroll 30s linear infinite;
+  will-change: transform;
+}
+
+.hero-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-marquee-track {
+    animation: none;
+  }
 }

@@ -148,18 +148,39 @@ export default function PageNavigation() {
       </div>
 
       {/* DESKTOP DOT NAVIGATION */}
-      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-4">
-        {pages.map((path, idx) => (
-          <div
-            key={path}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              idx === currentIndex
-                ? "bg-primary scale-125"
-                : "bg-gray-400 dark:bg-gray-600 hover:bg-primary/50"
-            }`}
-          />
-        ))}
-      </div>
+      <nav aria-label="Page navigation" className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-4">
+        {pages.map((path, idx) => {
+          const isCurrent = idx === currentIndex;
+          const pageNames = ["Home", "Projects", "Blog", "About", "Contact"];
+          return (
+            <button
+              key={path}
+              type="button"
+              onClick={() => {
+                if (safePathname === "/") {
+                  window.dispatchEvent(
+                    new CustomEvent("portfolio-navigate-slide", {
+                      detail: { slideIndex: idx },
+                    })
+                  );
+                } else {
+                  router.push(path);
+                }
+              }}
+              aria-label={`Navigate to ${pageNames[idx] || `page ${idx + 1}`}`}
+              className="group p-1.5 -m-1.5 flex items-center justify-center cursor-pointer focus:outline-none"
+            >
+              <span
+                className={`block rounded-full transition-all duration-200 active:scale-75 ${
+                  isCurrent
+                    ? "w-3 h-3 bg-primary scale-125 shadow-[0_0_10px] shadow-primary/60"
+                    : "w-2.5 h-2.5 bg-gray-400 dark:bg-gray-600 group-hover:bg-primary/80 group-hover:scale-110"
+                }`}
+              />
+            </button>
+          );
+        })}
+      </nav>
     </>
   );
 }

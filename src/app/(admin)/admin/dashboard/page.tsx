@@ -1,7 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Mail, MailOpen, Trash2, FileText, FolderGit2, Users, Loader2, CheckCircle } from "lucide-react";
+import {
+  Mail,
+  MailOpen,
+  Trash2,
+  FileText,
+  FolderGit2,
+  Users,
+  Loader2,
+  CheckCircle,
+  ExternalLink,
+  MessageSquare,
+  Sparkles,
+  Inbox,
+  Filter,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 interface Message {
   _id: string;
@@ -14,8 +30,14 @@ interface Message {
 
 export default function AdminDashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [stats, setStats] = useState({ projects: 0, blogs: 0, totalMessages: 0, unreadMessages: 0 });
+  const [stats, setStats] = useState({
+    projects: 0,
+    blogs: 0,
+    totalMessages: 0,
+    unreadMessages: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
 
   useEffect(() => {
     fetchDashboardData();
@@ -24,18 +46,17 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Fetch Messages
-      const msgRes = await fetch("/api/contact");
+      const [msgRes, projRes, blogRes] = await Promise.all([
+        fetch("/api/contact"),
+        fetch("/api/projects"),
+        fetch("/api/blog"),
+      ]);
+
       const msgData = await msgRes.json();
-      const fetchedMessages = msgData.messages || [];
-      
-      // Fetch Projects count
-      const projRes = await fetch("/api/projects");
       const projData = await projRes.json();
-      
-      // Fetch Blogs count
-      const blogRes = await fetch("/api/blog");
       const blogData = await blogRes.json();
+
+      const fetchedMessages = msgData.messages || [];
 
       setMessages(fetchedMessages);
       setStats({
@@ -59,7 +80,15 @@ export default function AdminDashboard() {
         body: JSON.stringify({ id, read: !currentStatus }),
       });
       if (res.ok) {
-        fetchDashboardData(); // Refresh data
+        setMessages((prev) =>
+          prev.map((m) => (m._id === id ? { ...m, read: !currentStatus } : m))
+        );
+        setStats((prev) => ({
+          ...prev,
+          unreadMessages: currentStatus
+            ? prev.unreadMessages + 1
+            : Math.max(0, prev.unreadMessages - 1),
+        }));
       }
     } catch (error) {
       console.error("Failed to update status", error);
@@ -71,144 +100,267 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`/api/contact?id=${id}`, { method: "DELETE" });
       if (res.ok) {
-        fetchDashboardData(); // Refresh data
+        setMessages((prev) => prev.filter((m) => m._id !== id));
+        fetchDashboardData();
       }
     } catch (error) {
       console.error("Failed to delete message", error);
     }
   };
 
+  const filteredMessages = messages.filter((m) => {
+    if (filter === "unread") return !m.read;
+    if (filter === "read") return m.read;
+    return true;
+  });
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+        <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+          Loading Metrics...
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Command Center</h1>
-        <p className="text-gray-600 mt-2">Overview of your portfolio's performance and messages.</p>
+    <div className="space-y-8 pb-12 select-none">
+      {/* Title Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <Sparkles className="w-3.5 h-3.5" /> Operations Overview
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+            Command Center
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Real-time analytics, user inquiries, and content inventory status.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/projects"
+            className="px-4 py-2 rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-bold hover:opacity-95 active:scale-98 transition-all shadow-sm flex items-center gap-1.5"
+          >
+            <FolderGit2 className="w-3.5 h-3.5" /> Manage Projects
+          </Link>
+          <Link
+            href="/admin/blog"
+            className="px-4 py-2 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-bold hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 active:scale-98 transition-all border border-zinc-200/60 dark:border-zinc-700 flex items-center gap-1.5"
+          >
+            <FileText className="w-3.5 h-3.5" /> Manage Blog
+          </Link>
+        </div>
       </div>
 
-      {/* STATS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+      {/* STATS BENTO GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Projects Metric */}
+        <Link
+          href="/admin/projects"
+          className="p-6 rounded-3xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_12px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)] hover:border-cyan-500/40 transition-all duration-200 group flex items-center gap-4"
+        >
+          <div className="p-3.5 rounded-2xl bg-cyan-500/10 text-cyan-500 group-hover:scale-105 transition-transform">
             <FolderGit2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Projects</p>
-            <h3 className="text-2xl font-bold text-gray-900">{stats.projects}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              Total Projects
+            </p>
+            <h3 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mt-0.5">
+              {stats.projects}
+            </h3>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-100 text-purple-600 rounded-lg">
+        {/* Blogs Metric */}
+        <Link
+          href="/admin/blog"
+          className="p-6 rounded-3xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_12px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)] hover:border-purple-500/40 transition-all duration-200 group flex items-center gap-4"
+        >
+          <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-500 group-hover:scale-105 transition-transform">
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Published Blogs</p>
-            <h3 className="text-2xl font-bold text-gray-900">{stats.blogs}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              Published Posts
+            </p>
+            <h3 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mt-0.5">
+              {stats.blogs}
+            </h3>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-green-100 text-green-600 rounded-lg">
+        {/* Messages Metric */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_12px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)] flex items-center gap-4">
+          <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-500">
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Messages</p>
-            <h3 className="text-2xl font-bold text-gray-900">{stats.totalMessages}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              Total Inquiries
+            </p>
+            <h3 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mt-0.5">
+              {stats.totalMessages}
+            </h3>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-red-100 text-red-600 rounded-lg">
+        {/* Unread Metric */}
+        <div
+          onClick={() => setFilter(filter === "unread" ? "all" : "unread")}
+          className="p-6 rounded-3xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_12px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.3)] flex items-center gap-4 cursor-pointer hover:border-amber-500/40 transition-all"
+        >
+          <div className="relative p-3.5 rounded-2xl bg-amber-500/10 text-amber-500">
             <Mail className="w-6 h-6" />
+            {stats.unreadMessages > 0 && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-500 animate-pulse border-2 border-white dark:border-zinc-900" />
+            )}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Unread Messages</p>
-            <h3 className="text-2xl font-bold text-gray-900">{stats.unreadMessages}</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              Unread Inbox
+            </p>
+            <h3 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mt-0.5">
+              {stats.unreadMessages}
+            </h3>
           </div>
         </div>
       </div>
 
-      {/* MESSAGES TABLE */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Recent Messages</h2>
+      {/* MESSAGES MANAGEMENT SECTION */}
+      <div className="rounded-3xl bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_16px_40px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] overflow-hidden">
+        {/* Messages Header & Filters */}
+        <div className="p-6 border-b border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              <Inbox className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
+                Visitor Messages
+              </h2>
+              <span className="text-xs text-zinc-400">
+                Inquiries submitted through the public contact form
+              </span>
+            </div>
+          </div>
+
+          {/* Segmented Filter Pills */}
+          <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-2xl border border-zinc-200/60 dark:border-zinc-700/60">
+            {(["all", "unread", "read"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setFilter(t)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold tracking-tight capitalize transition-all ${
+                  filter === t
+                    ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="p-4 text-sm font-semibold text-gray-600">Status</th>
-                <th className="p-4 text-sm font-semibold text-gray-600">Sender</th>
-                <th className="p-4 text-sm font-semibold text-gray-600">Message</th>
-                <th className="p-4 text-sm font-semibold text-gray-600">Date</th>
-                <th className="p-4 text-sm font-semibold text-gray-600 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {messages.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
-                    No messages received yet.
-                  </td>
-                </tr>
-              ) : (
-                messages.map((msg) => (
-                  <tr key={msg._id} className={`hover:bg-gray-50 transition-colors ${!msg.read ? 'bg-blue-50/30' : ''}`}>
-                    <td className="p-4">
-                      {!msg.read ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                          <Mail className="w-3.5 h-3.5" /> New
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                          <MailOpen className="w-3.5 h-3.5" /> Read
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <p className="font-medium text-gray-900">{msg.name}</p>
-                      <a href={`mailto:${msg.email}`} className="text-sm text-blue-600 hover:underline">{msg.email}</a>
-                    </td>
-                    <td className="p-4 max-w-md">
-                      <p className="text-sm text-gray-700 line-clamp-2" title={msg.message}>
-                        {msg.message}
-                      </p>
-                    </td>
-                    <td className="p-4 text-sm text-gray-500">
-                      {new Date(msg.createdAt).toLocaleDateString('en-US', { 
-                        month: 'short', day: 'numeric', year: 'numeric' 
-                      })}
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      <button
-                        onClick={() => toggleReadStatus(msg._id, msg.read)}
-                        className="inline-flex items-center justify-center p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title={msg.read ? "Mark as unread" : "Mark as read"}
-                      >
-                        {msg.read ? <Mail className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => deleteMessage(msg._id)}
-                        className="inline-flex items-center justify-center p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete message"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+
+        {/* Message Items List */}
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+          {filteredMessages.length === 0 ? (
+            <div className="p-12 text-center text-zinc-400">
+              <Inbox className="w-10 h-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm font-semibold">No messages found in this filter.</p>
+            </div>
+          ) : (
+            filteredMessages.map((msg) => (
+              <div
+                key={msg._id}
+                className={`p-5 sm:p-6 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                  !msg.read
+                    ? "bg-cyan-500/[0.03] dark:bg-cyan-500/[0.04]"
+                    : "hover:bg-zinc-50/60 dark:hover:bg-zinc-800/20"
+                }`}
+              >
+                <div className="space-y-1.5 max-w-2xl">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {!msg.read ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                        New Inquiry
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                        Read
+                      </span>
+                    )}
+
+                    <h4 className="text-sm font-bold text-zinc-900 dark:text-white">
+                      {msg.name}
+                    </h4>
+
+                    <span className="text-xs text-zinc-400">•</span>
+
+                    <a
+                      href={`mailto:${msg.email}`}
+                      className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline"
+                    >
+                      {msg.email}
+                    </a>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                    {msg.message}
+                  </p>
+
+                  <span className="text-[11px] text-zinc-400 block pt-1">
+                    Received on{" "}
+                    {new Date(msg.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1.5 shrink-0 self-end md:self-center">
+                  <a
+                    href={`mailto:${msg.email}?subject=Re:%20Inquiry%20from%20Portfolio`}
+                    className="p-2 text-zinc-400 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+                    title="Reply by email"
+                  >
+                    <Mail className="w-4 h-4" />
+                  </a>
+
+                  <button
+                    onClick={() => toggleReadStatus(msg._id, msg.read)}
+                    className="p-2 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+                    title={msg.read ? "Mark as unread" : "Mark as read"}
+                  >
+                    {msg.read ? (
+                      <Mail className="w-4 h-4" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => deleteMessage(msg._id)}
+                    className="p-2 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
+                    title="Delete message"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

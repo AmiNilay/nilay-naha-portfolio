@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import BlogPostClient from "./BlogPostClient";
+import { connectToDB } from "@/lib/connectToDB";
+import Post from "@/models/Post";
 
-const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
+export const dynamic = "force-dynamic";
 
 async function getPost(slug: string) {
   try {
-    const res = await fetch(`${SITE_URL}/api/blog?slug=${slug}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.post || null;
-  } catch {
+    await connectToDB();
+    const post = await Post.findOne({ slug }).lean();
+    return post;
+  } catch (error) {
+    console.error("Metadata post lookup error:", error);
     return null;
   }
 }
@@ -21,31 +21,35 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const post = await getPost(params.slug);
+  const post: any = await getPost(params.slug);
 
   if (!post) {
     return {
-      title: "Article Not Found",
-      description: "This blog post could not be found.",
+      title: "Article Not Found | Nilay Naha",
+      description: "This publication could not be found.",
     };
   }
 
   const description =
     post.excerpt ||
-    (post.content ? post.content.replace(/<[^>]+>/g, "").slice(0, 155) : "Read this article by Nilay Naha.");
+    (post.content
+      ? post.content.replace(/<[^>]+>/g, "").slice(0, 155)
+      : "Read this technical publication by Nilay Naha.");
+
+  const coverUrl = post.coverImage || post.gDriveImage || "/og-image.png";
 
   return {
-    title: post.title,
+    title: `${post.title} | Nilay Naha`,
     description,
     openGraph: {
       title: post.title,
       description,
       type: "article",
       url: `/blog/${params.slug}`,
-      publishedTime: post.createdAt,
+      publishedTime: post.publishDate || post.createdAt,
       images: [
         {
-          url: post.coverImage || "/og-image.png",
+          url: coverUrl,
           width: 1200,
           height: 630,
           alt: post.title,
@@ -56,7 +60,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: post.title,
       description,
-      images: [post.coverImage || "/og-image.png"],
+      images: [coverUrl],
     },
   };
 }

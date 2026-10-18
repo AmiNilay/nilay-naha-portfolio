@@ -9,7 +9,11 @@ interface Heading {
   level: number;
 }
 
-export default function TableOfContents({ contentSelector = ".blog-content" }: { contentSelector?: string }) {
+export default function TableOfContents({
+  contentSelector = ".blog-content",
+}: {
+  contentSelector?: string;
+}) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>("");
 
@@ -55,7 +59,7 @@ export default function TableOfContents({ contentSelector = ".blog-content" }: {
     const el = document.getElementById(id);
     if (!el) return;
 
-    const yOffset = -100;
+    const yOffset = -120;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
     history.pushState(null, "", `#${id}`);
@@ -65,27 +69,31 @@ export default function TableOfContents({ contentSelector = ".blog-content" }: {
   if (headings.length < 2) return null;
 
   return (
-    <nav className="max-h-[calc(100vh-10rem)] overflow-y-auto no-scrollbar">
-      <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-        <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
-          <List className="w-4 h-4" /> On this page
+    <nav className="max-h-[calc(100vh-14rem)] overflow-y-auto no-scrollbar">
+      <div className="bg-white/70 dark:bg-[#12161f]/70 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] border-t-white/80 dark:border-t-white/20 rounded-3xl p-6 shadow-sm">
+        <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
+          <List className="w-3.5 h-3.5 text-primary" />
+          <span>Table of Contents</span>
         </h3>
-        <ul className="space-y-1.5">
-          {headings.map((h) => (
-            <li key={h.id} style={{ paddingLeft: `${Math.max(0, h.level - 2) * 12}px` }}>
-              <a
-                href={`#${h.id}`}
-                onClick={(e) => handleClick(e, h.id)}
-                className={`block py-1.5 px-3 text-sm rounded-lg transition-all border-l-2 cursor-pointer ${
-                  activeId === h.id
-                    ? "border-primary text-primary font-bold bg-primary/10"
-                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-              >
-                {h.text}
-              </a>
-            </li>
-          ))}
+        <ul className="space-y-1">
+          {headings.map((h) => {
+            const isActive = activeId === h.id;
+            return (
+              <li key={h.id} style={{ paddingLeft: `${Math.max(0, h.level - 2) * 10}px` }}>
+                <a
+                  href={`#${h.id}`}
+                  onClick={(e) => handleClick(e, h.id)}
+                  className={`block py-1.5 px-3 text-xs sm:text-sm rounded-xl transition-all select-none cursor-pointer leading-snug ${
+                    isActive
+                      ? "bg-primary/10 text-primary font-bold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
+                  }`}
+                >
+                  {h.text}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </nav>

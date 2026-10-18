@@ -1,43 +1,103 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, ArrowRight, Github, ExternalLink, Loader2, Download,
-  Calendar, Share2, Twitter, Linkedin, Copy, Check, Layers, AlertTriangle, RefreshCw
+  ArrowLeft, ArrowRight, ArrowUpRight, Github, ExternalLink, 
+  Loader2, Download, Calendar, Share2, Twitter, Linkedin, 
+  Copy, Check, Layers, AlertTriangle, RefreshCw, Maximize2, 
+  Minimize2, Monitor, Sparkles, BookOpen, Clock, FileCode,
+  ShieldCheck, CheckCircle2, ChevronRight
 } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import ReadingProgress from "@/components/blog/ReadingProgress";
 import TableOfContents from "@/components/blog/TableOfContents";
 import { processContent } from "@/lib/markdownProcessor";
+import { motion, AnimatePresence } from "framer-motion";
 
-export default function ProjectDetails() {
+// Apple WWDC critically damped spring
+const appleSpring = {
+  type: "spring" as const,
+  stiffness: 380,
+  damping: 32,
+};
+
+// Safe image resolver supporting direct GitHub URLs and Google Drive thumbnails
+export const getCleanImageUrl = (image?: string, gDriveImage?: string) => {
+  if (image && image.trim()) return image.trim();
+  if (!gDriveImage || !gDriveImage.trim()) return "";
+  if (gDriveImage.includes("<iframe")) return gDriveImage;
+  const match = gDriveImage.match(/[-\w]{25,}/);
+  if (match) {
+    return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w1000`;
+  }
+  return gDriveImage;
+};
+
+interface Project {
+  _id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content?: string;
+  image?: string;
+  gDriveImage?: string;
+  githubLink?: string;
+  liveLink?: string;
+  appLink?: string;
+  role?: string;
+  status?: string;
+  featured?: boolean;
+  frameStyle?: string;
+  publishDate?: string;
+  createdAt?: string;
+  relatedBlog?: string;
+  tags?: string[];
+  techStack?: string[] | string;
+}
+
+interface LinkedBlog {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  coverImage?: string;
+  gDriveImage?: string;
+  readTime?: number | string;
+}
+
+export default function ProjectDetailsClient() {
   const params = useParams();
-  const slug = params?.slug;
+  const router = useRouter();
+  const slug = params?.slug as string;
 
-  const [project, setProject] = useState<any>(null);
-  const [prevProject, setPrevProject] = useState<any>(null);
-  const [nextProject, setNextProject] = useState<any>(null);
+  const [project, setProject] = useState<Project | null>(null);
+  const [prevProject, setPrevProject] = useState<Project | null>(null);
+  const [nextProject, setNextProject] = useState<Project | null>(null);
+  const [linkedBlog, setLinkedBlog] = useState<LinkedBlog | null>(null);
   const [processedHTML, setProcessedHTML] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [showNavDock, setShowNavDock] = useState(false);
   const [contentReady, setContentReady] = useState(false);
 
-  const fetchProjectData = async () => {
+  // Fetch project data and neighboring projects
+  const fetchProjectData = useCallback(async () => {
     if (!slug) return;
     setLoading(true);
     setError(null);
 
     try {
       const res = await fetch(`/api/projects`);
-      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.ok) throw new Error("Failed to load project database");
       
       const data = await res.json();
-      const projects = data.projects || [];
-      const currentIndex = projects.findIndex((p: any) => p.slug === slug);
+      const projects: Project[] = data.projects || [];
+      const currentIndex = projects.findIndex((p) => p.slug === slug);
 
       if (currentIndex !== -1) {
         const currentProject = projects[currentIndex];
@@ -45,6 +105,7 @@ export default function ProjectDetails() {
         setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
         setNextProject(currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null);
 
+        // Process markdown/HTML content
         const rawContent = currentProject.description || currentProject.content || "";
         const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
         
@@ -54,34 +115,45 @@ export default function ProjectDetails() {
           const html = await processContent(rawContent);
           setProcessedHTML(html);
         }
+
+        // Fetch linked blog publication if available
+        if (currentProject.relatedBlog) {
+          fetch(`/api/blog?id=${currentProject.relatedBlog}`)
+            .then((r) => r.json())
+            .then((bData) => {
+              if (bData.post) setLinkedBlog(bData.post);
+            })
+            .catch((err) => console.error("Linked blog lookup failed:", err));
+        }
       } else {
         setProject(null);
       }
-    } catch (err) {
-      console.error("Error:", err);
-      if (!navigator.onLine) {
-        setError("You appear to be offline. Please check your internet connection.");
+    } catch (err: any) {
+      console.error("Error loading project:", err);
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("Network connection offline. Please check your internet connection.");
       } else {
-        setError("Failed to load project details. The server might be busy.");
+        setError("Unable to load case study. The server might be momentarily unavailable.");
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchProjectData();
   }, [slug]);
 
   useEffect(() => {
+    fetchProjectData();
+  }, [fetchProjectData]);
+
+  // Heading slug injection for TableOfContents
+  useEffect(() => {
     if (!processedHTML) return;
     const timer = setTimeout(() => {
-      const container = document.querySelector(".blog-content");
+      const container = document.querySelector(".project-content");
       if (!container) return;
-      const headings = container.querySelectorAll("h2, h3");
+      const headings = container.querySelectorAll("h2, h3, h4");
       headings.forEach((el, i) => {
         if (!el.id) {
-          const headingSlug = (el.textContent || `heading-${i}`)
+          const headingSlug = (el.textContent || `section-${i}`)
             .toLowerCase()
             .replace(/[^\w\s-]/g, "")
             .replace(/\s+/g, "-");
@@ -89,317 +161,634 @@ export default function ProjectDetails() {
         }
       });
       setContentReady(true);
-    }, 100);
+    }, 150);
     return () => clearTimeout(timer);
   }, [processedHTML]);
 
-  const handleCopyLink = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Scroll listener for sticky floating top action bar
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowNavDock(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Enhance code blocks with macOS Terminal headers & one-click copy buttons
+  useEffect(() => {
+    if (!processedHTML) return;
+
+    const preElements = document.querySelectorAll(".project-content pre");
+    preElements.forEach((preNode) => {
+      const pre = preNode as HTMLElement;
+
+      if (pre.querySelector(".mac-code-header")) return;
+
+      pre.style.position = "relative";
+      pre.classList.add("group", "pt-10", "rounded-2xl", "overflow-hidden");
+
+      // macOS Window Header
+      const headerBar = document.createElement("div");
+      headerBar.className =
+        "mac-code-header absolute top-0 left-0 right-0 h-9 px-4 bg-zinc-900/90 dark:bg-zinc-950/90 border-b border-zinc-800 flex items-center justify-between select-none z-10";
+
+      // Traffic Light Dots
+      const dotsContainer = document.createElement("div");
+      dotsContainer.className = "flex items-center gap-1.5 pointer-events-none";
+
+      const redDot = document.createElement("div");
+      redDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500/80";
+      const yellowDot = document.createElement("div");
+      yellowDot.className = "w-2.5 h-2.5 rounded-full bg-amber-500/80";
+      const greenDot = document.createElement("div");
+      greenDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500/80";
+
+      dotsContainer.appendChild(redDot);
+      dotsContainer.appendChild(yellowDot);
+      dotsContainer.appendChild(greenDot);
+
+      // Terminal label
+      const terminalLabel = document.createElement("span");
+      terminalLabel.className = "text-[11px] font-mono text-zinc-400 font-medium";
+      const codeElement = pre.querySelector("code");
+      const langClass = codeElement?.className.match(/language-(\w+)/);
+      terminalLabel.textContent = langClass ? langClass[1] : "bash";
+
+      // Copy Action Button
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className =
+        "px-2 py-0.5 rounded-md text-[11px] font-medium text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700 transition-colors pointer-events-auto cursor-pointer";
+      copyBtn.textContent = "Copy";
+
+      copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        const codeText = pre.querySelector("code")?.innerText || pre.innerText;
+        navigator.clipboard.writeText(codeText).then(() => {
+          copyBtn.textContent = "Copied!";
+          copyBtn.classList.add("text-emerald-400");
+          setTimeout(() => {
+            copyBtn.textContent = "Copy";
+            copyBtn.classList.remove("text-emerald-400");
+          }, 2000);
+        });
+      };
+
+      headerBar.appendChild(dotsContainer);
+      headerBar.appendChild(terminalLabel);
+      headerBar.appendChild(copyBtn);
+
+      pre.insertBefore(headerBar, pre.firstChild);
+    });
+  }, [processedHTML]);
+
+  // Social and Clipboard Sharing
+  const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
-      setToast({ message: "Link copied!", type: "success" });
+      setToast({ message: "Case study link copied to clipboard!", type: "success" });
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setToast({ message: "Failed to copy.", type: "error" });
+      setToast({ message: "Failed to copy link.", type: "error" });
     }
   };
 
-  const shareOnTwitter = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const text = encodeURIComponent(`Check out this project: ${project?.title}`);
+  const shareOnTwitter = () => {
+    const text = encodeURIComponent(`Architecture & Case Study: ${project?.title}`);
     const url = encodeURIComponent(window.location.href);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "width=600,height=500" );
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "width=600,height=500");
   };
 
-  const shareOnLinkedIn = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const shareOnLinkedIn = () => {
     const url = encodeURIComponent(window.location.href);
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank", "width=600,height=500" );
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank", "width=600,height=500");
   };
 
-  const ShareButtons = () => (
-    <div className="flex items-center gap-2 relative z-20">
-      <button type="button" onClick={shareOnTwitter} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1DA1F2] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
-        <Twitter className="w-4 h-4 pointer-events-none" /> <span className="pointer-events-none hidden sm:inline">Twitter</span>
-      </button>
-      <button type="button" onClick={shareOnLinkedIn} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0077B5] text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
-        <Linkedin className="w-4 h-4 pointer-events-none" /> <span className="pointer-events-none hidden sm:inline">LinkedIn</span>
-      </button>
-      <button type="button" onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-        {copied ? <Check className="w-4 h-4 pointer-events-none text-green-500" /> : <Share2 className="w-4 h-4 pointer-events-none" />}
-        <span className="pointer-events-none hidden sm:inline">{copied ? "Copied" : "Copy"}</span>
-      </button>
-    </div>
-  );
+  // Keyboard shortcut listener (Esc exits Focus Mode)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && focusMode) {
+        setFocusMode(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [focusMode]);
 
   // ==========================================
-  // ERROR STATE UI
+  // ERROR STATE
   // ==========================================
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center pt-20">
-        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-red-100 dark:border-red-900/30">
-          <AlertTriangle className="w-10 h-10" />
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mb-6 shadow-sm">
+          <AlertTriangle className="w-8 h-8" />
         </div>
-        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">Oops! Something went wrong</h2>
-        <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">{error}</p>
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mb-2">
+          Unable to Load Case Study
+        </h2>
+        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-md mb-6 leading-relaxed">
+          {error}
+        </p>
         <button 
           onClick={fetchProjectData} 
-          className="px-8 py-3.5 bg-primary text-white rounded-full font-bold hover:scale-105 hover:shadow-lg transition-all flex items-center gap-2"
+          className="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center gap-2"
         >
-          <RefreshCw className="w-5 h-5" /> Try Again
+          <RefreshCw className="w-4 h-4" /> Reload Case Study
         </button>
       </div>
     );
   }
 
   // ==========================================
-  // SKELETON LOADER UI
+  // SKELETON LOADER
   // ==========================================
   if (loading) {
     return (
-      <div className="min-h-screen pb-20 bg-background pt-24">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 mb-8">
-          <div className="w-32 h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-        </div>
-        <header className="max-w-4xl mx-auto px-4 md:px-8">
-          <div className="w-3/4 h-12 md:h-16 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse mb-6"></div>
-          <div className="flex justify-between pb-8 border-b border-gray-200 dark:border-gray-800">
-            <div className="w-40 h-8 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
-            <div className="w-48 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse"></div>
-          </div>
-          <div className="w-full mt-10 aspect-[16/9] bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse"></div>
-        </header>
-        <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
-          <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_320px]">
-            <article className="w-full space-y-4">
-              <div className="w-full h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-              <div className="w-full h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-              <div className="w-5/6 h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-              <div className="w-full h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse mt-8"></div>
-              <div className="w-4/5 h-4 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
-            </article>
-            <aside className="hidden lg:block space-y-8">
-              <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse"></div>
-              <div className="w-full h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse"></div>
-            </aside>
-          </div>
+      <div className="min-h-screen pb-20 pt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div className="w-36 h-8 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-xl animate-pulse" />
+        <div className="max-w-4xl space-y-4">
+          <div className="w-3/4 h-12 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-2xl animate-pulse" />
+          <div className="w-1/2 h-6 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-xl animate-pulse" />
+          <div className="w-full aspect-[16/9] bg-zinc-200/80 dark:bg-zinc-800/80 rounded-3xl animate-pulse mt-8" />
         </div>
       </div>
     );
   }
 
+  // ==========================================
+  // NOT FOUND STATE
+  // ==========================================
   if (!project) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-20">
-        <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">Project Not Found</h1>
-        <p className="text-gray-500 mb-4">The project you are looking for does not exist.</p>
-        <Link href="/projects" className="bg-primary text-white px-6 py-3 rounded-full hover:opacity-90 font-bold transition-all flex items-center gap-2 shadow-lg">
-          <ArrowLeft size={18} /> Back to Projects
+      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <div className="w-14 h-14 rounded-3xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 mb-2">
+          <Layers size={24} />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+          Case Study Not Found
+        </h1>
+        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
+          The requested project might have been moved or archived.
+        </p>
+        <Link 
+          href="/projects" 
+          className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-semibold shadow-md active:scale-95 transition-all"
+        >
+          <ArrowLeft size={14} /> Back to Projects
         </Link>
       </div>
     );
   }
 
-  const techStack = project.techStack?.length ? project.techStack : project.tags || [];
-  const displayImage = project.image || project.gDriveImage;
-    return (
-    <div className="min-h-screen pb-20 bg-background">
+  const techStack = project.tags || (typeof project.techStack === "string" ? project.techStack.split(",") : project.techStack) || [];
+  const displayImage = getCleanImageUrl(project.image, project.gDriveImage);
+
+  return (
+    <div className={`min-h-screen pb-32 transition-colors duration-300 ${focusMode ? "bg-zinc-50 dark:bg-zinc-950" : "bg-transparent"}`}>
+      {/* Top Scroll Depth Progress Line */}
       <ReadingProgress />
+
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* 🔥 BULLETPROOF DARK MODE OVERRIDE FOR CUSTOM HTML 🔥 */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .dark .blog-content .portfolio-post {
-          background-color: transparent !important;
-          color: #e5e7eb !important;
-          box-shadow: none !important;
-        }
-        .dark .blog-content [style*="background-color: #ffffff"],
-        .dark .blog-content [style*="background-color: #fff"],
-        .dark .blog-content [style*="background-color: white"],
-        .dark .blog-content [style*="background-color: #f3f4f6"] {
-          background-color: transparent !important;
-        }
-        .dark .blog-content [style*="color: #334155"],
-        .dark .blog-content [style*="color: #000000"],
-        .dark .blog-content [style*="color: black"] {
-          color: #e5e7eb !important;
-        }
-        .dark .blog-content table,
-        .dark .blog-content th,
-        .dark .blog-content td {
-          border-color: #374151 !important;
-        }
-      `}} />
+      {/* FLOATING TOP READING DOCK (Reveals on Scroll) */}
+      <AnimatePresence>
+        {showNavDock && (
+          <motion.div
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+            transition={appleSpring}
+            className="fixed top-16 left-0 right-0 z-40 px-4 pointer-events-none"
+          >
+            <div className="max-w-4xl mx-auto flex items-center justify-between p-2.5 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-xl pointer-events-auto">
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/projects"
+                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white border border-zinc-200 dark:border-zinc-700 transition-colors"
+                  title="Return to Projects"
+                >
+                  <ArrowLeft size={14} />
+                </Link>
+                <div className="hidden sm:block">
+                  <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate max-w-[280px]">
+                    {project.title}
+                  </h4>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
+                    {project.role || "Engineering Case Study"}
+                  </span>
+                </div>
+              </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 mb-8">
-        <Link href="/projects" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-primary transition-colors group">
-          <div className="p-1.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 group-hover:-translate-x-1 transition-transform">
-            <ArrowLeft className="w-3.5 h-3.5" />
-          </div>
-          Back to Portfolio
-        </Link>
-      </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFocusMode(!focusMode)}
+                  className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                    focusMode
+                      ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                      : "bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200"
+                  }`}
+                  title={focusMode ? "Exit Focus Mode (Esc)" : "Focus Reading Mode"}
+                >
+                  {focusMode ? <Minimize2 size={14} className="text-white" /> : <Maximize2 size={14} className="text-zinc-800 dark:text-zinc-200" />}
+                </button>
 
-      <header className="max-w-4xl mx-auto px-4 md:px-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.15] mb-6">
-          {project.title}
-        </h1>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 transition-colors"
+                  title="Copy Link"
+                >
+                  {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-zinc-800 dark:text-zinc-200" />}
+                </button>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-8 border-b border-gray-200 dark:border-gray-800">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 px-4 py-2 rounded-full w-fit">
-            <Calendar className="w-4 h-4" />
-            {new Date(project.publishDate || project.createdAt).toLocaleDateString("en-US", {
-              month: "long", day: "numeric", year: "numeric",
-            })}
-          </span>
+                {project.liveLink && (
+                  <a
+                    href={project.liveLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm active:scale-95 transition-all"
+                  >
+                    <span>Launch</span>
+                    <ArrowUpRight size={13} className="text-white" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          <ShareButtons />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20">
+        
+        {/* BACK LINK & BREADCRUMBS */}
+        <div className="mb-8">
+          <Link
+            href="/projects"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors group"
+          >
+            <div className="flex items-center justify-center w-7 h-7 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-sm group-hover:-translate-x-1 transition-transform">
+              <ArrowLeft size={13} />
+            </div>
+            <span>Back to All Projects</span>
+          </Link>
         </div>
 
-        {/* ✅ G-Drive Fallback & Iframe Support */}
-        {displayImage && (
-          <div className="w-full mt-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-            {project.frameStyle !== "None" && (
-              <div className="h-10 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
-              </div>
-            )}
-            <div className="relative aspect-[16/9] group bg-gray-50 dark:bg-black">
-              {displayImage.includes("<iframe") ? (
-                <div className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full" dangerouslySetInnerHTML={{ __html: displayImage }} />
-              ) : (
-                <img 
-                  src={displayImage} 
-                  alt={project.title} 
-                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700 select-none" 
-                  onContextMenu={(e) => e.preventDefault()}
-                  draggable={false}
-                  onError={(e) => {
-                    if (project.gDriveImage && !project.gDriveImage.includes("<iframe") && e.currentTarget.src !== project.gDriveImage) {
-                      e.currentTarget.src = project.gDriveImage;
-                    }
-                  }}
-                />
+        {/* HERO TITLE & METADATA SECTION */}
+        <header className="max-w-4xl mx-auto space-y-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                {project.status || "Production Release"}
+              </span>
+              {project.role && (
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80">
+                  {project.role}
+                </span>
+              )}
+              {project.featured && (
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                  <Sparkles size={11} /> Featured
+                </span>
               )}
             </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 leading-[1.12]">
+              {project.title}
+            </h1>
           </div>
-        )}
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-16">
-        <div className="grid gap-12 grid-cols-1 lg:grid-cols-[1fr_320px]">
-          
-          <article className="w-full min-w-0">
-            <div 
-              className="blog-content prose prose-slate dark:prose-invert max-w-none w-full
-                prose-headings:font-bold prose-headings:tracking-tight 
-                prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-2 prose-h2:border-gray-200 dark:prose-h2:border-gray-800
-                prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
-                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                prose-img:rounded-2xl prose-img:shadow-md
-                prose-li:marker:text-primary
-                prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-xl" 
-              dangerouslySetInnerHTML={{ __html: processedHTML }} 
-            />
-
-            <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800 relative z-20">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Like this project?</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">Share it with your network</p>
-                </div>
-                <ShareButtons />
-              </div>
+          {/* Social Share & Meta Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-y border-zinc-200/80 dark:border-zinc-800/80">
+            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Calendar size={13} />
+                {new Date(project.publishDate || project.createdAt || Date.now()).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
             </div>
 
-            <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {prevProject ? (
-                <Link href={`/projects/${prevProject.slug}`} className="flex flex-col p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group">
-                  <span className="text-sm text-gray-500 flex items-center gap-2 mb-2"><ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Previous Project</span>
-                  <span className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1">{prevProject.title}</span>
-                </Link>
-              ) : <div />}
-
-              {nextProject ? (
-                <Link href={`/projects/${nextProject.slug}`} className="flex flex-col items-end text-right p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all group">
-                  <span className="text-sm text-gray-500 flex items-center gap-2 mb-2">Next Project <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></span>
-                  <span className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1">{nextProject.title}</span>
-                </Link>
-              ) : <div />}
+            {/* Share Buttons with High Contrast */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={shareOnTwitter}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition-colors"
+                title="Share on X"
+              >
+                <Twitter size={13} className="text-zinc-800 dark:text-zinc-200" />
+                <span className="hidden sm:inline">Post</span>
+              </button>
+              <button
+                type="button"
+                onClick={shareOnLinkedIn}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0A66C2] hover:bg-[#095196] text-white text-xs font-bold shadow-xs transition-colors"
+                title="Share on LinkedIn"
+              >
+                <Linkedin size={13} className="text-white" />
+                <span className="hidden sm:inline">LinkedIn</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition-colors"
+                title="Copy Case Study URL"
+              >
+                {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} className="text-zinc-800 dark:text-zinc-200" />}
+                <span>{copied ? "Copied" : "Copy Link"}</span>
+              </button>
             </div>
+          </div>
 
-            <div className="mt-12 flex justify-center">
-              <Link href="/projects" className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-black font-bold hover:scale-105 transition-transform shadow-lg">
-                <Layers className="w-4 h-4" /> View All Projects
-              </Link>
-            </div>
-          </article>
-
-          <aside className="hidden lg:block">
-            <div className="sticky top-32 space-y-8">
-              
-              <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
-                  Resources
-                </h3>
-                <div className="space-y-3">
-                  {project.liveLink && (
-                    <a href={project.liveLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-primary text-white rounded-xl hover:opacity-90 transition-all font-semibold text-sm group shadow-md shadow-primary/20">
-                      <span className="flex items-center gap-2"><ExternalLink size={16} /> Live Preview</span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </a>
-                  )}
-                  {project.githubLink && (
-                    <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-gray-900 dark:bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-semibold text-sm group shadow-md">
-                      <span className="flex items-center gap-2"><Github size={16} /> Source Code</span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </a>
-                  )}
-                  {project.appLink && (
-                    <a href={project.appLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full px-4 py-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-950 transition-all font-semibold text-sm group">
-                      <span className="flex items-center gap-2"><Download size={16} /> Download App</span>
-                      <ArrowLeft className="w-4 h-4 rotate-[135deg] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </a>
-                  )}
-                  {!project.liveLink && !project.githubLink && !project.appLink && (
-                    <p className="text-xs text-gray-400 italic">No external resources available.</p>
-                  )}
-                </div>
-              </div>
-
-              {techStack.length > 0 && (
-                <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">
-                    Tech Stack
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {techStack.map((tech: string, i: number) => (
-                      <span key={i} className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700">
-                        {tech}
-                      </span>
-                    ))}
+          {/* MOCKUP SHOWCASE FRAME: 100% UN-CUT FITTED IMAGE */}
+          {displayImage && (
+            <div className="relative rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 shadow-2xl">
+              {project.frameStyle !== "None" && (
+                <div className="h-9 bg-zinc-200/80 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-700/60 flex items-center px-4 gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                  <div className="mx-auto text-[11px] font-mono text-zinc-600 dark:text-zinc-400 px-4 py-0.5 bg-white/70 dark:bg-zinc-900/70 rounded-md truncate max-w-[280px]">
+                    {project.liveLink || "https://case-study.nilaynaha.dev"}
                   </div>
                 </div>
               )}
 
-              {contentReady && (
-                <div className="bg-white/60 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                  <TableOfContents contentSelector=".blog-content" />
-                </div>
+              {/* Fitted Showcase Container: Any aspect ratio fits 100% without cut */}
+              <div className="relative h-[320px] sm:h-[440px] md:h-[580px] w-full bg-zinc-100/90 dark:bg-zinc-950/90 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+                {displayImage.includes("<iframe") ? (
+                  <div
+                    className="w-full aspect-[16/9] [&>iframe]:w-full [&>iframe]:h-full"
+                    dangerouslySetInnerHTML={{ __html: displayImage }}
+                  />
+                ) : (
+                  <>
+                    {/* Ambient subtle blur to smoothly fill letterboxing */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={displayImage}
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-20 dark:opacity-10 scale-110 pointer-events-none select-none"
+                    />
+                    {/* Crisp fitted image - Full aspect ratio without crop */}
+                    <div className="relative z-10 w-full h-full flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={displayImage}
+                        alt={project.title}
+                        className="w-full h-full object-contain rounded-xl drop-shadow-2xl select-none"
+                        onContextMenu={(e) => e.preventDefault()}
+                        draggable={false}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* AT-A-GLANCE EXECUTIVE BENTO METRICS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm">
+            <div className="space-y-1">
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">Position / Role</span>
+              <p className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {project.role || "Lead Architect"}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">Deployment</span>
+              <p className="text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 size={13} /> {project.status || "Production"}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">Timeline</span>
+              <p className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {new Date(project.publishDate || project.createdAt || Date.now()).toLocaleDateString("en-US", {
+                  month: "short",
+                  year: "numeric"
+                })}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">Primary Artifact</span>
+              <div className="flex items-center gap-2 pt-0.5">
+                {project.liveLink && (
+                  <a
+                    href={project.liveLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
+                  >
+                    Site <ArrowUpRight size={11} />
+                  </a>
+                )}
+                {project.githubLink && (
+                  <a
+                    href={project.githubLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:underline flex items-center gap-0.5"
+                  >
+                    Repo <ArrowUpRight size={11} />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* MAIN 2-COLUMN ARCHITECTURAL BREAKDOWN */}
+        <div className={`mt-14 grid gap-12 transition-all ${focusMode ? "max-w-3xl mx-auto grid-cols-1" : "grid-cols-1 lg:grid-cols-[1fr_320px]"}`}>
+          
+          {/* ARTICLE PROSE CONTENT */}
+          <article className="w-full min-w-0">
+            <div
+              className="project-content prose prose-zinc dark:prose-invert max-w-none w-full
+                prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-zinc-900 dark:prose-headings:text-zinc-100
+                prose-h2:text-2xl sm:prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-4 prose-h2:border-b prose-h2:border-zinc-200/80 dark:prose-h2:border-zinc-800/80 prose-h2:pb-2
+                prose-h3:text-xl sm:prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-3
+                prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:text-zinc-700 dark:prose-p:text-zinc-300
+                prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
+                prose-li:text-zinc-700 dark:prose-li:text-zinc-300 prose-li:text-sm sm:prose-li:text-base
+                prose-img:rounded-3xl prose-img:shadow-xl prose-img:border prose-img:border-zinc-200 dark:prose-img:border-zinc-800
+                prose-table:w-full prose-table:border-collapse prose-table:text-xs sm:prose-table:text-sm
+                prose-th:p-3 prose-th:bg-zinc-100/80 dark:prose-th:bg-zinc-900/80 prose-th:text-zinc-900 dark:prose-th:text-zinc-100 prose-th:border prose-th:border-zinc-200 dark:prose-th:border-zinc-800
+                prose-td:p-3 prose-td:text-zinc-700 dark:prose-td:text-zinc-300 prose-td:border prose-td:border-zinc-200 dark:prose-td:border-zinc-800"
+              dangerouslySetInnerHTML={{ __html: processedHTML }}
+            />
+
+            {/* PREVIOUS & NEXT PROJECT SWITCHER */}
+            <div className="mt-16 pt-8 border-t border-zinc-200/80 dark:border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {prevProject ? (
+                <Link
+                  href={`/projects/${prevProject.slug}`}
+                  className="flex flex-col p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all group active:scale-[0.99] shadow-xs"
+                >
+                  <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mb-1 group-hover:-translate-x-0.5 transition-transform">
+                    <ArrowLeft size={13} /> Previous Case Study
+                  </span>
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                    {prevProject.title}
+                  </span>
+                </Link>
+              ) : (
+                <div />
+              )}
+
+              {nextProject ? (
+                <Link
+                  href={`/projects/${nextProject.slug}`}
+                  className="flex flex-col items-end text-right p-5 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all group active:scale-[0.99] shadow-xs"
+                >
+                  <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mb-1 group-hover:translate-x-0.5 transition-transform">
+                    Next Case Study <ArrowRight size={13} />
+                  </span>
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                    {nextProject.title}
+                  </span>
+                </Link>
+              ) : (
+                <div />
               )}
             </div>
-          </aside>
+
+            {/* RETURN BUTTON */}
+            <div className="mt-12 flex justify-center">
+              <Link
+                href="/projects"
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold shadow-lg active:scale-95 transition-all"
+              >
+                <Layers size={14} className="text-white dark:text-zinc-900" />
+                <span className="text-white dark:text-zinc-900">View All Projects</span>
+              </Link>
+            </div>
+          </article>
+
+          {/* SIDEBAR (Hidden in Focus Mode) */}
+          {!focusMode && (
+            <aside className="space-y-6">
+              <div className="sticky top-28 space-y-6">
+                
+                {/* DELIVERABLES RESOURCE DOCK */}
+                <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-3">
+                  <h3 className="text-[11px] font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">
+                    Live Deliverables
+                  </h3>
+
+                  <div className="space-y-2.5">
+                    {project.liveLink && (
+                      <a
+                        href={project.liveLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-bold shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all group"
+                      >
+                        <span className="flex items-center gap-2 text-white">
+                          <ExternalLink size={14} className="text-white" /> Production Site
+                        </span>
+                        <ArrowUpRight size={14} className="text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      </a>
+                    )}
+
+                    {project.githubLink && (
+                      <a
+                        href={project.githubLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between w-full px-4 py-3 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl text-xs font-bold border border-zinc-900 dark:border-zinc-200 shadow-sm active:scale-[0.98] transition-all group"
+                      >
+                        <span className="flex items-center gap-2 text-white dark:text-zinc-900">
+                          <Github size={14} className="text-white dark:text-zinc-900" /> Source Repository
+                        </span>
+                        <ArrowUpRight size={14} className="text-white dark:text-zinc-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      </a>
+                    )}
+
+                    {project.appLink && (
+                      <a
+                        href={project.appLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-bold shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all group"
+                      >
+                        <span className="flex items-center gap-2 text-white">
+                          <Download size={14} className="text-white" /> Download Application
+                        </span>
+                        <ArrowUpRight size={14} className="text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      </a>
+                    )}
+
+                    {!project.liveLink && !project.githubLink && !project.appLink && (
+                      <p className="text-xs text-zinc-500 italic">No external deliverables available for this internal research case study.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* LINKED TECHNICAL ARTICLE (If available) */}
+                {linkedBlog && (
+                  <div className="p-6 rounded-3xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 shadow-sm space-y-3">
+                    <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-[10px] font-semibold tracking-wider uppercase">
+                      <BookOpen size={12} /> Technical Publication
+                    </div>
+                    <Link href={`/blog/${linkedBlog.slug}`} className="block group">
+                      <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                        {linkedBlog.title}
+                      </h4>
+                    </Link>
+                    {linkedBlog.excerpt && (
+                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                        {linkedBlog.excerpt}
+                      </p>
+                    )}
+                    <Link
+                      href={`/blog/${linkedBlog.slug}`}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline pt-1"
+                    >
+                      Read Deep Dive Article <ChevronRight size={12} />
+                    </Link>
+                  </div>
+                )}
+
+                {/* TECH ARSENAL STACK */}
+                {techStack.length > 0 && (
+                  <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-3">
+                    <h3 className="text-[11px] font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">
+                      Technologies & Tools
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {techStack.map((tech: string, i: number) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700/80"
+                        >
+                          {tech.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* TABLE OF CONTENTS */}
+                {contentReady && (
+                  <TableOfContents contentSelector=".project-content" />
+                )}
+
+              </div>
+            </aside>
+          )}
+
         </div>
       </div>
     </div>
   );
 }
-

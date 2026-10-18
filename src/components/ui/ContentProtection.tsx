@@ -27,14 +27,38 @@ export default function ContentProtection() {
       }
     };
 
+    // 4. Suppress Third-Party Browser Extension Errors (e.g. Urban VPN M_ID crash, injector scripts)
+    const handleExtensionErrors = (e: ErrorEvent) => {
+      if (
+        (e.filename && (e.filename.includes("chrome-extension://") || e.filename.includes("moz-extension://") || e.filename.includes("safari-extension://"))) ||
+        (e.message && (e.message.includes("M_ID") || e.message.includes("chrome-extension")))
+      ) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        return true;
+      }
+    };
+
+    const handleExtensionRejections = (e: PromiseRejectionEvent) => {
+      const stack = String(e.reason?.stack || e.reason || "");
+      if (stack.includes("chrome-extension://") || stack.includes("moz-extension://") || stack.includes("M_ID")) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    };
+
     document.addEventListener("contextmenu", handleContextMenu);
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("dragstart", handleDragStart);
+    window.addEventListener("error", handleExtensionErrors, true);
+    window.addEventListener("unhandledrejection", handleExtensionRejections, true);
 
     return () => {
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("dragstart", handleDragStart);
+      window.removeEventListener("error", handleExtensionErrors, true);
+      window.removeEventListener("unhandledrejection", handleExtensionRejections, true);
     };
   }, []);
 

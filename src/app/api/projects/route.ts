@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import Project from "@/models/Project";
 import { uploadToGithub } from "@/lib/githubUpload";
@@ -8,8 +8,9 @@ export const revalidate = 0;
 
 const formatGDriveUrl = (url: string | null) => {
   if (!url) return "";
-  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+  if (url.includes("<iframe")) return url;
+  const match = url.match(/[-\w]{25,}/);
+  return match ? `https://drive.google.com/thumbnail?id=${match[0]}&sz=w1000` : url;
 };
 
 export async function GET(req: Request  ) {

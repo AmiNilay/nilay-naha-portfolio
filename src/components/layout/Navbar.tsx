@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -24,19 +24,36 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "Projects", href: "/projects" },
-    { name: "Blog", href: "/blog" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
+    { name: "Home", href: "/", slideIndex: 0 },
+    { name: "Projects", href: "/projects", slideIndex: 1 },
+    { name: "Blog", href: "/blog", slideIndex: 2 },
+    { name: "About", href: "/about", slideIndex: 3 },
+    { name: "Contact", href: "/contact", slideIndex: 4 },
   ];
 
+  // Helper to handle navigation on both desktop and mobile
+  const handleNavClick = (link: typeof navLinks[0], e: React.MouseEvent) => {
+    if (pathname === "/") {
+      e.preventDefault();
+      window.dispatchEvent(
+        new CustomEvent("portfolio-navigate-slide", {
+          detail: { slideIndex: link.slideIndex },
+        })
+      );
+    }
+  };
+
   return (
-    <nav className="fixed top-0 w-full bg-white/80 dark:bg-black/80 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800">
+    <nav className="fixed top-0 w-full bg-white/80 dark:bg-black/80 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800 select-none">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         
         {/* Logo */}
-        <Link href="/" className="text-xl font-bold tracking-tighter">
+        <Link
+          href="/"
+          prefetch={true}
+          onClick={(e) => handleNavClick(navLinks[0], e)}
+          className="text-xl font-bold tracking-tighter active:scale-95 transition-transform duration-150 cursor-pointer"
+        >
           Dev.<span className="text-primary">Portfolio</span>
         </Link>
 
@@ -48,10 +65,12 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`px-4 py-2 rounded-full text-sm transition-all duration-300 ${
+                prefetch={true}
+                onClick={(e) => handleNavClick(link, e)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 active:scale-95 select-none cursor-pointer ${
                   isActive 
                     ? "bg-primary/10 text-primary font-bold shadow-[0_0_15px] shadow-primary/50 border border-primary/30" 
-                    : "text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary"
                 }`}
               >
                 {link.name}
@@ -65,7 +84,7 @@ export default function Navbar() {
             {/* Theme Toggle Button */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 transition-all duration-150 cursor-pointer"
               aria-label="Toggle Theme"
             >
               {!mounted ? (
@@ -85,12 +104,17 @@ export default function Navbar() {
           
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 transition-all duration-150 cursor-pointer"
+            aria-label="Toggle Theme"
           >
              {mounted && theme === "dark" ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-700" />}
           </button>
 
-          <button onClick={() => setIsOpen(!isOpen)} className="p-2">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 active:scale-90 transition-transform duration-150 cursor-pointer"
+            aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+          >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -105,8 +129,12 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                onClick={() => setIsOpen(false)}
-                className={`block px-4 py-3 rounded-xl text-base transition-all duration-300 ${
+                prefetch={true}
+                onClick={(e) => {
+                  setIsOpen(false);
+                  handleNavClick(link, e);
+                }}
+                className={`block px-4 py-3 rounded-xl text-base transition-all duration-150 active:scale-98 cursor-pointer select-none ${
                   isActive 
                     ? "bg-primary/10 text-primary font-bold border-l-4 border-primary shadow-[inset_0_0_20px] shadow-primary/20" 
                     : "text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-900"

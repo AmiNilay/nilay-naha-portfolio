@@ -6,6 +6,8 @@ This document outlines the technical decisions, architecture, and problem-solvin
 
 The application is built on the **Next.js 14 App Router**, utilizing a full-stack architecture where the frontend and backend (API Route Handlers) coexist in the same repository. 
 
+*   **Codebase Map & File Logic:** For an exhaustive file-by-file directory breakdown, see [**`CODEBASE_MAP.md`**](file:///e:/my-portfolio/CODEBASE_MAP.md).
+*   **Rules & Agent Execution Protocol:** For agentic loop conventions and coding invariants, see [**`CLAUDE.md`**](file:///e:/my-portfolio/CLAUDE.md) / [**`RULES.md`**](file:///e:/my-portfolio/RULES.md).
 *   **Database:** MongoDB Atlas is used for its flexible document schema, allowing rapid iteration of Blog, Project, and Chatbot Rule models.
 *   **Asset Pipeline:** To avoid heavy cloud storage costs, assets (images/resumes) are uploaded directly to a private GitHub repository via the GitHub API. A Google Drive fallback system is implemented to ensure 100% uptime if the GitHub API rate limits are hit.
 *   **Authentication:** The `/admin` routes are protected at the edge using Next.js Middleware. A secure, HTTP-only cookie is verified before any admin page or protected API route is rendered.

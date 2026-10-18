@@ -20,6 +20,7 @@ export function middleware(request: NextRequest) {
   const publicApiRoutes = [
     '/api/contact',
     '/api/auth/login',
+    '/api/auth/logout',
     '/api/push/subscribe',
     '/api/views'
   ];

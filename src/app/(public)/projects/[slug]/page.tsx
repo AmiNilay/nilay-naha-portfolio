@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import ProjectDetailsClient from "./ProjectDetailsClient";
+import { connectToDB } from "@/lib/connectToDB";
+import Project from "@/models/Project";
 
-const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
+export const dynamic = "force-dynamic";
 
 async function getProject(slug: string) {
   try {
-    const res = await fetch(`${SITE_URL}/api/projects?slug=${slug}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.project || null;
-  } catch {
+    await connectToDB();
+    const project = await Project.findOne({ slug }).lean();
+    return project;
+  } catch (error) {
+    console.error("Project lookup error:", error);
     return null;
   }
 }
@@ -21,30 +21,33 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const project = await getProject(params.slug);
+  const project: any = await getProject(params.slug);
 
   if (!project) {
     return {
-      title: "Project Not Found",
-      description: "This project could not be found.",
+      title: "Project Not Found | Nilay Naha",
+      description: "The requested case study could not be found.",
     };
   }
 
   const description = project.description
-    ? project.description.replace(/<[^>]+>/g, "").slice(0, 155)
-    : `Learn about ${project.title} by Nilay Naha.`;
+    ? project.description.replace(/<[^>]+>/g, "").slice(0, 160)
+    : `Explore the architecture and engineering behind ${project.title} by Nilay Naha.`;
+
+  const coverUrl = project.image || project.gDriveImage || "/og-image.png";
 
   return {
-    title: project.title,
+    title: `${project.title} — Case Study | Nilay Naha`,
     description,
     openGraph: {
-      title: project.title,
+      title: `${project.title} — Engineering Case Study`,
       description,
       type: "article",
       url: `/projects/${params.slug}`,
+      publishedTime: project.publishDate || project.createdAt,
       images: [
         {
-          url: project.image || "/og-image.png",
+          url: coverUrl,
           width: 1200,
           height: 630,
           alt: project.title,
@@ -53,9 +56,9 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: project.title,
+      title: `${project.title} | Nilay Naha`,
       description,
-      images: [project.image || "/og-image.png"],
+      images: [coverUrl],
     },
   };
 }

@@ -48,6 +48,8 @@ This project goes beyond a standard static portfolio. It is engineered as a comp
 
 ### 1. System Architecture
 
+- **Codebase & File Logic Map:** Detailed file-by-file logic and architectural reference is documented in [**`CODEBASE_MAP.md`**](file:///e:/my-portfolio/CODEBASE_MAP.md).
+- **Project Rules & Agent Protocol:** Engineering invariants and Claude Code / AI Agent rules are defined in [**`CLAUDE.md`**](file:///e:/my-portfolio/CLAUDE.md) and [**`RULES.md`**](file:///e:/my-portfolio/RULES.md).
 - **Framework:** Built on the **Next.js 14 App Router**, utilizing a full-stack architecture where the frontend and backend (API Route Handlers) coexist.
 - **Database:** MongoDB Atlas is used for its flexible document schema, allowing rapid iteration of Blog, Project, and Chatbot Rule models.
 - **Asset Pipeline:** To avoid heavy cloud storage costs, assets (images/resumes) are uploaded directly to a private GitHub repository via the GitHub API. A Google Drive fallback system ensures 100% uptime if GitHub API rate limits are hit.

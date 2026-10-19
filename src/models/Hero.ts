@@ -4,6 +4,8 @@ const HeroSchema = new Schema(
   {
     badge: String,
     title: String,
+    siteTitle: { type: String, default: "Nilay Naha - Software Engineer" },
+    siteSubtitle: { type: String, default: "Software Engineer" },
     subtitle: String,
     profilePic: String,
     resumeUrl: String,

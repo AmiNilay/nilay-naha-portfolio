@@ -220,15 +220,20 @@ export default function Hero() {
     fetch(`/api/hero?t=${Date.now()}`, { cache: "no-store" })
       .then(r => r.json())
       .then(d => {
-        if (d) setData(p => ({
-          ...p, ...d,
-          badgeText:       d.badgeText || d.badge || "",
-          showAvailability: d.showAvailability !== false,
-          line1Bold:  d.line1Bold  || "Build",
-          line1Accent:d.line1Accent|| "clean backends",
-          line2Bold:  d.line2Bold  || "Ship",
-          line2Accent:d.line2Accent|| "real products",
-        }));
+        if (d) {
+          setData(p => ({
+            ...p, ...d,
+            badgeText:       d.badgeText || d.badge || "",
+            showAvailability: d.showAvailability !== false,
+            line1Bold:  d.line1Bold  || "Build",
+            line1Accent:d.line1Accent|| "clean backends",
+            line2Bold:  d.line2Bold  || "Ship",
+            line2Accent:d.line2Accent|| "real products",
+          }));
+          if (d.siteTitle && typeof document !== "undefined") {
+            document.title = d.siteTitle;
+          }
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));

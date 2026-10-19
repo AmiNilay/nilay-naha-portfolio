@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -11,9 +11,9 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
-const SITE_NAME = "Nilay Naha - Software Developer";
+const SITE_NAME = "Nilay Naha - Software Engineer";
 const SITE_DESCRIPTION =
-  "Nilay Naha — Software Developer (Python ) building secure REST APIs, backend systems, and full-stack apps with FastAPI, Node.js, MongoDB, and Next.js.";
+  "Nilay Naha — Software Engineer building secure REST APIs, scalable backend systems, and full-stack web applications.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

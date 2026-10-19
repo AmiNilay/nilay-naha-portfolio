@@ -69,7 +69,9 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
 
 export default function AdminHome() {
   const [formData, setFormData] = useState({
-    badgeText: "Software Developer (Python)",
+    siteTitle: "Nilay Naha - Software Engineer",
+    siteSubtitle: "Software Engineer",
+    badgeText: "Software Engineer",
     showAvailability: true,
     line1Bold: "Build",
     line1Accent: "clean backends",
@@ -128,6 +130,8 @@ export default function AdminHome() {
             resumeUrl: data.resumeUrl || "",
             gDriveProfilePic: data.gDriveProfilePic || "",
             gDriveResume: data.gDriveResume || "",
+            siteTitle: data.siteTitle || prev.siteTitle,
+            siteSubtitle: data.siteSubtitle || prev.siteSubtitle,
             badgeText: data.badgeText || prev.badgeText,
             showAvailability: data.showAvailability ?? prev.showAvailability,
             line1Bold: data.line1Bold || prev.line1Bold,
@@ -613,6 +617,40 @@ export default function AdminHome() {
           {/* Headlines Card */}
           <div className="p-6 sm:p-8 rounded-[32px] bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_16px_40px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] space-y-6">
             <h3 className="font-bold text-base text-zinc-900 dark:text-white border-b border-zinc-100 dark:border-zinc-800/80 pb-3 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-cyan-500" /> Website Tab Title & Browser Metadata
+            </h3>
+
+            {/* Website Tab Title & Subtitle */}
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60 space-y-3">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+                  Browser Tab Title (Website & SEO Title)
+                </label>
+                <input
+                  value={formData.siteTitle}
+                  onChange={(e) => setFormData({ ...formData, siteTitle: e.target.value })}
+                  className="w-full p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 font-bold"
+                  placeholder="e.g. Nilay Naha - Software Engineer"
+                />
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                  This text appears on the browser tab, Google search results, and social sharing previews.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+                  Primary Professional Title
+                </label>
+                <input
+                  value={formData.siteSubtitle}
+                  onChange={(e) => setFormData({ ...formData, siteSubtitle: e.target.value })}
+                  className="w-full p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 font-medium"
+                  placeholder="e.g. Software Engineer"
+                />
+              </div>
+            </div>
+
+            <h3 className="font-bold text-base text-zinc-900 dark:text-white border-b border-zinc-100 dark:border-zinc-800/80 pb-3 flex items-center gap-2 pt-2">
               <Sparkles className="w-4 h-4 text-cyan-500" /> Hero Headlines & Badges
             </h3>
 

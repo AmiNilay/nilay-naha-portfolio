@@ -33,6 +33,7 @@ export async function PUT(req: Request) {
     
     const textFields = [
       "badge", "title", "subtitle", 
+      "siteTitle", "siteSubtitle",
       "badgeText", "showAvailability", 
       "line1Bold", "line1Accent", "line2Bold", "line2Accent",
       "socialGithub", "socialLinkedin", "socialTwitter", "socialEmail",

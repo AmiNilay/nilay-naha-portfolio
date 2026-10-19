@@ -329,7 +329,7 @@ my-portfolio/
 * [`BackToTop.tsx`](file:///e:/my-portfolio/src/components/ui/BackToTop.tsx): Floating scroll-to-top button with smooth scroll behavior.
 * [`Button.tsx`](file:///e:/my-portfolio/src/components/ui/Button.tsx): Reusable button with variants (`primary`, `outline`, `ghost`, `secondary`).
 * [`Card.tsx`](file:///e:/my-portfolio/src/components/ui/Card.tsx): Border-gradient glassmorphic card container.
-* [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx): Interactive 3D Cute Bot companion with cursor/head tracking, blinking LED eyes, speech bubble teasers, Levenshtein fuzzy matching, and resume download automation.
+* [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx): Interactive 3D Cute Bot mascot with dynamic cursor tracking, free screen draggability/repositioning with boundary constraints, multi-emotion reactivity (smiling, confused, angry) driven by physical user gestures and shaking, speech bubble teasers, Levenshtein fuzzy matching, and resume download automation.
 * [`CodeBlock.tsx`](file:///e:/my-portfolio/src/components/ui/CodeBlock.tsx): Syntax-highlighted code block with language indicator and one-click copy button.
 * [`CommandPalette.tsx`](file:///e:/my-portfolio/src/components/ui/CommandPalette.tsx): Global `Cmd+K` / `Ctrl+K` spotlight modal search for instant page navigation and blog search.
 * [`ContentProtection.tsx`](file:///e:/my-portfolio/src/components/ui/ContentProtection.tsx): Anti-theft module disabling context menu, text selection, image drag, and devtools shortcut keys.

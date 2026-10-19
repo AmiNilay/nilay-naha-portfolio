@@ -115,13 +115,17 @@ const isFuzzyMatch = (input: string, keyword: string) => {
 };
 
 // =========================================================================
-// 🤖 3D CUTE BOT CHARACTER COMPONENT (Apple Fluid Motion & Tactile Physics)
+// 🤖 3D INTERACTIVE AVATAR COMPONENT (Physical Depth, Expressions & Tracking)
 // =========================================================================
+export type BotEmotion = "neutral" | "smiling" | "confused" | "angry";
+
 interface CuteBotAvatarProps {
   size?: "sm" | "md" | "lg";
   interactive?: boolean; // Follows cursor with 3D tilt & eye tracking
   isTyping?: boolean; // Fast antenna ping and curious expression
   isHappy?: boolean; // Happy curved eyes on hover or success
+  emotion?: BotEmotion; // Emotional state machine: neutral | smiling | confused | angry
+  isDragging?: boolean;
   onClick?: () => void;
 }
 
@@ -130,6 +134,8 @@ function CuteBotAvatar({
   interactive = false,
   isTyping = false,
   isHappy = false,
+  emotion = "neutral",
+  isDragging = false,
   onClick,
 }: CuteBotAvatarProps) {
   const [isBlinking, setIsBlinking] = useState(false);
@@ -141,33 +147,34 @@ function CuteBotAvatar({
   const mouseY = useMotionValue(0);
 
   // Apple-grade critically damped spring physics (WWDC Fluid Interfaces)
-  const springConfig = { damping: 22, stiffness: 220, mass: 0.5 };
+  const springConfig = { damping: 20, stiffness: 240, mass: 0.45 };
   const smoothX = useSpring(mouseX, springConfig);
   const smoothY = useSpring(mouseY, springConfig);
 
-  // Head 3D rotation angles
-  const rotateY = useTransform(smoothX, [-1, 1], [-16, 16]);
-  const rotateX = useTransform(smoothY, [-1, 1], [14, -14]);
+  // Head 3D rotation angles (enhanced tilt for expressive depth)
+  const rotateY = useTransform(smoothX, [-1, 1], [-22, 22]);
+  const rotateX = useTransform(smoothY, [-1, 1], [18, -18]);
+  const headZ = useTransform(smoothX, [-1, 1], [-4, 4]);
 
   // Pupil & Visor Parallax displacement
-  const eyeX = useTransform(smoothX, [-1, 1], [-4.5, 4.5]);
-  const eyeY = useTransform(smoothY, [-1, 1], [-3.5, 3.5]);
-  const antennaTilt = useTransform(smoothX, [-1, 1], [-12, 12]);
+  const eyeX = useTransform(smoothX, [-1, 1], [-5.5, 5.5]);
+  const eyeY = useTransform(smoothY, [-1, 1], [-4, 4]);
+  const antennaTilt = useTransform(smoothX, [-1, 1], [-18, 18]);
 
-  // Periodic natural blinking
+  // Periodic natural blinking (unless angry)
   useEffect(() => {
+    if (emotion === "angry") return;
     const blinkTimer = setInterval(() => {
       setIsBlinking(true);
       setTimeout(() => setIsBlinking(false), 160);
     }, 3600);
     return () => clearInterval(blinkTimer);
-  }, []);
+  }, [emotion]);
 
   // Global mouse position listener for interactive 3D head and pupil tracking
   useEffect(() => {
     if (!interactive) return;
 
-    // Respect user's motion preference (Apple Design principle 14)
     if (
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -181,8 +188,8 @@ function CuteBotAvatar({
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
-      // Distance normalized between -1 and 1 within an 500px reach radius
-      const reach = 500;
+      // Reach radius around bot for 3D cursor tracking
+      const reach = 550;
       const dx = Math.max(-1, Math.min(1, (e.clientX - centerX) / reach));
       const dy = Math.max(-1, Math.min(1, (e.clientY - centerY) / reach));
 
@@ -194,41 +201,50 @@ function CuteBotAvatar({
     return () => window.removeEventListener("pointermove", handlePointerMove);
   }, [interactive, mouseX, mouseY]);
 
+  // Compute active emotional appearance
+  const activeEmotion: BotEmotion = useMemo(() => {
+    if (isDragging) return "confused";
+    if (emotion === "angry") return "angry";
+    if (emotion === "confused") return "confused";
+    if (emotion === "smiling" || isHappy || isHovered) return "smiling";
+    return "neutral";
+  }, [isDragging, emotion, isHappy, isHovered]);
+
   // Dimension scaling maps
   const dimensions = {
     lg: {
-      container: "w-[72px] h-[72px]",
-      head: "w-[62px] h-[54px] rounded-[22px]",
+      container: "w-[76px] h-[76px]",
+      head: "w-[66px] h-[58px] rounded-[24px]",
       antennaHeight: "h-3.5",
       bulb: "w-3 h-3 -top-3.5",
-      earWidth: "w-1.5 h-4.5",
-      earLight: "w-0.5 h-2",
-      visor: "w-[48px] h-[34px] rounded-[15px]",
+      earWidth: "w-2 h-5",
+      earLight: "w-0.5 h-2.5",
+      visor: "w-[52px] h-[36px] rounded-[16px]",
       eye: "w-2.5 h-3.5",
       eyeGap: "gap-2.5",
       cheek: "w-2.5 h-1 bottom-1",
       mouth: "w-3 h-1 bottom-1.5",
     },
     md: {
-      container: "w-[46px] h-[46px]",
-      head: "w-[40px] h-[36px] rounded-[15px]",
+      container: "w-[48px] h-[48px]",
+      head: "w-[42px] h-[38px] rounded-[16px]",
       antennaHeight: "h-2.5",
       bulb: "w-2 h-2 -top-2.5",
-      earWidth: "w-1 h-3.5",
-      earLight: "w-0.5 h-1.5",
-      visor: "w-[32px] h-[23px] rounded-[10px]",
+      earWidth: "w-1.5 h-4",
+      earLight: "w-0.5 h-2",
+      visor: "w-[34px] h-[24px] rounded-[11px]",
       eye: "w-1.5 h-2.5",
       eyeGap: "gap-1.5",
       cheek: "w-1.5 h-0.5 bottom-0.5",
       mouth: "w-2 h-0.5 bottom-1",
     },
     sm: {
-      container: "w-[30px] h-[30px]",
-      head: "w-[28px] h-[25px] rounded-[10px]",
+      container: "w-[32px] h-[32px]",
+      head: "w-[28px] h-[26px] rounded-[10px]",
       antennaHeight: "h-2",
       bulb: "w-1.5 h-1.5 -top-2",
-      earWidth: "w-0.5 h-2.5",
-      earLight: "w-0.5 h-1",
+      earWidth: "w-1 h-3",
+      earLight: "w-0.5 h-1.5",
       visor: "w-[22px] h-[16px] rounded-[7px]",
       eye: "w-1 h-1.5",
       eyeGap: "gap-1",
@@ -237,7 +253,53 @@ function CuteBotAvatar({
     },
   }[size];
 
-  const effectiveHappy = isHappy || isHovered;
+  // Dynamic glow and accent colors by emotion
+  const emotionThemes = {
+    neutral: {
+      bulb: "from-cyan-400 via-sky-300 to-emerald-300 shadow-[0_0_12px_rgba(6,182,212,0.9),0_0_24px_rgba(6,182,212,0.4)]",
+      bulbPing: "bg-cyan-400",
+      ear: "bg-cyan-400 shadow-[0_0_5px_#06b6d4]",
+      visorBorder: "border-zinc-800/80",
+      visorGlow: "",
+      eyeColor: "text-cyan-400 fill-cyan-400",
+      eyeDropShadow: "drop-shadow-[0_0_5px_#06b6d4]",
+      eyeGrad: "from-cyan-300 via-cyan-400 to-sky-500 shadow-[0_0_10px_#06b6d4]",
+      cheekColor: "bg-pink-400/40",
+    },
+    smiling: {
+      bulb: "from-amber-300 via-emerald-400 to-cyan-400 shadow-[0_0_14px_rgba(16,185,129,0.9),0_0_26px_rgba(52,211,153,0.5)]",
+      bulbPing: "bg-emerald-400",
+      ear: "bg-emerald-400 shadow-[0_0_6px_#10b981]",
+      visorBorder: "border-emerald-500/40",
+      visorGlow: "shadow-[inset_0_0_12px_rgba(16,185,129,0.2)]",
+      eyeColor: "text-emerald-400 fill-none",
+      eyeDropShadow: "drop-shadow-[0_0_6px_#10b981]",
+      eyeGrad: "from-emerald-300 via-teal-400 to-cyan-500 shadow-[0_0_10px_#10b981]",
+      cheekColor: "bg-pink-500/80 shadow-[0_0_6px_rgba(236,72,153,0.6)]",
+    },
+    confused: {
+      bulb: "from-purple-400 via-amber-300 to-yellow-400 shadow-[0_0_12px_rgba(168,85,247,0.8),0_0_24px_rgba(234,179,8,0.4)]",
+      bulbPing: "bg-purple-400",
+      ear: "bg-purple-400 shadow-[0_0_5px_#c084fc]",
+      visorBorder: "border-purple-500/40",
+      visorGlow: "shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]",
+      eyeColor: "text-purple-300 fill-none",
+      eyeDropShadow: "drop-shadow-[0_0_5px_#c084fc]",
+      eyeGrad: "from-purple-300 via-violet-400 to-indigo-500 shadow-[0_0_8px_#c084fc]",
+      cheekColor: "bg-amber-400/50",
+    },
+    angry: {
+      bulb: "from-red-500 via-rose-500 to-amber-500 shadow-[0_0_16px_rgba(239,68,68,0.9),0_0_30px_rgba(244,63,94,0.6)]",
+      bulbPing: "bg-red-500",
+      ear: "bg-rose-500 shadow-[0_0_7px_#f43f5e]",
+      visorBorder: "border-rose-500/60",
+      visorGlow: "shadow-[inset_0_0_16px_rgba(239,68,68,0.35)]",
+      eyeColor: "text-rose-500 fill-rose-500",
+      eyeDropShadow: "drop-shadow-[0_0_8px_#ef4444]",
+      eyeGrad: "from-rose-400 via-red-500 to-amber-600 shadow-[0_0_12px_#ef4444]",
+      cheekColor: "bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.7)]",
+    },
+  }[activeEmotion];
 
   return (
     <div
@@ -245,7 +307,7 @@ function CuteBotAvatar({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{ perspective: 600 }}
+      style={{ perspective: 800 }}
       className={`relative select-none flex items-center justify-center ${dimensions.container} ${
         onClick ? "cursor-pointer" : ""
       }`}
@@ -254,8 +316,23 @@ function CuteBotAvatar({
         style={{
           rotateX: interactive ? rotateX : 0,
           rotateY: interactive ? rotateY : 0,
+          rotateZ: interactive && activeEmotion === "confused" ? -8 : headZ,
           transformStyle: "preserve-3d",
         }}
+        animate={
+          activeEmotion === "angry"
+            ? {
+                x: [-1.5, 1.5, -1, 1, 0],
+                y: [0, -1, 1, -0.5, 0],
+                transition: { repeat: Infinity, duration: 0.22 },
+              }
+            : activeEmotion === "confused"
+            ? {
+                rotate: [-6, 6, -6],
+                transition: { repeat: Infinity, duration: 2.2, ease: "easeInOut" },
+              }
+            : {}
+        }
         whileHover={onClick ? { scale: 1.08 } : undefined}
         whileTap={onClick ? { scale: 0.92, rotate: -3 } : undefined}
         transition={{ type: "spring", stiffness: 350, damping: 20 }}
@@ -264,17 +341,24 @@ function CuteBotAvatar({
         {/* Antenna */}
         <motion.div
           style={{ rotate: interactive ? antennaTilt : 0 }}
+          animate={
+            activeEmotion === "angry"
+              ? { rotate: [-15, 15, -15], transition: { repeat: Infinity, duration: 0.18 } }
+              : activeEmotion === "confused"
+              ? { rotate: [-20, 10, -20], transition: { repeat: Infinity, duration: 1.8 } }
+              : {}
+          }
           className="absolute -top-3 left-1/2 -translate-x-1/2 flex flex-col items-center z-10"
         >
           {/* Glowing Orb Bulb */}
           <div
-            className={`relative rounded-full bg-gradient-to-tr from-cyan-400 via-sky-300 to-emerald-300 shadow-[0_0_10px_rgba(6,182,212,0.9),0_0_20px_rgba(6,182,212,0.4)] ${
-              dimensions.bulb
-            } ${isTyping ? "animate-pulse" : ""}`}
+            className={`relative rounded-full bg-gradient-to-tr transition-all duration-300 ${dimensions.bulb} ${emotionThemes.bulb} ${
+              isTyping || activeEmotion === "angry" ? "animate-pulse" : ""
+            }`}
           >
             <span
-              className={`absolute inset-0 rounded-full bg-cyan-400 opacity-60 ${
-                isTyping ? "animate-ping" : "animate-pulse"
+              className={`absolute inset-0 rounded-full opacity-60 ${emotionThemes.bulbPing} ${
+                isTyping || activeEmotion === "angry" ? "animate-ping" : "animate-pulse"
               }`}
             />
           </div>
@@ -288,45 +372,66 @@ function CuteBotAvatar({
         <div
           className={`absolute -left-1.5 top-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-700 shadow-sm border-l border-white/70 dark:border-zinc-600 flex items-center justify-center ${dimensions.earWidth}`}
         >
-          <div
-            className={`rounded-full bg-cyan-400 shadow-[0_0_4px_#06b6d4] ${dimensions.earLight}`}
-          />
+          <div className={`rounded-full transition-colors duration-300 ${emotionThemes.ear} ${dimensions.earLight}`} />
         </div>
 
         {/* Right Ear Audio Pod */}
         <div
           className={`absolute -right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-gradient-to-l from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-700 shadow-sm border-r border-white/70 dark:border-zinc-600 flex items-center justify-center ${dimensions.earWidth}`}
         >
-          <div
-            className={`rounded-full bg-cyan-400 shadow-[0_0_4px_#06b6d4] ${dimensions.earLight}`}
-          />
+          <div className={`rounded-full transition-colors duration-300 ${emotionThemes.ear} ${dimensions.earLight}`} />
         </div>
 
         {/* Main 3D Robot Head (Glossy Ceramic / Space Grey Titanium) */}
         <div
-          className={`relative flex items-center justify-center bg-gradient-to-b from-white via-zinc-100 to-zinc-200 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950 border border-white/80 dark:border-zinc-700/60 shadow-[0_12px_28px_rgba(0,0,0,0.18),0_2px_4px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-3px_6px_rgba(0,0,0,0.08)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.6),0_2px_6px_rgba(0,0,0,0.3),inset_0_1.5px_2px_rgba(255,255,255,0.18),inset_0_-3px_6px_rgba(0,0,0,0.5)] ${dimensions.head}`}
+          className={`relative flex items-center justify-center bg-gradient-to-b from-white via-zinc-100 to-zinc-200 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950 border border-white/80 dark:border-zinc-700/60 shadow-[0_14px_30px_rgba(0,0,0,0.18),0_2px_4px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-3px_6px_rgba(0,0,0,0.08)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.6),0_2px_6px_rgba(0,0,0,0.3),inset_0_1.5px_2px_rgba(255,255,255,0.18),inset_0_-3px_6px_rgba(0,0,0,0.5)] ${dimensions.head}`}
         >
           {/* Specular Rim Light Gradient across the top dome */}
           <div className="absolute top-0 inset-x-2 h-[35%] bg-gradient-to-b from-white/60 dark:from-white/15 to-transparent rounded-t-[18px] pointer-events-none" />
 
-          {/* Curved Face Visor (Black Obsidian Glass) */}
+          {/* Curved Face Visor (Black Obsidian Glass with reactive emotion glow) */}
           <div
-            className={`relative overflow-hidden bg-gradient-to-b from-zinc-950 via-black to-zinc-900 border border-zinc-800/80 shadow-[inset_0_2px_5px_rgba(0,0,0,0.9),0_1px_2px_rgba(255,255,255,0.12)] flex flex-col items-center justify-center ${dimensions.visor}`}
+            className={`relative overflow-hidden bg-gradient-to-b from-zinc-950 via-black to-zinc-900 border transition-all duration-300 shadow-[inset_0_2px_6px_rgba(0,0,0,0.9),0_1px_2px_rgba(255,255,255,0.12)] flex flex-col items-center justify-center ${dimensions.visor} ${emotionThemes.visorBorder} ${emotionThemes.visorGlow}`}
           >
             {/* Glossy Reflection Arc */}
             <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-[12px] pointer-events-none" />
+
+            {/* Angry Eyebrows Overlay */}
+            {activeEmotion === "angry" && (
+              <div className="absolute top-1.5 inset-x-2 flex justify-between z-20 pointer-events-none">
+                <div className="w-3.5 h-[2.5px] bg-rose-500 rounded-full rotate-[28deg] shadow-[0_0_6px_#ef4444]" />
+                <div className="w-3.5 h-[2.5px] bg-rose-500 rounded-full -rotate-[28deg] shadow-[0_0_6px_#ef4444]" />
+              </div>
+            )}
+
+            {/* Confused Eyebrows Overlay */}
+            {activeEmotion === "confused" && (
+              <div className="absolute top-1.5 inset-x-2.5 flex justify-between z-20 pointer-events-none">
+                <div className="w-3 h-[2px] bg-purple-400 rounded-full -rotate-[16deg] shadow-[0_0_4px_#c084fc]" />
+                <div className="w-3 h-[2px] bg-purple-400 rounded-full rotate-[22deg] shadow-[0_0_4px_#c084fc]" />
+              </div>
+            )}
 
             {/* Expressive LED Eyes Container */}
             <div className={`relative flex items-center ${dimensions.eyeGap} z-10`}>
               {/* Left Eye */}
               <div className="relative flex items-center justify-center">
-                {effectiveHappy ? (
+                {activeEmotion === "smiling" ? (
                   <svg
                     viewBox="0 0 16 10"
-                    className="w-3.5 h-2.5 text-cyan-400 fill-none stroke-current stroke-[2.5] stroke-linecap-round filter drop-shadow-[0_0_4px_#06b6d4]"
+                    className={`w-3.5 h-2.5 stroke-current stroke-[2.5] stroke-linecap-round filter ${emotionThemes.eyeColor} ${emotionThemes.eyeDropShadow}`}
                   >
                     <path d="M 2 8 Q 8 1 14 8" />
                   </svg>
+                ) : activeEmotion === "angry" ? (
+                  <div
+                    className={`relative rounded-md bg-gradient-to-b ${emotionThemes.eyeGrad} flex items-center justify-center rotate-6 ${dimensions.eye}`}
+                  >
+                    <span className="w-1 h-1 rounded-full bg-white shadow-[0_0_3px_#fff]" />
+                  </div>
+                ) : activeEmotion === "confused" ? (
+                  /* Spiral / dizzy eye */
+                  <div className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent animate-spin shadow-[0_0_5px_#c084fc]" />
                 ) : (
                   <motion.div
                     style={{
@@ -335,9 +440,8 @@ function CuteBotAvatar({
                     }}
                     animate={{ scaleY: isBlinking ? 0.12 : 1 }}
                     transition={{ duration: 0.12 }}
-                    className={`relative rounded-full bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 shadow-[0_0_8px_#06b6d4,0_0_14px_rgba(6,182,212,0.6)] flex items-start justify-end p-0.5 ${dimensions.eye}`}
+                    className={`relative rounded-full bg-gradient-to-b ${emotionThemes.eyeGrad} flex items-start justify-end p-0.5 ${dimensions.eye}`}
                   >
-                    {/* Cute Pupil Specular Dot */}
                     <span className="w-1 h-1 rounded-full bg-white shadow-[0_0_2px_#fff]" />
                   </motion.div>
                 )}
@@ -345,13 +449,26 @@ function CuteBotAvatar({
 
               {/* Right Eye */}
               <div className="relative flex items-center justify-center">
-                {effectiveHappy ? (
+                {activeEmotion === "smiling" ? (
                   <svg
                     viewBox="0 0 16 10"
-                    className="w-3.5 h-2.5 text-cyan-400 fill-none stroke-current stroke-[2.5] stroke-linecap-round filter drop-shadow-[0_0_4px_#06b6d4]"
+                    className={`w-3.5 h-2.5 stroke-current stroke-[2.5] stroke-linecap-round filter ${emotionThemes.eyeColor} ${emotionThemes.eyeDropShadow}`}
                   >
                     <path d="M 2 8 Q 8 1 14 8" />
                   </svg>
+                ) : activeEmotion === "angry" ? (
+                  <div
+                    className={`relative rounded-md bg-gradient-to-b ${emotionThemes.eyeGrad} flex items-center justify-center -rotate-6 ${dimensions.eye}`}
+                  >
+                    <span className="w-1 h-1 rounded-full bg-white shadow-[0_0_3px_#fff]" />
+                  </div>
+                ) : activeEmotion === "confused" ? (
+                  /* Wide tilted curious eye */
+                  <div
+                    className={`relative rounded-full bg-gradient-to-b ${emotionThemes.eyeGrad} flex items-center justify-center scale-110 ${dimensions.eye}`}
+                  >
+                    <span className="w-1 h-1 rounded-full bg-white" />
+                  </div>
                 ) : (
                   <motion.div
                     style={{
@@ -360,37 +477,42 @@ function CuteBotAvatar({
                     }}
                     animate={{ scaleY: isBlinking ? 0.12 : 1 }}
                     transition={{ duration: 0.12 }}
-                    className={`relative rounded-full bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 shadow-[0_0_8px_#06b6d4,0_0_14px_rgba(6,182,212,0.6)] flex items-start justify-end p-0.5 ${dimensions.eye}`}
+                    className={`relative rounded-full bg-gradient-to-b ${emotionThemes.eyeGrad} flex items-start justify-end p-0.5 ${dimensions.eye}`}
                   >
-                    {/* Cute Pupil Specular Dot */}
                     <span className="w-1 h-1 rounded-full bg-white shadow-[0_0_2px_#fff]" />
                   </motion.div>
                 )}
               </div>
             </div>
 
-            {/* Blushing Cheeks (Light up on hover / happy) */}
+            {/* Blushing Cheeks (Lights up warmly on happy or flustered/angry) */}
             <div className="absolute inset-x-2 bottom-1.5 flex justify-between pointer-events-none">
               <div
-                className={`rounded-full bg-pink-400/40 blur-[0.8px] transition-opacity duration-300 ${
-                  effectiveHappy ? "opacity-100 bg-pink-400/80" : "opacity-40"
+                className={`rounded-full blur-[0.8px] transition-all duration-300 ${emotionThemes.cheekColor} ${
+                  activeEmotion !== "neutral" ? "opacity-100" : "opacity-30"
                 } ${dimensions.cheek}`}
               />
               <div
-                className={`rounded-full bg-pink-400/40 blur-[0.8px] transition-opacity duration-300 ${
-                  effectiveHappy ? "opacity-100 bg-pink-400/80" : "opacity-40"
+                className={`rounded-full blur-[0.8px] transition-all duration-300 ${emotionThemes.cheekColor} ${
+                  activeEmotion !== "neutral" ? "opacity-100" : "opacity-30"
                 } ${dimensions.cheek}`}
               />
             </div>
 
-            {/* Digital Wave Mouth when Typing / Speaking */}
-            {isTyping && (
+            {/* Expressive Mouth */}
+            {activeEmotion === "smiling" ? (
+              <div className="absolute bottom-1 w-2.5 h-1 border-b-2 border-emerald-400 rounded-full shadow-[0_0_4px_#10b981]" />
+            ) : activeEmotion === "angry" ? (
+              <div className="absolute bottom-1 w-2.5 h-1 border-t-2 border-rose-500 rounded-full shadow-[0_0_5px_#ef4444]" />
+            ) : activeEmotion === "confused" ? (
+              <div className="absolute bottom-1 w-1.5 h-1.5 rounded-full border border-purple-400 shadow-[0_0_3px_#c084fc]" />
+            ) : isTyping ? (
               <motion.div
                 animate={{ scaleX: [0.6, 1.2, 0.6] }}
                 transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
                 className={`absolute rounded-full bg-cyan-400 shadow-[0_0_6px_#06b6d4] ${dimensions.mouth}`}
               />
-            )}
+            ) : null}
           </div>
         </div>
       </motion.div>
@@ -410,6 +532,96 @@ export default function Chatbot() {
   const [speechPromptIndex, setSpeechPromptIndex] = useState(0);
   const [showSpeechBubble, setShowSpeechBubble] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Emotional reactivity state machine
+  const [botEmotion, setBotEmotion] = useState<BotEmotion>("neutral");
+  const [isDraggingBot, setIsDraggingBot] = useState(false);
+  const emotionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Click & shake gesture detection for "angry" and "confused" states
+  const clickCountRef = useRef(0);
+  const lastClickTimeRef = useRef(0);
+  const shakeVelocityRef = useRef({ lastX: 0, lastY: 0, lastTime: 0, rapidChanges: 0 });
+
+  const triggerEmotion = (emotion: BotEmotion, durationMs = 3500) => {
+    if (emotionTimeoutRef.current) clearTimeout(emotionTimeoutRef.current);
+    setBotEmotion(emotion);
+    if (durationMs > 0) {
+      emotionTimeoutRef.current = setTimeout(() => {
+        setBotEmotion("neutral");
+      }, durationMs);
+    }
+  };
+
+  // Detect rapid mouse shaking or erratic pointer motion to trigger "angry"
+  useEffect(() => {
+    let lastDirX = 0;
+    let reversals = 0;
+    let reversalResetTimer: NodeJS.Timeout | null = null;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const now = performance.now();
+      const dt = now - shakeVelocityRef.current.lastTime;
+      if (dt <= 16) return;
+
+      const dx = e.clientX - shakeVelocityRef.current.lastX;
+      const speed = Math.abs(dx) / dt;
+
+      // Detect frequent direction reversals at high speed (shaking back & forth)
+      const currentDirX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
+      if (currentDirX !== 0 && currentDirX !== lastDirX && speed > 1.2) {
+        reversals++;
+        lastDirX = currentDirX;
+
+        if (reversalResetTimer) clearTimeout(reversalResetTimer);
+        reversalResetTimer = setTimeout(() => {
+          reversals = 0;
+        }, 600);
+
+        // If user shook mouse violently 6+ times in <600ms, bot gets angry!
+        if (reversals >= 5) {
+          triggerEmotion("angry", 4000);
+          reversals = 0;
+        }
+      }
+
+      shakeVelocityRef.current = {
+        lastX: e.clientX,
+        lastY: e.clientY,
+        lastTime: now,
+        rapidChanges: reversals,
+      };
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      if (reversalResetTimer) clearTimeout(reversalResetTimer);
+    };
+  }, []);
+
+  const handleBotClick = () => {
+    if (isDraggingBot) return;
+
+    const now = Date.now();
+    if (now - lastClickTimeRef.current < 450) {
+      clickCountRef.current += 1;
+    } else {
+      clickCountRef.current = 1;
+    }
+    lastClickTimeRef.current = now;
+
+    // Rapid spam clicks make the bot angry!
+    if (clickCountRef.current >= 4) {
+      triggerEmotion("angry", 4000);
+      clickCountRef.current = 0;
+      return;
+    }
+
+    // Normal click opens chat and smiles
+    triggerEmotion("smiling", 3000);
+    setIsOpen(true);
+  };
 
   const initialBotMessage: Message = useMemo(
     () => ({
@@ -470,6 +682,7 @@ export default function Chatbot() {
     ]);
     setInput("");
     setIsTyping(true);
+    triggerEmotion("smiling", 2500);
 
     setTimeout(() => {
       let responseText =
@@ -488,12 +701,11 @@ export default function Chatbot() {
           ? "Here is Nilay's resume! Tap the button below to view or download it."
           : "Sorry, Nilay hasn't uploaded a resume PDF yet.";
         isResumeTrigger = !!resumeUrl;
+        triggerEmotion("smiling", 3500);
       } else {
-        // Bypass strict closure inference
         let bestRule: any = null;
         let highestScore = 0;
 
-        // Scoring algorithm to find the BEST match
         rules.forEach((rule) => {
           let score = 0;
           rule.keywords.forEach((kw) => {
@@ -509,6 +721,10 @@ export default function Chatbot() {
           responseText = bestRule.answer;
           quickReplies = bestRule.quickReplies || [];
           links = bestRule.links || [];
+          triggerEmotion("smiling", 3000);
+        } else {
+          // If no match found, bot looks confused
+          triggerEmotion("confused", 3500);
         }
       }
 
@@ -529,27 +745,51 @@ export default function Chatbot() {
 
   const handleReset = () => {
     setMessages([initialBotMessage]);
+    triggerEmotion("smiling", 2000);
   };
 
   return (
     <>
       {/* =============================================================== */}
-      {/* 🌟 FLOATING 3D CUTE BOT TRIGGER (Bottom Right) */}
+      {/* 🌟 DRAGGABLE FLOATING 3D CUTE BOT LAUNCHER WITH EMOTIONS */}
       {/* =============================================================== */}
-      <div
-        className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${
+      <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0.12}
+        dragConstraints={{
+          top: typeof window !== "undefined" ? -window.innerHeight + 140 : -600,
+          left: typeof window !== "undefined" ? -window.innerWidth + 120 : -800,
+          right: 0,
+          bottom: 0,
+        }}
+        onDragStart={() => {
+          setIsDraggingBot(true);
+          triggerEmotion("confused", 0);
+        }}
+        onDragEnd={(_e, info) => {
+          setIsDraggingBot(false);
+          // If dragged with violent throw velocity, gets angry briefly
+          const throwVelocity = Math.hypot(info.velocity.x, info.velocity.y);
+          if (throwVelocity > 950) {
+            triggerEmotion("angry", 3000);
+          } else {
+            triggerEmotion("smiling", 2000);
+          }
+        }}
+        className={`fixed bottom-6 right-6 z-50 cursor-grab active:cursor-grabbing transition-opacity duration-300 ${
           isOpen ? "opacity-0 pointer-events-none scale-90" : "opacity-100 scale-100"
         }`}
       >
         {/* Apple-style Frosted Speech Bubble Pill */}
         <AnimatePresence>
-          {showSpeechBubble && !isOpen && (
+          {showSpeechBubble && !isOpen && !isDraggingBot && (
             <motion.div
               initial={{ opacity: 0, y: 12, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.92 }}
               transition={{ type: "spring", stiffness: 320, damping: 24 }}
-              onClick={() => setIsOpen(true)}
+              onClick={handleBotClick}
               className="absolute bottom-full right-0 mb-3 cursor-pointer group select-none"
             >
               <div className="relative px-3.5 py-2 rounded-2xl bg-white/85 dark:bg-zinc-900/85 backdrop-blur-xl border border-white/60 dark:border-zinc-700/60 shadow-[0_8px_20px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_25px_rgba(0,0,0,0.5)] flex items-center gap-2 transition-transform duration-200 group-hover:scale-[1.03]">
@@ -559,17 +799,21 @@ export default function Chatbot() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
 
-                {/* Animated Speech Text */}
+                {/* Animated Speech Text or Emotion reactions */}
                 <AnimatePresence mode="wait">
                   <motion.span
-                    key={speechPromptIndex}
+                    key={botEmotion !== "neutral" ? botEmotion : speechPromptIndex}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.2 }}
                     className="text-xs font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 whitespace-nowrap"
                   >
-                    {SPEECH_PROMPTS[speechPromptIndex]}
+                    {botEmotion === "angry"
+                      ? "Hey! Don't shake me! 💢"
+                      : botEmotion === "confused"
+                      ? "Whoa, where are we going? 🌀"
+                      : SPEECH_PROMPTS[speechPromptIndex]}
                   </motion.span>
                 </AnimatePresence>
 
@@ -595,25 +839,35 @@ export default function Chatbot() {
         {/* Floating Bobbing Mascot & Synchronized Shadow */}
         <div className="relative flex flex-col items-center">
           <motion.div
-            animate={{ y: [0, -7, 0] }}
-            transition={{ repeat: Infinity, duration: 3.2, ease: "easeInOut" }}
+            animate={isDraggingBot ? { scale: 1.12, rotate: 6 } : { y: [0, -7, 0] }}
+            transition={
+              isDraggingBot
+                ? { type: "spring", damping: 15 }
+                : { repeat: Infinity, duration: 3.2, ease: "easeInOut" }
+            }
             className="relative"
           >
             <CuteBotAvatar
               size="lg"
               interactive={true}
-              onClick={() => setIsOpen(true)}
+              emotion={botEmotion}
+              isDragging={isDraggingBot}
+              onClick={handleBotClick}
             />
           </motion.div>
 
           {/* Dynamic Breathing Ground Shadow */}
           <motion.div
-            animate={{ scale: [1, 0.8, 1], opacity: [0.35, 0.18, 0.35] }}
-            transition={{ repeat: Infinity, duration: 3.2, ease: "easeInOut" }}
+            animate={
+              isDraggingBot
+                ? { scale: 0.5, opacity: 0.1 }
+                : { scale: [1, 0.8, 1], opacity: [0.35, 0.18, 0.35] }
+            }
+            transition={{ repeat: isDraggingBot ? 0 : Infinity, duration: 3.2, ease: "easeInOut" }}
             className="w-11 h-2 rounded-[100%] bg-zinc-950/20 dark:bg-black/50 blur-[3px] pointer-events-none -mt-1"
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* =============================================================== */}
       {/* 💬 CHAT MODAL DRAWER (Apple Design Materials & Fluid Springs) */}

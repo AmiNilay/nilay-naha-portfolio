@@ -61,12 +61,16 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
 
 ## 🛡️ 3. Checkpoints, Safety & Permissions
 
-1. **Destructive Operation Shield:**
-   - **NEVER** run commands that drop MongoDB collections, clear databases, or execute destructive git resets (`git reset --hard`, `git push --force`) without explicit user instruction.
-2. **Environment Variable Security:**
+1. **Autonomous Execution (Don't Ask for Basic Permissions):**
+   - Automatically execute standard code edits, file updates, tests, type checks (`npx tsc --noEmit`), and git workflows without prompting the user for approval.
+   - Proactively solve issues and proceed autonomously.
+2. **Critical Confirmation Gate (Ask Only for Truly Dangerous Actions):**
+   - Only stop to ask for explicit confirmation before:
+     - Dropping or wiping MongoDB collections / production database data.
+     - Destructive Git commands (`git reset --hard`, `git push --force`, deleting remote branches).
+     - Deleting critical project directories or files outside normal refactoring.
+3. **Environment Variable Security:**
    - **NEVER** hardcode, echo, log, or commit secret values from `.env.local` (`MONGODB_URI`, `GITHUB_TOKEN`, `ADMIN_SECRET`, `VAPID_PRIVATE_KEY`).
-3. **Reversible Changes:**
-   - Rely on checkpoints and git state before initiating multi-file refactoring.
 
 ---
 

@@ -14,4 +14,5 @@
 - **Assets:** GitHub upload via `uploadToGithub` in `@/lib/githubUpload.ts`. Delete old files with `deleteFromGithub`.
 - **Security:** Maintain `ContentProtection.tsx`.
 - **Documentation:** Keep `CODEBASE_MAP.md` synchronized whenever file purposes or routes change.
+- **Autonomous Execution:** Proactively perform standard file edits, verifications, and git syncs without asking basic permissions. Only pause for confirmation on truly destructive operations (DB drops, force resets).
 

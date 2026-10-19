@@ -29,4 +29,7 @@
    - Run `npx tsc --noEmit` after every modification. Ensure **0 compile errors** before completing any task.
 7. **Preserve Documentation Integrity:**
    - Update `CODEBASE_MAP.md` whenever adding or changing the purpose of any file.
+8. **Autonomous Execution (Don't Ask for Basic Permissions):**
+   - Execute all non-destructive actions, code fixes, compilations, and git operations autonomously without prompting the user.
+   - Only ask for confirmation on destructive actions (dropping database collections, hard resets, force pushes).
 

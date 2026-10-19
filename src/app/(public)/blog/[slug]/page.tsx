@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import BlogPostClient from "./BlogPostClient";
 import { connectToDB } from "@/lib/connectToDB";
 import Post from "@/models/Post";
+import Hero from "@/models/Hero";
 
 export const dynamic = "force-dynamic";
 
@@ -9,9 +10,23 @@ async function getPost(slug: string) {
   try {
     await connectToDB();
     const post = await Post.findOne({ slug }).lean();
-    return post;
+    return post ? JSON.parse(JSON.stringify(post)) : null;
   } catch (error) {
     console.error("Metadata post lookup error:", error);
+    return null;
+  }
+}
+
+async function getHeroAuthor() {
+  try {
+    await connectToDB();
+    const hero = await Hero.findOne().lean();
+    if (!hero) return null;
+    return {
+      profilePic: (hero as any).profilePic || "",
+      gDriveProfilePic: (hero as any).gDriveProfilePic || "",
+    };
+  } catch {
     return null;
   }
 }
@@ -65,6 +80,11 @@ export async function generateMetadata({
   };
 }
 
-export default function Page() {
-  return <BlogPostClient />;
+export default async function Page({ params }: { params: { slug: string } }) {
+  const [initialPost, initialHero] = await Promise.all([
+    getPost(params.slug),
+    getHeroAuthor(),
+  ]);
+
+  return <BlogPostClient initialPost={initialPost} initialHeroAuthor={initialHero} />;
 }

@@ -56,79 +56,101 @@ interface LinkedProject {
   tags?: string[];
 }
 
-export default function BlogPostClient() {
+interface BlogPostClientProps {
+  initialPost?: BlogPost | null;
+  initialHeroAuthor?: { profilePic?: string; gDriveProfilePic?: string } | null;
+}
+
+export default function BlogPostClient({ initialPost = null, initialHeroAuthor = null }: BlogPostClientProps) {
   const params = useParams();
   const router = useRouter();
 
-  const [post, setPost] = useState<BlogPost | null>(null);
+  const [post, setPost] = useState<BlogPost | null>(initialPost);
   const [linkedProject, setLinkedProject] = useState<LinkedProject | null>(null);
-  const [heroAuthor, setHeroAuthor] = useState<{ profilePic?: string; gDriveProfilePic?: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [heroAuthor, setHeroAuthor] = useState<{ profilePic?: string; gDriveProfilePic?: string } | null>(initialHeroAuthor);
+  const [loading, setLoading] = useState(!initialPost);
   const [focusMode, setFocusMode] = useState(false);
-  const [viewCount, setViewCount] = useState<number>(0);
+  const [viewCount, setViewCount] = useState<number>(initialPost?.views || 0);
   const [copied, setCopied] = useState(false);
   const [showReadingDock, setShowReadingDock] = useState(false);
 
-  // Fetch article data, related project, author avatar, and increment view count
+  // Fetch article data if not provided by server, related project, author avatar, and increment view count
   useEffect(() => {
     if (!params?.slug) return;
 
     let isMounted = true;
 
-    const fetchPost = async () => {
-      try {
-        const res = await fetch(`/api/blog?slug=${params.slug}`);
-        const data = await res.json();
+    // Increment views atomically in the background without blocking render
+    fetch("/api/views", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: params.slug }),
+    })
+      .then((r) => r.json())
+      .then((vData) => {
+        if (isMounted && vData.views) setViewCount(vData.views);
+      })
+      .catch(() => {});
 
-        if (isMounted && data.post) {
-          setPost(data.post);
-          setViewCount(data.post.views || 0);
-
-          // Fetch related project if linked
-          if (data.post.relatedProject) {
-            fetch(`/api/projects?id=${data.post.relatedProject}`)
-              .then((r) => r.json())
-              .then((projData) => {
-                if (isMounted && projData.project) {
-                  setLinkedProject(projData.project);
-                }
-              })
-              .catch((err) => console.error("Failed to load linked project:", err));
+    // If initialPost already has relatedProject, fetch that
+    if (initialPost?.relatedProject) {
+      fetch(`/api/projects?id=${initialPost.relatedProject}`)
+        .then((r) => r.json())
+        .then((projData) => {
+          if (isMounted && projData.project) {
+            setLinkedProject(projData.project);
           }
+        })
+        .catch(() => {});
+    }
 
-          // Fetch author hero avatar
-          fetch("/api/hero")
-            .then((r) => r.json())
-            .then((hero) => {
-              if (isMounted && hero) setHeroAuthor(hero);
-            })
-            .catch(() => {});
+    // Only do full client fetch if we didn't receive initialPost from server
+    if (!initialPost) {
+      const fetchPost = async () => {
+        try {
+          const res = await fetch(`/api/blog?slug=${params.slug}`);
+          const data = await res.json();
 
-          // Increment views atomically
-          fetch("/api/views", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ slug: params.slug }),
-          })
-            .then((r) => r.json())
-            .then((vData) => {
-              if (isMounted && vData.views) setViewCount(vData.views);
-            })
-            .catch(() => {});
+          if (isMounted && data.post) {
+            setPost(data.post);
+            setViewCount(data.post.views || 0);
+
+            if (data.post.relatedProject) {
+              fetch(`/api/projects?id=${data.post.relatedProject}`)
+                .then((r) => r.json())
+                .then((projData) => {
+                  if (isMounted && projData.project) {
+                    setLinkedProject(projData.project);
+                  }
+                })
+                .catch((err) => console.error("Failed to load linked project:", err));
+            }
+
+            if (!heroAuthor) {
+              fetch("/api/hero")
+                .then((r) => r.json())
+                .then((hero) => {
+                  if (isMounted && hero) setHeroAuthor(hero);
+                })
+                .catch(() => {});
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch article:", error);
+        } finally {
+          if (isMounted) setLoading(false);
         }
-      } catch (error) {
-        console.error("Failed to fetch article:", error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
+      };
 
-    fetchPost();
+      fetchPost();
+    } else {
+      setLoading(false);
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [params?.slug]);
+  }, [params?.slug, initialPost]);
 
   // Scroll listener to reveal the floating bottom reading dock when scrolled past hero
   useEffect(() => {
@@ -224,17 +246,21 @@ export default function BlogPostClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Loading Screen
+  // Loading Screen (Apple Translucent Material + Fluid Indicator)
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-        <div className="relative w-12 h-12 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-          <BookOpen className="w-5 h-5 text-primary absolute" />
+        <div className="relative z-10 flex flex-col items-center px-8 py-7 rounded-3xl bg-white/70 dark:bg-card/70 backdrop-blur-2xl border border-black/[0.06] dark:border-white/[0.08] border-t-white/80 dark:border-t-white/20 shadow-[0_16px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+          <div className="w-11 h-11 mb-3 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary">
+            <BookOpen className="w-5 h-5 stroke-[2]" />
+          </div>
+          <span className="text-xs font-semibold tracking-tight text-foreground mb-4">
+            Opening Publication...
+          </span>
+          <div className="w-36 h-1 bg-black/[0.06] dark:bg-white/[0.08] rounded-full overflow-hidden relative">
+            <div className="absolute inset-y-0 w-1/3 bg-primary rounded-full animate-apple-shimmer shadow-[0_0_8px_var(--primary)]" />
+          </div>
         </div>
-        <p className="mt-4 text-xs font-semibold tracking-widest text-muted-foreground uppercase animate-pulse">
-          Loading Article...
-        </p>
       </div>
     );
   }

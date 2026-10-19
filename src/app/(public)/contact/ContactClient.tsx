@@ -47,20 +47,21 @@ export default function ContactClient() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    // Attempt to pull latest dynamic social/email links if provided via Hero or About
-    fetch(`/api/hero?t=${Date.now()}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data) {
-          setContactInfo((prev) => ({
-            ...prev,
-            email: data.socialEmail || prev.email,
-            github: data.socialGithub || prev.github,
-            linkedin: data.socialLinkedin || prev.linkedin,
-          }));
-        }
-      })
-      .catch(() => {});
+    // Attempt to pull latest dynamic social/email links from in-memory cache
+    import("@/lib/clientCache").then(({ fetchWithSessionCache }) => {
+      fetchWithSessionCache<any>("hero_data", "/api/hero")
+        .then((data) => {
+          if (data) {
+            setContactInfo((prev) => ({
+              ...prev,
+              email: data.socialEmail || prev.email,
+              github: data.socialGithub || prev.github,
+              linkedin: data.socialLinkedin || prev.linkedin,
+            }));
+          }
+        })
+        .catch(() => {});
+    });
   }, []);
 
   const handleCopy = () => {

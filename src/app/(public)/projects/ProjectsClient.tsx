@@ -57,12 +57,8 @@ export default function ProjectsClient() {
     let isMounted = true;
     const fetchProjects = async () => {
       try {
-        const res = await fetch("/api/projects");
-        if (!res.ok) {
-          if (isMounted) setLoading(false);
-          return;
-        }
-        const data = await res.json();
+        const { fetchWithSessionCache } = await import("@/lib/clientCache");
+        const data = await fetchWithSessionCache<{ projects: Project[] }>("projects_catalog", "/api/projects");
         if (isMounted) {
           setProjects(data.projects || []);
         }
@@ -315,7 +311,7 @@ export default function ProjectsClient() {
 
               {/* Right Column: Visual Frame with 100% UN-CUT Fitted Image */}
               <div className="lg:col-span-7">
-                <Link href={`/projects/${featuredProject.slug}`} className="block">
+                <Link href={`/projects/${featuredProject.slug}`} prefetch={true} className="block">
                   <div className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 shadow-2xl transition-transform duration-500 group-hover:scale-[1.01]">
                     {/* macOS Browser Header */}
                     <div className="h-8 bg-zinc-200/80 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-700/60 flex items-center px-3 gap-1.5">
@@ -430,6 +426,7 @@ export default function ProjectsClient() {
                     {/* Visual Media Frame with Fitted Aspect Ratio (No Cut) */}
                     <Link
                       href={`/projects/${project.slug}`}
+                      prefetch={true}
                       className="relative w-full aspect-[16/10] bg-zinc-100 dark:bg-zinc-950 overflow-hidden block border-b border-zinc-200/80 dark:border-zinc-800/80 group-hover:bg-zinc-50 dark:group-hover:bg-zinc-900 transition-colors"
                     >
                       {/* Mini Window Controls if FrameStyle is Browser */}

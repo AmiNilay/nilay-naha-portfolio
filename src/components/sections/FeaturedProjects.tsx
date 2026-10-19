@@ -112,6 +112,7 @@ export default function FeaturedProjects() {
                 {/* Media frame with fitted image - No crop */}
                 <Link
                   href={`/projects/${project.slug}`}
+                  prefetch={true}
                   className="relative w-full aspect-[16/10] bg-zinc-100 dark:bg-zinc-950 overflow-hidden block border-b border-zinc-200/80 dark:border-zinc-800/80 group-hover:bg-zinc-50 dark:group-hover:bg-zinc-900 transition-colors"
                 >
                   {project.frameStyle === "Browser" && (
@@ -171,7 +172,7 @@ export default function FeaturedProjects() {
                     </div>
                   )}
 
-                  <Link href={`/projects/${project.slug}`} className="block group/link">
+                  <Link href={`/projects/${project.slug}`} prefetch={true} className="block group/link">
                     <h3 className="text-base sm:text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 group-hover/link:text-blue-600 dark:group-hover/link:text-blue-400 transition-colors line-clamp-1">
                       {project.title}
                     </h3>
@@ -184,6 +185,7 @@ export default function FeaturedProjects() {
                   <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                     <Link
                       href={`/projects/${project.slug}`}
+                      prefetch={true}
                       className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 group/cta"
                     >
                       <span>Explore Case Study</span>

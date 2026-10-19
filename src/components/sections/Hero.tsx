@@ -122,10 +122,10 @@ function TiltCard({
         }}
         className="relative cursor-pointer"
       >
-        {/* Avatar disc */}
+        {/* Avatar disc with Apple continuous curvature & fluid responsive clamp */}
         <div className="
           relative
-          w-44 h-44 sm:w-60 sm:h-60 md:w-[300px] md:h-[300px] lg:w-[380px] lg:h-[380px] xl:w-[420px] xl:h-[420px]
+          w-[clamp(140px,26vw,380px)] h-[clamp(140px,26vw,380px)]
           rounded-full overflow-hidden
           border-[3px] md:border-[5px] border-white dark:border-[#1C2333]
           shadow-[0_8px_40px_-8px_rgba(15,118,110,0.25),0_0_0_1px_rgba(15,118,110,0.12)]
@@ -204,39 +204,32 @@ export default function Hero() {
   const glowX    = useTransform(springX, [-0.5, 0.5], shouldReduce ? [0,0] : [30,-30]);
   const glowY    = useTransform(springY, [-0.5, 0.5], shouldReduce ? [0,0] : [20,-20]);
 
-  // Manage scroll lock on hero if needed without breaking wheel or touch dispatch
-  useEffect(() => {
-    const prev = { body: document.body.style.overflow, html: document.documentElement.style.overflow };
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev.body;
-      document.documentElement.style.overflow = prev.html;
-    };
-  }, []);
+  // Fluid layout handles viewport adaptation across all displays smoothly
 
-  // Fetch hero data
+  // Fetch hero data using in-memory / session cache
   useEffect(() => {
-    fetch(`/api/hero?t=${Date.now()}`, { cache: "no-store" })
-      .then(r => r.json())
-      .then(d => {
-        if (d) {
-          setData(p => ({
-            ...p, ...d,
-            badgeText:       d.badgeText || d.badge || "",
-            showAvailability: d.showAvailability !== false,
-            line1Bold:  d.line1Bold  || "Build",
-            line1Accent:d.line1Accent|| "clean backends",
-            line2Bold:  d.line2Bold  || "Ship",
-            line2Accent:d.line2Accent|| "real products",
-          }));
-          if (d.siteTitle && typeof document !== "undefined") {
-            document.title = d.siteTitle;
+    import("@/lib/clientCache").then(({ fetchWithSessionCache }) => {
+      fetchWithSessionCache<any>("hero_data", "/api/hero")
+        .then((d) => {
+          if (d) {
+            setData((p) => ({
+              ...p,
+              ...d,
+              badgeText: d.badgeText || d.badge || "",
+              showAvailability: d.showAvailability !== false,
+              line1Bold: d.line1Bold || "Build",
+              line1Accent: d.line1Accent || "clean backends",
+              line2Bold: d.line2Bold || "Ship",
+              line2Accent: d.line2Accent || "real products",
+            }));
+            if (d.siteTitle && typeof document !== "undefined") {
+              document.title = d.siteTitle;
+            }
           }
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    });
   }, []);
 
   const onMouseMove = (e: React.MouseEvent) => {
@@ -249,8 +242,18 @@ export default function Hero() {
 
   if (loading) {
     return (
-      <section className="fixed inset-0 flex items-center justify-center bg-[#FAFAFA] dark:bg-[#0B0F14] z-50">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0F766E] dark:text-[#F59E0B]" />
+      <section className="fixed inset-0 flex items-center justify-center bg-[#FAFAFA]/90 dark:bg-[#0B0F14]/90 backdrop-blur-3xl z-50">
+        <div className="flex flex-col items-center px-8 py-7 rounded-3xl bg-white/70 dark:bg-card/70 backdrop-blur-2xl border border-black/[0.06] dark:border-white/[0.08] border-t-white/80 dark:border-t-white/20 shadow-[0_16px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+          <div className="w-10 h-10 mb-3 rounded-2xl bg-gradient-to-tr from-[#0F766E] to-[#14B8A6] dark:from-[#F59E0B] dark:to-[#FBBF24] flex items-center justify-center text-white dark:text-[#0B0F14] font-black text-sm shadow-[0_4px_12px_rgba(15,118,110,0.3)] dark:shadow-[0_4px_12px_rgba(245,158,11,0.35)]">
+            N
+          </div>
+          <span className="text-xs font-semibold tracking-tight text-neutral-900 dark:text-white mb-3">
+            Nilay Naha
+          </span>
+          <div className="w-32 h-1 bg-black/[0.06] dark:bg-white/[0.08] rounded-full overflow-hidden relative">
+            <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-[#0F766E] to-[#14B8A6] dark:from-[#F59E0B] dark:to-[#FBBF24] rounded-full animate-apple-shimmer shadow-[0_0_8px_rgba(15,118,110,0.5)] dark:shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+          </div>
+        </div>
       </section>
     );
   }
@@ -266,7 +269,7 @@ export default function Hero() {
       ref={containerRef}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
-      className="relative w-full h-[100dvh] flex flex-col items-center justify-center overflow-hidden bg-[#FAFAFA] dark:bg-[#0B0F14] overscroll-none"
+      className="relative w-full min-h-[100dvh] h-full flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden bg-[#FAFAFA] dark:bg-[#0B0F14] overscroll-none"
     >
       {/* ── Ambient background glow ── */}
       <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
@@ -281,18 +284,18 @@ export default function Hero() {
         />
       </div>
 
-      {/* ── Main two-column layout ── */}
-      <div className="relative z-10 w-full max-w-[1380px] mx-auto px-5 sm:px-10 lg:px-16 flex flex-col-reverse md:flex-row items-center justify-between gap-8 md:gap-12 h-full pb-16 pt-20">
+      {/* ── Main two-column layout (Fluid responsive containment) ── */}
+      <div className="relative z-10 w-full max-w-[1380px] mx-auto px-4 sm:px-8 lg:px-16 flex flex-col-reverse md:flex-row items-center justify-center md:justify-between gap-6 md:gap-10 lg:gap-12 min-h-full py-20 md:py-16 pb-24 md:pb-20">
 
         {/* LEFT: Text content */}
-        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left min-w-0 w-full">
+        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left min-w-0 w-full max-w-2xl">
 
           {/* Availability badge */}
           <AnimatePresence>
             {data.badgeText && (
               <motion.div
                 {...fadeUp(0.05)}
-                className="inline-flex items-center gap-2 mb-5 px-3 py-1.5 rounded-full border
+                className="inline-flex items-center gap-2 mb-3 sm:mb-4 px-3 py-1.5 rounded-full border
                   border-[#0F766E]/20 bg-[#0F766E]/[0.06] dark:border-[#F59E0B]/20 dark:bg-[#F59E0B]/[0.06]
                   backdrop-blur-md"
               >
@@ -310,16 +313,16 @@ export default function Hero() {
             )}
           </AnimatePresence>
 
-          {/* Headline — Apple-style negative tracking at display sizes */}
+          {/* Headline — Apple-style negative tracking at display sizes with fluid viewport clamp */}
           <motion.h1
             {...fadeUp(0.12)}
-            className="text-[clamp(2rem,5.5vw,4.2rem)] font-extrabold leading-[1.05] tracking-[-0.02em] text-[#111827] dark:text-[#F9FAFB] w-full"
+            className="text-[clamp(1.85rem,4.5vw,3.8rem)] font-extrabold leading-[1.08] tracking-[-0.025em] text-[#111827] dark:text-[#F9FAFB] w-full"
           >
             <span className="block">
               {data.line1Bold}{" "}
               <span className="text-[#0F766E] dark:text-[#F59E0B]">{data.line1Accent}</span>
             </span>
-            <span className="block mt-1 md:mt-2">
+            <span className="block mt-1 sm:mt-1.5">
               {data.line2Bold}{" "}
               <span className="text-[#0F766E] dark:text-[#F59E0B]">{data.line2Accent}</span>
             </span>
@@ -329,7 +332,7 @@ export default function Hero() {
           {data.subtitle && (
             <motion.div
               {...fadeUp(0.22)}
-              className="mt-4 md:mt-5 max-w-[540px] text-[15px] sm:text-[17px] leading-[1.65]
+              className="mt-3 sm:mt-4 max-w-[520px] text-[14px] sm:text-[16px] leading-[1.6]
                 text-[#374151] dark:text-[#9CA3AF] font-normal
                 [&_p]:text-inherit [&_strong]:text-[#111827] [&_strong]:dark:text-white [&_strong]:font-semibold"
               dangerouslySetInnerHTML={{ __html: data.subtitle }}
@@ -337,7 +340,7 @@ export default function Hero() {
           )}
 
           {/* CTA row */}
-          <motion.div {...fadeUp(0.33)} className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-7 md:mt-9 w-full">
+          <motion.div {...fadeUp(0.33)} className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3 mt-6 sm:mt-8 w-full">
             {/* Primary */}
             <Link
               href="/projects"
@@ -353,17 +356,17 @@ export default function Hero() {
                 }
               }}
               className="group inline-flex items-center justify-center gap-2
-                px-5 py-3 md:px-6 md:py-3.5
+                px-5 py-2.5 sm:px-6 sm:py-3.5
                 bg-[#111827] dark:bg-[#F59E0B]
                 text-white dark:text-[#0B0F14]
-                text-sm md:text-[15px] font-semibold rounded-full
+                text-xs sm:text-sm font-semibold rounded-full
                 shadow-[0_2px_14px_rgba(15,118,110,0.2)] dark:shadow-[0_2px_14px_rgba(245,158,11,0.2)]
                 hover:shadow-[0_4px_22px_rgba(15,118,110,0.38)] dark:hover:shadow-[0_4px_22px_rgba(245,158,11,0.38)]
                 active:scale-95 hover:scale-[1.03]
                 transition-all duration-150 ease-out will-change-transform cursor-pointer"
             >
               View Work
-              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
 
             {/* Resume */}
@@ -373,20 +376,20 @@ export default function Hero() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2
-                  px-5 py-3 md:px-6 md:py-3.5
+                  px-5 py-2.5 sm:px-6 sm:py-3.5
                   bg-white/80 dark:bg-white/[0.05]
                   border border-[#E5E7EB] dark:border-white/10
                   text-[#111827] dark:text-[#F9FAFB]
-                  text-sm md:text-[15px] font-semibold rounded-full backdrop-blur-sm
+                  text-xs sm:text-sm font-semibold rounded-full backdrop-blur-sm
                   hover:bg-white dark:hover:bg-white/10
                   active:scale-[0.97] hover:scale-[1.02]
                   transition-all duration-[170ms] ease-out will-change-transform"
               >
-                Résumé <Download className="w-4 h-4" />
+                Résumé <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </a>
             ) : (
-              <button disabled className="inline-flex items-center gap-2 px-5 py-3 md:px-6 md:py-3.5 border border-red-200/50 text-red-400/70 rounded-full cursor-not-allowed opacity-50 text-sm md:text-[15px]">
-                No Résumé <FileX className="w-4 h-4" />
+              <button disabled className="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3.5 border border-red-200/50 text-red-400/70 rounded-full cursor-not-allowed opacity-50 text-xs sm:text-sm">
+                No Résumé <FileX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
 

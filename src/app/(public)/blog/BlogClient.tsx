@@ -53,35 +53,19 @@ export default function BlogClient() {
   const [activeFilter, setActiveFilter] = useState("All Topics");
 
   const fetchPosts = useCallback(async (forceRefresh = false) => {
-    setLoading(true);
-    setError(null);
-
     try {
-      // 1. Session Cache Check
-      if (!forceRefresh) {
-        const cachedData = sessionStorage.getItem("portfolio_blog_cache");
-        const cacheTime = sessionStorage.getItem("portfolio_blog_cache_time");
-
-        if (cachedData && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
-          setPosts(JSON.parse(cachedData));
-          setLoading(false);
-          return;
-        }
+      const { fetchWithSessionCache, clearMemoryCache } = await import("@/lib/clientCache");
+      if (forceRefresh) {
+        clearMemoryCache("blog_posts");
+        setLoading(true);
       }
 
-      // 2. Network Fetch
-      const res = await fetch("/api/blog");
-      if (!res.ok) throw new Error("Unable to fetch articles");
-
-      const data = await res.json();
+      const data = await fetchWithSessionCache<any>("blog_posts", "/api/blog");
       const fetchedPosts = Array.isArray(data) ? data : data.posts || [];
-
       setPosts(fetchedPosts);
-      sessionStorage.setItem("portfolio_blog_cache", JSON.stringify(fetchedPosts));
-      sessionStorage.setItem("portfolio_blog_cache_time", Date.now().toString());
     } catch (err) {
       console.error("Failed to load blog entries:", err);
-      if (!navigator.onLine) {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
         setError("You are currently offline. Please reconnect to view articles.");
       } else {
         setError("Unable to load articles right now. Please try again shortly.");
@@ -368,6 +352,7 @@ export default function BlogClient() {
               >
                 <Link
                   href={`/blog/${featuredPost.slug}`}
+                  prefetch={true}
                   className="flex flex-col lg:flex-row items-stretch"
                 >
                   {/* Left Column: Editorial Details */}
@@ -472,7 +457,7 @@ export default function BlogClient() {
                       whileTap={{ scale: 0.98 }}
                       className="group flex flex-col h-full rounded-3xl overflow-hidden bg-white/70 dark:bg-[#12161f]/70 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] border-t-white/80 dark:border-t-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.35)] hover:shadow-[0_20px_45px_-12px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_45px_-12px_rgba(0,0,0,0.55)] transition-shadow duration-300"
                     >
-                      <Link href={`/blog/${post.slug}`} className="flex flex-col h-full">
+                      <Link href={`/blog/${post.slug}`} prefetch={true} className="flex flex-col h-full">
                         {/* Media Container */}
                         <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/[0.03] dark:bg-white/[0.03] border-b border-black/[0.05] dark:border-white/[0.06]">
                           {post.coverImage || post.gDriveImage ? (

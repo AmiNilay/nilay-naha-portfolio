@@ -307,8 +307,19 @@ html.dark .admin-root .ql-editor.ql-blank::before {
   animation-play-state: paused;
 }
 
+@keyframes apple-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-apple-shimmer {
+  animation: apple-shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hero-marquee-track {
+  .hero-marquee-track,
+  .animate-apple-shimmer {
     animation: none;
   }
 }
+

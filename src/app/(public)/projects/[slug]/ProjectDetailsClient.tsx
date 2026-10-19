@@ -67,17 +67,27 @@ interface LinkedBlog {
   readTime?: number | string;
 }
 
-export default function ProjectDetailsClient() {
+interface ProjectDetailsClientProps {
+  initialData?: {
+    project: Project;
+    prevProject: Project | null;
+    nextProject: Project | null;
+    processedHTML: string;
+    linkedBlog: LinkedBlog | null;
+  } | null;
+}
+
+export default function ProjectDetailsClient({ initialData = null }: ProjectDetailsClientProps) {
   const params = useParams();
   const router = useRouter();
   const slug = params?.slug as string;
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [prevProject, setPrevProject] = useState<Project | null>(null);
-  const [nextProject, setNextProject] = useState<Project | null>(null);
-  const [linkedBlog, setLinkedBlog] = useState<LinkedBlog | null>(null);
-  const [processedHTML, setProcessedHTML] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [project, setProject] = useState<Project | null>(initialData?.project || null);
+  const [prevProject, setPrevProject] = useState<Project | null>(initialData?.prevProject || null);
+  const [nextProject, setNextProject] = useState<Project | null>(initialData?.nextProject || null);
+  const [linkedBlog, setLinkedBlog] = useState<LinkedBlog | null>(initialData?.linkedBlog || null);
+  const [processedHTML, setProcessedHTML] = useState(initialData?.processedHTML || "");
+  const [loading, setLoading] = useState(!initialData?.project);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -85,9 +95,9 @@ export default function ProjectDetailsClient() {
   const [showNavDock, setShowNavDock] = useState(false);
   const [contentReady, setContentReady] = useState(false);
 
-  // Fetch project data and neighboring projects
+  // Fetch project data if not already provided by server
   const fetchProjectData = useCallback(async () => {
-    if (!slug) return;
+    if (!slug || initialData?.project) return;
     setLoading(true);
     setError(null);
 
@@ -138,11 +148,15 @@ export default function ProjectDetailsClient() {
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [slug, initialData?.project]);
 
   useEffect(() => {
-    fetchProjectData();
-  }, [fetchProjectData]);
+    if (!initialData?.project) {
+      fetchProjectData();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchProjectData, initialData?.project]);
 
   // Heading slug injection for TableOfContents
   useEffect(() => {
@@ -302,16 +316,39 @@ export default function ProjectDetailsClient() {
   }
 
   // ==========================================
-  // SKELETON LOADER
+  // SKELETON LOADER (Apple Tactile Hierarchy)
   // ==========================================
   if (loading) {
     return (
-      <div className="min-h-screen pb-20 pt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <div className="w-36 h-8 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-xl animate-pulse" />
-        <div className="max-w-4xl space-y-4">
-          <div className="w-3/4 h-12 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-2xl animate-pulse" />
-          <div className="w-1/2 h-6 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-xl animate-pulse" />
-          <div className="w-full aspect-[16/9] bg-zinc-200/80 dark:bg-zinc-800/80 rounded-3xl animate-pulse mt-8" />
+      <div className="min-h-screen pb-20 pt-24 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        {/* Breadcrumb Pill Skeleton */}
+        <div className="w-32 h-8 rounded-full bg-black/[0.04] dark:bg-white/[0.05] border border-black/[0.06] dark:border-white/[0.08] relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/[0.04] dark:via-white/[0.08] to-transparent animate-apple-shimmer" />
+        </div>
+
+        {/* Header Metadata Stage */}
+        <div className="space-y-4">
+          <div className="w-3/4 h-11 rounded-2xl bg-black/[0.05] dark:bg-white/[0.06] relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/[0.04] dark:via-white/[0.08] to-transparent animate-apple-shimmer" />
+          </div>
+          <div className="w-1/2 h-5 rounded-xl bg-black/[0.04] dark:bg-white/[0.05] relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/[0.04] dark:via-white/[0.08] to-transparent animate-apple-shimmer" />
+          </div>
+        </div>
+
+        {/* Hero Media Stage Skeleton with Apple Rounded Glass Frame */}
+        <div className="w-full aspect-[16/9] max-h-[460px] rounded-3xl bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.08] border-t-white/80 dark:border-t-white/15 shadow-sm relative overflow-hidden flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-zinc-400">
+            <Layers className="w-6 h-6 stroke-1" />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/[0.03] dark:via-white/[0.06] to-transparent animate-apple-shimmer" />
+        </div>
+
+        {/* Content Lines */}
+        <div className="space-y-3 pt-4 max-w-3xl">
+          <div className="w-full h-4 rounded-lg bg-black/[0.04] dark:bg-white/[0.04]" />
+          <div className="w-5/6 h-4 rounded-lg bg-black/[0.04] dark:bg-white/[0.04]" />
+          <div className="w-4/6 h-4 rounded-lg bg-black/[0.04] dark:bg-white/[0.04]" />
         </div>
       </div>
     );

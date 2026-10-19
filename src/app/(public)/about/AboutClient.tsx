@@ -92,26 +92,23 @@ export default function AboutClient() {
   };
 
   useEffect(() => {
-    const timestamp = Date.now();
-    Promise.all([
-      fetch(`/api/about?t=${timestamp}`, { cache: "no-store" }).then((res) =>
-        res.json()
-      ),
-      fetch(`/api/hero?t=${timestamp}`, { cache: "no-store" })
-        .then((res) => res.json())
-        .catch(() => null),
-    ])
-      .then(([aboutRes, heroRes]) => {
-        if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
-          setData(aboutRes);
-        }
-        if (heroRes) setHeroData(heroRes);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Fetch error:", err);
-        setLoading(false);
-      });
+    import("@/lib/clientCache").then(({ fetchWithSessionCache }) => {
+      Promise.all([
+        fetchWithSessionCache<any>("about_data", "/api/about"),
+        fetchWithSessionCache<any>("hero_data", "/api/hero").catch(() => null),
+      ])
+        .then(([aboutRes, heroRes]) => {
+          if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
+            setData(aboutRes);
+          }
+          if (heroRes) setHeroData(heroRes);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Fetch error:", err);
+          setLoading(false);
+        });
+    });
   }, []);
 
   // Apple-style smooth scroll to section on tab click
@@ -135,11 +132,18 @@ export default function AboutClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-zinc-900 dark:text-white w-8 h-8" />
-        <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
-          Loading Profile...
-        </span>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="flex flex-col items-center px-8 py-7 rounded-3xl bg-white/70 dark:bg-card/70 backdrop-blur-2xl border border-black/[0.06] dark:border-white/[0.08] border-t-white/80 dark:border-t-white/20 shadow-[0_16px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+          <div className="w-11 h-11 mb-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-200">
+            <User className="w-5 h-5 stroke-[2]" />
+          </div>
+          <span className="text-xs font-semibold tracking-tight text-foreground mb-4">
+            Loading Profile...
+          </span>
+          <div className="w-36 h-1 bg-black/[0.06] dark:bg-white/[0.08] rounded-full overflow-hidden relative">
+            <div className="absolute inset-y-0 w-1/3 bg-zinc-800 dark:bg-zinc-200 rounded-full animate-apple-shimmer shadow-[0_0_8px_rgba(0,0,0,0.2)] dark:shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+          </div>
+        </div>
       </div>
     );
   }

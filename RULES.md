@@ -34,7 +34,7 @@
 
 ## ☁️ 3. Asset & File Upload Pipeline
 
-1. **Primary GitHub CDN:** Use `uploadToGithub(file)` from `@/lib/githubUpload.ts` to commit binary assets directly into GitHub storage.
+1. **Dedicated Assets Repository:** Use `uploadToGithub(file)` from `@/lib/githubUpload.ts` to commit binary assets into the dedicated repo `AmiNilay/my-portfolio-assets`. This isolates image storage completely from code deployments.
 2. **Asset Cleanup:** When updating or replacing an existing image/resume in the CMS, invoke `deleteFromGithub(oldUrl)`.
 3. **Google Drive Fallback:** When Google Drive URLs are entered, normalize them to `thumbnail?id=...` or `lh3.googleusercontent.com` thumbnail endpoints.
 
@@ -47,7 +47,13 @@
 
 ---
 
-## ✅ 5. Verification Before Delivery
+## 🔄 5. Version Control & Git Invariant
+
+1. **Always Pull Before Push:** Always execute `git pull --rebase origin main` before pushing to avoid out-of-sync overwrites or conflicts.
+
+---
+
+## ✅ 6. Verification Before Delivery
 
 Always run:
 ```bash

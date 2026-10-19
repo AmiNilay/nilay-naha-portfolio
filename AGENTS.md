@@ -20,11 +20,13 @@
    - Any new public mutating endpoint (`POST`, `PUT`, `DELETE`) **must** be added to `publicApiRoutes` in `src/middleware.ts`.
    - Never disable or bypass `ContentProtection.tsx` (anti-theft media rules).
 4. **Asset Storage:**
-   - Primary asset uploads use GitHub API via `uploadToGithub` in `@/lib/githubUpload.ts`.
+   - Primary asset uploads target the dedicated assets repository `AmiNilay/my-portfolio-assets` via `uploadToGithub` in `@/lib/githubUpload.ts`.
    - When replacing an asset in CMS, call `deleteFromGithub(oldUrl)`.
    - Google Drive links must be parsed into thumbnail / embed URLs.
-5. **Always Verify:**
+5. **Always Pull Before Push:**
+   - **Always** run `git pull --rebase origin main` before `git push` to guarantee local is up-to-date with remote commits.
+6. **Always Verify:**
    - Run `npx tsc --noEmit` after every modification. Ensure **0 compile errors** before completing any task.
-6. **Preserve Documentation Integrity:**
+7. **Preserve Documentation Integrity:**
    - Update `CODEBASE_MAP.md` whenever adding or changing the purpose of any file.
 

@@ -22,6 +22,11 @@ Every AI assistant working on this codebase must adhere to the three-phase agent
                ▼
     ┌──────────────────────┐
     │  3. Verify Results   │ ──► Run `npx tsc --noEmit` & test edge cases
+    └──────────┬───────────┘
+               │
+               ▼
+    ┌──────────────────────┐
+    │ 4. Sync & Ship       │ ──► ALWAYS `git pull --rebase` before `git push`
     └──────────────────────┘
 ```
 
@@ -114,10 +119,13 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
    - [`ContentProtection.tsx`](file:///e:/my-portfolio/src/components/ui/ContentProtection.tsx) enforces anti-theft rules (disabling context menu, image dragging, text selection, and devtool shortcuts). Do not disable or circumvent this guard unless explicitly asked by the user.
 
 ### C. Asset Storage & File Uploads
-1. **GitHub Primary Pipeline:**
-   - Images and resumes uploaded through CMS editors must use `uploadToGithub` from [`@/lib/githubUpload.ts`](file:///e:/my-portfolio/src/lib/githubUpload.ts).
-   - When an asset is replaced or deleted in the CMS, invoke `deleteFromGithub(oldUrl)` to prevent repository bloat.
-2. **Google Drive Fallback:**
+1. **GitHub Dedicated CDN Repo:**
+   - Binary assets (images, resumes) are committed to the dedicated assets repository [`AmiNilay/my-portfolio-assets`](https://github.com/AmiNilay/my-portfolio-assets) via `uploadToGithub` in [`@/lib/githubUpload.ts`](file:///e:/my-portfolio/src/lib/githubUpload.ts).
+   - This keeps the main codebase repository completely decoupled from binary file bloat.
+   - When an asset is replaced or deleted in the CMS, invoke `deleteFromGithub(oldUrl)`.
+2. **Always Pull Before Push Invariant:**
+   - Before executing `git push`, **ALWAYS** run `git pull --rebase origin main` to ensure local is in sync with remote commits without conflict.
+3. **Google Drive Fallback:**
    - Google Drive URLs must be parsed through regex to generate working thumbnail URLs (`thumbnail?id=...` or `lh3.googleusercontent.com`) or embed URLs (`preview`). Do not use deprecated `uc?export=view` URLs.
 
 ### D. Navigation & Gestures

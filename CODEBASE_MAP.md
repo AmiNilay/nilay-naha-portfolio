@@ -115,14 +115,15 @@ my-portfolio/
   - Maintains a global cached singleton `global.mongoose` to prevent connection leaks across Next.js Hot Module Replacement (HMR) turns.
   - **Notice:** Always import from `@/lib/connectToDB`. Do **not** use the deprecated `@/lib/db.ts`.
 
-### 3. Hybrid Asset Pipeline (GitHub API + Google Drive)
+### 3. Dedicated Asset Pipeline (GitHub API + Google Drive)
 * **Location:** [`src/lib/githubUpload.ts`](file:///e:/my-portfolio/src/lib/githubUpload.ts), [`next.config.js`](file:///e:/my-portfolio/next.config.js)
 * **Logic:**
-  - **Primary Storage:** Binary assets (images, resumes) are committed directly to a designated private/public GitHub repository under `public/uploads/` via the GitHub Contents API (`PUT /repos/{owner}/{repo}/contents/{path}`). The returned `raw.githubusercontent.com` URL is stored in MongoDB.
+  - **Dedicated Storage Repository:** Binary assets (images, resumes) are committed directly to the dedicated asset repository [`AmiNilay/my-portfolio-assets`](https://github.com/AmiNilay/my-portfolio-assets) under `uploads/` via the GitHub Contents API (`PUT /repos/AmiNilay/my-portfolio-assets/contents/{path}`). This completely decouples media assets from the portfolio codebase so deploying code never overwrites or deletes uploaded images.
+  - **Permanent CDN Delivery:** The returned `raw.githubusercontent.com/AmiNilay/my-portfolio-assets/main/uploads/{filename}` URL is stored in MongoDB.
   - **Failover / Fallback:** Admin forms allow pasting Google Drive share links. API handlers automatically normalize Google Drive URLs into:
     - Thumbnails: `https://drive.google.com/thumbnail?id={FILE_ID}&sz=w1000` or `https://lh3.googleusercontent.com`
     - Previews: `https://drive.google.com/file/d/{FILE_ID}/preview`
-  - Deletions in admin invoke `deleteFromGithub(url)` which fetches the file SHA and sends a `DELETE` request.
+  - Deletions in admin invoke `deleteFromGithub(url)` which parses owner, repository, and path directly from the URL, fetches the file SHA, and sends a `DELETE` request.
 
 ### 4. AI Chatbot Engine & 3D Interactive Cute Mascot
 * **Location:** [`src/components/ui/Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx), [`src/app/api/chatbot/route.ts`](file:///e:/my-portfolio/src/app/api/chatbot/route.ts)

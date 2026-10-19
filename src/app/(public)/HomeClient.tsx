@@ -41,6 +41,15 @@ export default function HomeClient() {
     return () => window.removeEventListener("keydown", onKey);
   }, [currentSlide]);
 
+  // ── Broadcast current slide changes so Navbar and indicators stay perfectly synced ──
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("portfolio-slide-change", {
+        detail: { slideIndex: currentSlide },
+      })
+    );
+  }, [currentSlide]);
+
   // ── Custom event navigation from Navbar or PageNavigation ────────────────
   useEffect(() => {
     const handleCustomNav = (e: Event) => {

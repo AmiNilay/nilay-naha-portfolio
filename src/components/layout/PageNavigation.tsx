@@ -17,11 +17,24 @@ export default function PageNavigation() {
   const touchStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const safePathname = pathname || "";
-  const currentIndex = pages.indexOf(safePathname);
+  const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const handleSlideChange = (e: Event) => {
+      const customEvt = e as CustomEvent<{ slideIndex: number }>;
+      if (typeof customEvt.detail?.slideIndex === "number") {
+        setActiveSlide(customEvt.detail.slideIndex);
+      }
+    };
+    window.addEventListener("portfolio-slide-change", handleSlideChange);
+    return () => window.removeEventListener("portfolio-slide-change", handleSlideChange);
+  }, []);
+
+  const currentIndex = safePathname === "/" ? activeSlide : pages.indexOf(safePathname);
 
   // 1. Show Global Onboarding Hint
   useEffect(() => {

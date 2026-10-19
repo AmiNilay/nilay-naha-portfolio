@@ -313,8 +313,8 @@ my-portfolio/
 
 #### Layout Components (`src/components/layout/`)
 * [`Footer.tsx`](file:///e:/my-portfolio/src/components/layout/Footer.tsx): Global footer with copyright, status, and external social links.
-* [`Navbar.tsx`](file:///e:/my-portfolio/src/components/layout/Navbar.tsx): Sticky header navigation with immediate tactile feedback, prefetching (`prefetch={true}`), custom event slide coordination on `/`, theme toggle, and responsive mobile drawer.
-* [`PageNavigation.tsx`](file:///e:/my-portfolio/src/components/layout/PageNavigation.tsx): High-performance swipe and arrow-key listener orchestrating horizontal slide navigation, clickable desktop dot indicators, and edge hints on mobile.
+* [`Navbar.tsx`](file:///e:/my-portfolio/src/components/layout/Navbar.tsx): Apple-designed floating glass capsule navigation with continuous rounded geometry, Framer Motion sliding spring indicator (`layoutId="navbar-active-pill"`), dual-mode route & slide awareness (`/` slide syncing and standalone route matching), theme switcher, and mobile glass sheet drawer.
+* [`PageNavigation.tsx`](file:///e:/my-portfolio/src/components/layout/PageNavigation.tsx): High-performance swipe and arrow-key listener orchestrating horizontal slide navigation, clickable desktop dot indicators synchronized with active slides, and edge hints on mobile.
 
 #### Section Components (`src/components/sections/`)
 * [`AboutPreview.tsx`](file:///e:/my-portfolio/src/components/sections/AboutPreview.tsx): Compact biography teaser with link to the complete `/about` page.

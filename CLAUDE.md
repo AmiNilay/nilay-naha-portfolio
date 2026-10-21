@@ -140,9 +140,10 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
      - $|\Delta X| > 2 \cdot |\Delta Y|$ (horizontal movement strictly dominates vertical movement).
 
 ### E. AI Chatbot Development
-1. **Fuzzy Matching Standards:**
-   - The chatbot uses Levenshtein Distance with stop-word stripping in [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx).
-   - Any modification to matching logic must preserve the dynamic resume trigger (`resume`, `cv`, `download`) which pulls the live resume from `/api/hero`.
+1. **Answer Engine Standards:**
+   - Answers come from [`src/lib/chatEngine.ts`](file:///e:/my-portfolio/src/lib/chatEngine.ts) via `POST /api/chat` — free, no LLM or API key. Factual answers must be composed from live CMS data, never hardcoded facts; curated `Chatbot` rules cover soft questions.
+   - Never make the assistant claim something the portfolio content doesn't support; unknown topics get an honest "not on the portfolio" reply.
+   - Any modification must preserve the instant résumé trigger (`resume`, `cv`, `résumé`) in [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx), which uses the live résumé from `/api/hero`.
 
 ### F. Markdown & KaTeX Rendering
 1. **Sanitization & IDs:**

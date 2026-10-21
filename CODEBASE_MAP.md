@@ -125,22 +125,15 @@ my-portfolio/
     - Previews: `https://drive.google.com/file/d/{FILE_ID}/preview`
   - Deletions in admin invoke `deleteFromGithub(url)` which parses owner, repository, and path directly from the URL, fetches the file SHA, and sends a `DELETE` request.
 
-### 4. AI Chatbot Engine & 3D Interactive Cute Mascot
+### 4. Portfolio Assistant (Chatbot Engine & Human Avatar)
 * **Location:** [`src/components/ui/Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx), [`src/app/api/chatbot/route.ts`](file:///e:/my-portfolio/src/app/api/chatbot/route.ts), [`src/app/api/chat/route.ts`](file:///e:/my-portfolio/src/app/api/chat/route.ts)
 * **Smart answers (free, no API key):** `POST /api/chat` (public, 60 questions/IP/hour) runs [`src/lib/chatEngine.ts`](file:///e:/my-portfolio/src/lib/chatEngine.ts), which indexes Hero, About (bio, experience, education, skills, certifications), Projects, Posts, published Testimonials and the curated `Chatbot` rules (rebuilt every 2 min). Answer order: small talk → follow-ups on the previous topic (`context`) → a project/post/company named in the question → "does he know X?" (honest when X isn't listed) → live intents (projects, experience, current role, education, skills, AI tools, contact, location, availability, certifications, blog, testimonials) unless a curated rule matches its full phrase and contains a word live intents don't cover → curated rules → BM25 full-text search → honest fallback. Returns `{ reply, links, quickReplies, context, emotion }`. No LLM; the Anthropic SDK was removed because it breaks the Next 14 build and needed a paid key.
 * **Admin:** `/admin/chatbot` shows which topics are answered live, a bank of recruiter questions, and a "Test the assistant" box returning the exact visitor answer ([`ChatbotGuide.tsx`](file:///e:/my-portfolio/src/components/admin/ChatbotGuide.tsx)). Resume/cv/download stays a local, instant trigger in the widget.
 * **Logic:**
-  - **3D Cute Bot Mascot:** Replaces the static message icon with a hardware-accelerated 3D tactile companion. Features:
-    - Real-time cursor/pointer tracking with smooth 3D head tilt (`rotateX`, `rotateY`) and pupil parallax using Framer Motion springs (`damping: 22, stiffness: 220`).
-    - Expressive obsidian glass visor with glowing LED eyes, pupil catchlights, natural periodic blinking, happy smile arcs (`^ ^`), and blushing cheeks on hover.
-    - Pulsing antenna beacon and status audio pods.
-    - Floating levitation with synchronized breathing ground shadow (`scale`, `opacity`).
-    - Rotating translucent Apple-style speech bubble pill prompts with quick-open triggers.
-    - Integrated avatars in the chat modal header (thinking/ready modes) and message streams.
-  - **Algorithm:** Custom implementation of **Levenshtein Distance** (maximum edit distance $\le 2$).
-  - **Preprocessing:** Normalizes input, tokenizes words, and filters out common stop words (`what`, `is`, `the`, `have`, `you`, etc.) to prevent stop-word hijacking.
-  - **Scoring:** Compares tokens against keyword arrays registered in the `Chatbot` MongoDB collection. The rule with the highest match score is returned.
-  - **Special Triggers:** If tokens fuzzy-match `resume`, `cv`, or `download`, the bot bypasses rule queries and presents a dynamic resume download button linked to the live resume URL fetched from `/api/hero`.
+  - **Human avatar assistant:** [`src/components/chatbot/HumanAvatar.tsx`](file:///e:/my-portfolio/src/components/chatbot/HumanAvatar.tsx) is an SVG character (headset) whose pupils follow the pointer, blinks naturally, and has 9 expressions: neutral, happy, excited, thinking, confused, sad, surprised, sleepy (45 s idle), annoyed (5 rapid clicks). The widget maps each reply's `emotion` to an expression; "not on the portfolio" answers show *sad*.
+  - **Widget:** [`src/components/ui/Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx) — draggable launcher with rotating teaser, Claude-style chat window (markdown-lite rendering + typewriter reveal via [`MessageContent.tsx`](file:///e:/my-portfolio/src/components/chatbot/MessageContent.tsx)), link chips, follow-up chips, starter questions, Escape to close, full-height sheet on mobile, hidden on `/admin`. Falls back to local keyword matching against `/api/chatbot` rules if `/api/chat` is unreachable.
+  - **Sounds:** [`sounds.ts`](file:///e:/my-portfolio/src/components/chatbot/sounds.ts) synthesizes soft tones with the Web Audio API (no audio files). Off by default; the header speaker toggle persists the choice in `localStorage` (`chatbot_sound_enabled`).
+  - **Special Triggers:** `resume` / `cv` / `résumé` is answered locally and instantly with a download button linked to the live résumé from `/api/hero` (`resumeUrl`, or the Google Drive `gDriveResume` as a view link).
 
 ### 5. App-Like Page Navigation & Touch Thresholding
 * **Location:** [`src/components/layout/PageNavigation.tsx`](file:///e:/my-portfolio/src/components/layout/PageNavigation.tsx), [`src/app/(public)/HomeClient.tsx`](file:///e:/my-portfolio/src/app/(public)/HomeClient.tsx)
@@ -359,7 +352,7 @@ my-portfolio/
 * [`BackToTop.tsx`](file:///e:/my-portfolio/src/components/ui/BackToTop.tsx): Floating scroll-to-top button with smooth scroll behavior.
 * [`Button.tsx`](file:///e:/my-portfolio/src/components/ui/Button.tsx): Reusable button with variants (`primary`, `outline`, `ghost`, `secondary`).
 * [`Card.tsx`](file:///e:/my-portfolio/src/components/ui/Card.tsx): Border-gradient glassmorphic card container.
-* [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx): Interactive 3D Cute Bot mascot with dynamic cursor tracking, free screen draggability/repositioning with boundary constraints, multi-emotion reactivity (smiling, confused, angry) driven by physical user gestures and shaking, speech bubble teasers, Levenshtein fuzzy matching, and resume download automation.
+* [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx): Portfolio assistant widget with the human avatar (`src/components/chatbot/`), Claude-style chat window, emotions and optional sounds. Answers come from `/api/chat` (see Core Subsystem 4).
 * [`CodeBlock.tsx`](file:///e:/my-portfolio/src/components/ui/CodeBlock.tsx): Syntax-highlighted code block with language indicator and one-click copy button.
 * [`CommandPalette.tsx`](file:///e:/my-portfolio/src/components/ui/CommandPalette.tsx): Global `Cmd+K` / `Ctrl+K` spotlight modal search for instant page navigation and blog search.
 * [`ContentProtection.tsx`](file:///e:/my-portfolio/src/components/ui/ContentProtection.tsx): Anti-theft module disabling context menu, text selection, image drag, and devtools shortcut keys.

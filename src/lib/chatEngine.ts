@@ -258,6 +258,10 @@ function detectIntents(raw: string, tokens: string[]) {
     }
     if (s) scores.set(intent, s);
   });
+  // "Who / overview" only means *him* when the question is about him or the assistant.
+  if (scores.has("summary") && !/\b(he|him|his|nilay|you|your|yourself|candidate|developer|engineer)\b/i.test(lower)) {
+    scores.delete("summary");
+  }
   return Array.from(scores.entries()).sort((a, b) => b[1] - a[1]);
 }
 
@@ -671,6 +675,27 @@ export async function answerQuestion(question: string, context?: string): Promis
 
   const liveIntent = intents.find(([name, s]) => LIVE_PRIORITY.includes(name) && s >= 1)?.[0];
 
+  // "speed test app", "the password one": descriptive words → the matching project.
+  if (liveIntent === "projects") {
+    const bySkill = skillQuestion(kb, raw);
+    if (bySkill) return bySkill;
+    const projectWords = new Set([...(INTENT_KEYWORDS.projects || []), "which", "one", "any"].map(stem));
+    const descriptive = Array.from(new Set(tokens.filter((t) => !projectWords.has(t))));
+    if (descriptive.length) {
+      const best = kb.docs
+        .filter((d) => d.kind === "project")
+        .map((doc) => ({
+          doc,
+          score: bm25(kb, descriptive, doc),
+          coverage: descriptive.filter((q) => doc.tokens.some((t) => tokenMatches(q, t))).length / descriptive.length,
+        }))
+        .filter((r) => r.score > 1 && r.coverage >= 0.5)
+        .sort((a, b) => b.score - a.score)[0];
+      const project = best && kb.projects.find((p) => `project:${p.slug}` === best.doc.key);
+      if (project) return answerProject(project);
+    }
+  }
+
   // "Best / favorite / strongest project" → describe the featured project.
   if (liveIntent === "projects" && /\b(best|strongest|favou?rite|proudest|top|flagship|impressive|main)\b/i.test(raw)) {
     const flagship = kb.projects.find((p) => p.featured) || kb.projects[0];
@@ -707,9 +732,14 @@ export async function answerQuestion(question: string, context?: string): Promis
 
   // 5. Full-text search across everything on the site.
   if (tokens.length) {
+    const queryTerms = Array.from(new Set(tokens));
+    // Fraction of the question's distinct terms the document actually contains;
+    // stops one incidental word ("favourite", "weather") from producing an answer.
+    const coverage = (doc: Doc) =>
+      queryTerms.filter((q) => doc.tokens.some((t) => tokenMatches(q, t))).length / queryTerms.length;
     const ranked = kb.docs
-      .map((doc) => ({ doc, score: bm25(kb, tokens, doc) }))
-      .filter((r) => r.score > 1.2)
+      .map((doc) => ({ doc, score: bm25(kb, tokens, doc), coverage: coverage(doc) }))
+      .filter((r) => r.score > 1.2 && r.coverage >= 0.66)
       .sort((a, b) => b.score - a.score);
     const hit = ranked[0]?.doc;
     if (hit) {

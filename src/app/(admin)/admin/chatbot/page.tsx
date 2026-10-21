@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ChatbotGuide from "@/components/admin/ChatbotGuide";
 
 interface LinkItem {
   label: string;
@@ -141,7 +142,7 @@ export default function ManageChatbot() {
             Train Chatbot Intelligence
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Configure fuzzy matching keywords, automated answers, and contextual quick replies.
+            Factual questions are answered live from your site content. Add rules for soft questions or custom wording; rules with specific phrases take priority.
           </p>
         </div>
 
@@ -150,6 +151,8 @@ export default function ManageChatbot() {
           {rules.length} Active Rules
         </div>
       </div>
+
+      <ChatbotGuide />
 
       {/* Form Card */}
       <motion.form

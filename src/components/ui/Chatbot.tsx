@@ -634,6 +634,8 @@ export default function Chatbot() {
   );
 
   const [messages, setMessages] = useState<Message[]>([initialBotMessage]);
+  // Last topic the assistant discussed, so "tell me more" follow-ups work.
+  const chatContextRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     fetch("/api/chatbot")
@@ -705,20 +707,22 @@ export default function Chatbot() {
     }
 
     let aiReply: string | null = null;
+    let aiLinks: LinkItem[] = [];
+    let aiQuickReplies: string[] = [];
     if (!isResumeRequest) {
       try {
-        const history = [
-          ...messages
-            .filter((m) => m.id !== initialBotMessage.id)
-            .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
-          { role: "user", content: text },
-        ];
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history }),
+          body: JSON.stringify({ question: text, context: chatContextRef.current }),
         });
-        if (res.ok) aiReply = (await res.json()).reply || null;
+        if (res.ok) {
+          const data = await res.json();
+          aiReply = (data.reply || "").replace(/\*\*/g, "") || null;
+          aiLinks = data.links || [];
+          aiQuickReplies = data.quickReplies || [];
+          chatContextRef.current = data.context || chatContextRef.current;
+        }
       } catch {
         aiReply = null;
       }
@@ -740,10 +744,8 @@ export default function Chatbot() {
         triggerEmotion("smiling", 3500);
       } else if (aiReply) {
         responseText = aiReply;
-        if (bestRule && highestScore > 0) {
-          quickReplies = bestRule.quickReplies || [];
-          links = bestRule.links || [];
-        }
+        quickReplies = aiQuickReplies;
+        links = aiLinks;
         triggerEmotion("smiling", 3000);
       } else if (bestRule && highestScore > 0) {
         responseText = bestRule.answer;

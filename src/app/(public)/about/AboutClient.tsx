@@ -114,15 +114,33 @@ export default function AboutClient() {
   // Apple-style smooth scroll to section on tab click
   const scrollToSection = (id: keyof typeof sectionRefs) => {
     setActiveTab(id);
-    const target = sectionRefs[id]?.current;
-    if (target) {
-      const topOffset = target.getBoundingClientRect().top + window.pageYOffset - 120;
-      window.scrollTo({
-        top: topOffset,
-        behavior: shouldReduceMotion ? "auto" : "smooth",
-      });
-    }
+    // scrollIntoView scrolls whichever ancestor actually scrolls (the Home slide
+    // container or the window); sections carry scroll-mt-32 for the sticky bar.
+    sectionRefs[id]?.current?.scrollIntoView({
+      behavior: shouldReduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
   };
+
+  // Scroll-spy: highlight the tab for the section currently in view.
+  useEffect(() => {
+    if (loading) return;
+    const entries = Object.entries(sectionRefs) as [keyof typeof sectionRefs, React.RefObject<HTMLDivElement>][];
+    const observer = new IntersectionObserver(
+      (observed) => {
+        const visible = observed
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (!visible) return;
+        const match = entries.find(([, ref]) => ref.current === visible.target);
+        if (match) setActiveTab(match[0]);
+      },
+      { rootMargin: "-140px 0px -55% 0px" }
+    );
+    entries.forEach(([, ref]) => ref.current && observer.observe(ref.current));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, data]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("nilaynaha14@gmail.com");

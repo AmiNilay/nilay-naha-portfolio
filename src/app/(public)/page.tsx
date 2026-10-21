@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import HomeClient from "./HomeClient";
 import { getHeroData } from "@/lib/publicData";
+import { getProfile, SITE_URL } from "@/lib/profileData";
 
 export const revalidate = 60; // Revalidate every minute or on on-demand purge
 
@@ -38,7 +39,40 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+// schema.org Person markup so search engines understand who the site is about.
+async function personJsonLd() {
+  const p = await getProfile();
+  if (!p) return null;
+  const sameAs = [p.hero.socialGithub, p.hero.socialLinkedin, p.hero.socialTwitter].filter(Boolean);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "Nilay Naha",
+    url: SITE_URL,
+    jobTitle: p.current?.role || "Software Engineer",
+    ...(p.current && { worksFor: { "@type": "Organization", name: p.current.company } }),
+    ...(p.location && { address: { "@type": "PostalAddress", addressLocality: p.location } }),
+    ...(p.hero.socialEmail && { email: `mailto:${p.hero.socialEmail}` }),
+    ...(sameAs.length && { sameAs }),
+    ...(p.education.length && {
+      alumniOf: p.education.map((e: any) => ({ "@type": "EducationalOrganization", name: e.institution })),
+    }),
+    ...(p.skills.length && { knowsAbout: p.skills }),
+  };
+}
+
 export default async function Page() {
-  const hero = await getHeroData();
-  return <HomeClient initialHero={hero} />;
+  const [hero, jsonLd] = await Promise.all([getHeroData(), personJsonLd()]);
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          // Escape "<" so CMS text can never close the script tag.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+        />
+      )}
+      <HomeClient initialHero={hero} />
+    </>
+  );
 }

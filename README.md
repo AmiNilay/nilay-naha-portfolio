@@ -22,12 +22,16 @@
 
 - 📱 **Progressive Web App (PWA):** Fully installable on desktop and mobile with offline capabilities and native Web Push Notifications.
 - 🔐 **Custom Headless CMS:** A secure, bespoke admin panel protected by Next.js Middleware and JWT cookies. Features a live-preview Markdown/HTML editor.
-- 🤖 **AI-Powered Chatbot:** Custom-built virtual assistant using Levenshtein distance fuzzy matching to answer recruiter questions and trigger resume downloads.
+- 🤖 **Portfolio Assistant:** A free, self-hosted chatbot (no LLM or API key) that answers recruiter questions from the live site content — projects, experience, skills, education, blog — with an expressive human avatar, emotions, optional soft sounds, and instant résumé download.
 - 🛡️ **Anti-Theft Asset Protection:** Strict anti-download, no-right-click, and no-drag protections on all media, backed by a dual GitHub/Google Drive fallback system.
 - 🧭 **App-Like Navigation:** Swipe and arrow-key based page transitions powered by Framer Motion (no traditional scrolling on the Hero page).
 - 🔍 **Command Palette:** Global `Cmd + K` spotlight search for instant navigation and blog querying.
 - ✨ **Ghost Cursor:** A Three.js shader-based smoke trail that follows the pointer across the site, tuned separately for light and dark mode.
 - 📊 **User Flow Analytics:** First-party, cookie-free page-flow tracking with a CMS dashboard showing page-to-page transitions and drop-off rates.
+- 💬 **Recommendations:** Testimonials managed from the CMS and shown on the About page.
+- 🏢 **Rich Experience Timeline:** Company logos (uploaded or linked, never cropped) and LinkedIn links per role.
+- 🧠 **AI Tools Stack:** 20+ AI tools (Claude, Claude Code, Cursor, Copilot, Gemini, DeepSeek, Qwen…) selectable in the CMS, with theme-aware icon contrast.
+- 🔎 **Discoverable:** schema.org Person JSON-LD, a generated social preview image, and `/llms.txt` so AI assistants get accurate, current facts.
 
 ---
 

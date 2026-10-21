@@ -13,6 +13,8 @@ The application is built on the **Next.js 14 App Router**, utilizing a full-stac
 *   **Authentication:** The `/admin` routes are protected at the edge using Next.js Middleware. A secure, HTTP-only cookie is verified before any admin page or protected API route is rendered.
 *   **Analytics (Phase 3):** A first-party, cookie-free user-flow tracker (`PageFlowTracker`) records the sequence of pages a visitor moves through in a browser session via `sessionStorage` — no third-party telemetry, consistent with the privacy guarantee shown on the Contact page. Events are stored in a `PageVisit` collection and aggregated into page-to-page transition counts and per-page drop-off (exit) rates, visualized at `/admin/analytics`.
 *   **Ambient Visual Effect:** A Three.js shader-based "Ghost Cursor" smoke trail follows the pointer across every public page, rendered via `GhostCursor`/`CursorTrail`, tuned with separate color/blend settings per theme.
+*   **Portfolio Assistant:** `src/lib/chatEngine.ts` answers visitor questions without any LLM or API key: it indexes live CMS content and combines entity matching, follow-up context, live intents, curated admin rules and BM25 search, replying honestly when something isn't on the portfolio. The widget uses an SVG human avatar with nine expressions and optional Web Audio sounds.
+*   **Discoverability:** Person JSON-LD on the home page, an Edge-rendered `/og-image.png` social card, and a CMS-generated `/llms.txt` for AI assistants.
 
 ## 2. Technical Challenges & Solutions
 
@@ -35,6 +37,10 @@ The application is built on the **Next.js 14 App Router**, utilizing a full-stac
 ### Challenge E: Full-Viewport Cursor Shader Breaking Theme Rendering
 **The Problem:** The Ghost Cursor effect used Three.js's `UnrealBloomPass` for glow. That pass's composite shader hardcodes its output alpha to `1.0` and additively blends it in, which saturates the canvas's alpha to `1` across the *entire* viewport, not just near the cursor. Under `screen` blend mode this is harmless against a near-black source (a documented no-op), which masked the bug in light-weight testing — but it washed the whole page in a gray veil under `multiply` blend (light theme), and on at least one real GPU it over-brightened dark mode badly enough to make all page text unreadable.
 **The Solution:** Removed the bloom pass entirely rather than continuing to retune an unreliable post-process stage. The shader's own localized alpha (no post-processing) proved stable across both themes and multiple environments, including a background-radius scale factor (`glowSize`) to keep the smoke trail proportionate on large viewports instead of the original demo's small-container sizing.
+
+### Challenge F: A Chatbot That Contradicted the Portfolio
+**The Problem:** Hand-written chatbot answers drifted out of date — the bot still called Nilay a "fresher actively job hunting" after the About page listed a current role, and many answers were too vague to be useful to recruiters.
+**The Solution:** Factual questions are now answered from live CMS data at request time, so they can't go stale. Curated rules only win when they match a full phrase containing something the live topics don't cover (e.g. "fresher", "salary"), and off-topic questions require most of their words to match real content before an answer is given.
 
 ## 3. Performance & Security
 

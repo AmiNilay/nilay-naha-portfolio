@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
+import { revalidatePublicPages } from "@/lib/revalidate";
 import Hero from "@/models/Hero";
 import { uploadToGithub, deleteFromGithub } from "@/lib/githubUpload";
 
@@ -99,6 +100,7 @@ export async function PUT(req: Request) {
       { new: true, upsert: true }
     );
 
+    revalidatePublicPages();
     return NextResponse.json(updatedHero);
   } catch (error) {
     console.error("API Error:", error);

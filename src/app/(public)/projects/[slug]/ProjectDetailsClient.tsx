@@ -13,7 +13,6 @@ import {
 import Toast from "@/components/ui/Toast";
 import ReadingProgress from "@/components/blog/ReadingProgress";
 import TableOfContents from "@/components/blog/TableOfContents";
-import { processContent } from "@/lib/markdownProcessor";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Apple WWDC critically damped spring
@@ -115,16 +114,15 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
         setPrevProject(currentIndex > 0 ? projects[currentIndex - 1] : null);
         setNextProject(currentIndex < projects.length - 1 ? projects[currentIndex + 1] : null);
 
-        // Process markdown/HTML content
+        // Fallback path (server-side rendering normally already supplies
+        // `initialData.processedHTML` for every request — this only runs if
+        // that's missing). Markdown-to-HTML processing (unified/remark/
+        // rehype/katex/highlight.js) is deliberately kept server-only: that
+        // pipeline is large (~100KB+) and must never ship in this client
+        // bundle, so raw content is shown as-is here rather than reprocessed
+        // in the browser.
         const rawContent = currentProject.description || currentProject.content || "";
-        const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
-        
-        if (isRawHtml) {
-          setProcessedHTML(rawContent);
-        } else {
-          const html = await processContent(rawContent);
-          setProcessedHTML(html);
-        }
+        setProcessedHTML(rawContent);
 
         // Fetch linked blog publication if available
         if (currentProject.relatedBlog) {

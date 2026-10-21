@@ -13,6 +13,45 @@ import {
   AnimatePresence,
   MotionValue,
 } from "framer-motion";
+import { fetchWithSessionCache } from "@/lib/clientCache";
+
+const HERO_DEFAULTS = {
+  badgeText: "", showAvailability: true, subtitle: "",
+  profilePic: "", resumeUrl: "", gDriveProfilePic: "", gDriveResume: "",
+  socialGithub: "", socialLinkedin: "", techStack: "",
+  stat1Value: "", stat1Label: "", stat2Value: "", stat2Label: "",
+  stat3Value: "", stat3Label: "", portfolioLastUpdated: "",
+  line1Bold: "Build", line1Accent: "clean backends",
+  line2Bold: "Ship",  line2Accent: "real products",
+};
+
+// Hosts allow-listed in next.config.js that serve image bytes directly (Drive
+// links redirect, so they stay unoptimized). Optimizing turns the ~465KB
+// original upload into a right-sized WebP/AVIF.
+const OPTIMIZABLE_IMAGE_HOSTS = new Set([
+  "raw.githubusercontent.com",
+  "avatars.githubusercontent.com",
+  "lh3.googleusercontent.com",
+]);
+
+const canOptimizeImage = (src: string) => {
+  try {
+    return OPTIMIZABLE_IMAGE_HOSTS.has(new URL(src).hostname);
+  } catch {
+    return false;
+  }
+};
+
+const normalizeHero = (prev: typeof HERO_DEFAULTS, d: Record<string, any>) => ({
+  ...prev,
+  ...d,
+  badgeText: d.badgeText || d.badge || "",
+  showAvailability: d.showAvailability !== false,
+  line1Bold: d.line1Bold || "Build",
+  line1Accent: d.line1Accent || "clean backends",
+  line2Bold: d.line2Bold || "Ship",
+  line2Accent: d.line2Accent || "real products",
+});
 
 // ─── Tech Logo Resolver ────────────────────────────────────────────────────────
 const getTechLogo = (tech: string): string | null => {
@@ -137,9 +176,10 @@ function TiltCard({
               src={profileSrc}
               alt="Profile"
               fill
+              sizes="(max-width: 540px) 140px, (max-width: 1460px) 26vw, 380px"
               className="object-cover object-center pointer-events-none"
               priority
-              unoptimized
+              unoptimized={!canOptimizeImage(profileSrc)}
               draggable={false}
               onContextMenu={(e) => e.preventDefault()}
               onError={onImgError}
@@ -180,17 +220,11 @@ function TiltCard({
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
-export default function Hero() {
-  const [data, setData] = useState({
-    badgeText: "", showAvailability: true, subtitle: "",
-    profilePic: "", resumeUrl: "", gDriveProfilePic: "", gDriveResume: "",
-    socialGithub: "", socialLinkedin: "", techStack: "",
-    stat1Value: "", stat1Label: "", stat2Value: "", stat2Label: "",
-    stat3Value: "", stat3Label: "", portfolioLastUpdated: "",
-    line1Bold: "Build", line1Accent: "clean backends",
-    line2Bold: "Ship",  line2Accent: "real products",
-  });
-  const [loading,  setLoading]  = useState(true);
+export default function Hero({ initialData = null }: { initialData?: Record<string, any> | null }) {
+  const [data, setData] = useState(() =>
+    initialData ? normalizeHero(HERO_DEFAULTS, initialData) : HERO_DEFAULTS
+  );
+  const [loading,  setLoading]  = useState(!initialData);
   const [imgError, setImgError] = useState(false);
 
   const shouldReduce  = useReducedMotion();
@@ -206,31 +240,21 @@ export default function Hero() {
 
   // Fluid layout handles viewport adaptation across all displays smoothly
 
-  // Fetch hero data using in-memory / session cache
+  // Server-rendered data already covers the first paint; only fetch when absent.
   useEffect(() => {
-    import("@/lib/clientCache").then(({ fetchWithSessionCache }) => {
-      fetchWithSessionCache<any>("hero_data", "/api/hero")
-        .then((d) => {
-          if (d) {
-            setData((p) => ({
-              ...p,
-              ...d,
-              badgeText: d.badgeText || d.badge || "",
-              showAvailability: d.showAvailability !== false,
-              line1Bold: d.line1Bold || "Build",
-              line1Accent: d.line1Accent || "clean backends",
-              line2Bold: d.line2Bold || "Ship",
-              line2Accent: d.line2Accent || "real products",
-            }));
-            if (d.siteTitle && typeof document !== "undefined") {
-              document.title = d.siteTitle;
-            }
+    if (initialData) return;
+    fetchWithSessionCache<any>("hero_data", "/api/hero")
+      .then((d) => {
+        if (d) {
+          setData((p) => normalizeHero(p, d));
+          if (d.siteTitle && typeof document !== "undefined") {
+            document.title = d.siteTitle;
           }
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    });
-  }, []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [initialData]);
 
   const onMouseMove = (e: React.MouseEvent) => {
     if (shouldReduce || !containerRef.current) return;

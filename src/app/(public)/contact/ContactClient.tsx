@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { fetchWithSessionCache } from "@/lib/clientCache";
 import {
   Mail,
   Linkedin,
@@ -48,20 +49,18 @@ export default function ContactClient() {
 
   useEffect(() => {
     // Attempt to pull latest dynamic social/email links from in-memory cache
-    import("@/lib/clientCache").then(({ fetchWithSessionCache }) => {
-      fetchWithSessionCache<any>("hero_data", "/api/hero")
-        .then((data) => {
-          if (data) {
-            setContactInfo((prev) => ({
-              ...prev,
-              email: data.socialEmail || prev.email,
-              github: data.socialGithub || prev.github,
-              linkedin: data.socialLinkedin || prev.linkedin,
-            }));
-          }
-        })
-        .catch(() => {});
-    });
+    fetchWithSessionCache<any>("hero_data", "/api/hero")
+      .then((data) => {
+        if (data) {
+          setContactInfo((prev) => ({
+            ...prev,
+            email: data.socialEmail || prev.email,
+            github: data.socialGithub || prev.github,
+            linkedin: data.socialLinkedin || prev.linkedin,
+          }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleCopy = () => {

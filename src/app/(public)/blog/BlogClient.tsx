@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { fetchWithSessionCache, clearMemoryCache } from "@/lib/clientCache";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -54,7 +55,6 @@ export default function BlogClient() {
 
   const fetchPosts = useCallback(async (forceRefresh = false) => {
     try {
-      const { fetchWithSessionCache, clearMemoryCache } = await import("@/lib/clientCache");
       if (forceRefresh) {
         clearMemoryCache("blog_posts");
         setLoading(true);

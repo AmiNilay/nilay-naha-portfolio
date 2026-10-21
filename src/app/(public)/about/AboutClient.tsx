@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { fetchWithSessionCache } from "@/lib/clientCache";
+import Testimonials from "@/components/sections/Testimonials";
 import {
   motion,
   AnimatePresence,
@@ -92,23 +94,21 @@ export default function AboutClient() {
   };
 
   useEffect(() => {
-    import("@/lib/clientCache").then(({ fetchWithSessionCache }) => {
-      Promise.all([
-        fetchWithSessionCache<any>("about_data", "/api/about"),
-        fetchWithSessionCache<any>("hero_data", "/api/hero").catch(() => null),
-      ])
-        .then(([aboutRes, heroRes]) => {
-          if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
-            setData(aboutRes);
-          }
-          if (heroRes) setHeroData(heroRes);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Fetch error:", err);
-          setLoading(false);
-        });
-    });
+    Promise.all([
+      fetchWithSessionCache<any>("about_data", "/api/about"),
+      fetchWithSessionCache<any>("hero_data", "/api/hero").catch(() => null),
+    ])
+      .then(([aboutRes, heroRes]) => {
+        if (aboutRes && (aboutRes.bio || aboutRes.education?.length > 0)) {
+          setData(aboutRes);
+        }
+        if (heroRes) setHeroData(heroRes);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
   }, []);
 
   // Apple-style smooth scroll to section on tab click
@@ -724,6 +724,9 @@ export default function AboutClient() {
             </div>
           </section>
         )}
+
+        {/* Recommendations (managed in /admin/testimonials) */}
+        <Testimonials />
 
         {/* =============================================================== */}
         {/* 9. BOTTOM APPLE STUDIO CTA                                     */}

@@ -1,13 +1,29 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import ProjectDetailsClient from "./ProjectDetailsClient";
 import { connectToDB } from "@/lib/connectToDB";
 import Project from "@/models/Project";
 import Post from "@/models/Post";
 import { processContent } from "@/lib/markdownProcessor";
 
-export const dynamic = "force-dynamic";
+// Cached and regenerated at most once a minute; CMS saves purge it immediately
+// via revalidatePublicPages().
+export const revalidate = 60;
 
-async function getProjectWithContext(slug: string) {
+// Pre-render every existing case study at build time; new slugs are rendered
+// on first visit and cached (dynamicParams defaults to true).
+export async function generateStaticParams() {
+  try {
+    await connectToDB();
+    const projects = await Project.find({}, { slug: 1 }).lean();
+    return projects.filter((p: any) => p.slug).map((p: any) => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
+}
+
+// Shared by generateMetadata and the page so each render queries once.
+const getProjectWithContext = cache(async (slug: string) => {
   try {
     await connectToDB();
     const projects = await Project.find({}).sort({ publishDate: -1, createdAt: -1 }).lean();
@@ -45,7 +61,7 @@ async function getProjectWithContext(slug: string) {
     console.error("Project lookup error:", error);
     return null;
   }
-}
+});
 
 export async function generateMetadata({
   params,

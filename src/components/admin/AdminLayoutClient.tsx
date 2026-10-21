@@ -22,6 +22,8 @@ export default function AdminLayoutClient({
     if (pathname.includes("/admin/chatbot")) return "Chatbot Intelligence";
     if (pathname.includes("/admin/notifications")) return "Push Notifications";
     if (pathname.includes("/admin/dashboard")) return "Command Center";
+    if (pathname.includes("/admin/analytics")) return "User Flow Analytics";
+    if (pathname.includes("/admin/testimonials")) return "Testimonials";
     return "Admin Studio";
   })();
 

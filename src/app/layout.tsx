@@ -6,6 +6,9 @@ import Navbar from "@/components/layout/Navbar";
 import PageNavigation from "@/components/layout/PageNavigation";
 import CommandPalette from "@/components/ui/CommandPalette"; // ✅ Added Command Palette Import
 import Chatbot from "@/components/ui/Chatbot"; // ✅ Added Chatbot Import
+import CursorTrail from "@/components/ui/CursorTrail"; // ✅ Added Ghost Cursor Trail Background
+import PageFlowTracker from "@/components/analytics/PageFlowTracker"; // ✅ Phase 3: user-flow analytics
+import CacheWarmer from "@/components/providers/CacheWarmer"; // ✅ Idle-time prefetch of public page data
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -91,6 +94,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <CursorTrail /> {/* ✅ Added Ghost Cursor Trail Background */}
+          <PageFlowTracker /> {/* ✅ Phase 3: user-flow analytics */}
+          <CacheWarmer /> {/* ✅ Idle-time prefetch of public page data */}
           <Navbar />
           <PageNavigation />
           <CommandPalette /> {/* ✅ Added Command Palette Component */}

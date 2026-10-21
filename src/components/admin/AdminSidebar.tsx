@@ -16,6 +16,8 @@ import {
   ExternalLink,
   Sparkles,
   ShieldCheck,
+  TrendingUp,
+  MessageSquareQuote,
 } from "lucide-react";
 
 interface NavItem {
@@ -30,6 +32,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
     title: "Overview",
     items: [
       { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+      { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
     ],
   },
   {
@@ -39,6 +42,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { name: "Blog Posts", href: "/admin/blog", icon: FileText },
       { name: "Home Page", href: "/admin/home", icon: Home },
       { name: "About Page", href: "/admin/about", icon: User },
+      { name: "Testimonials", href: "/admin/testimonials", icon: MessageSquareQuote },
     ],
   },
   {

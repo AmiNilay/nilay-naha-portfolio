@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
+import { revalidatePublicPages } from "@/lib/revalidate";
 import Post from "@/models/Post";
 import { uploadToGithub } from "@/lib/githubUpload";
 
@@ -67,6 +68,7 @@ export async function POST(req: Request) {
       readTime: Math.ceil(content.split(/\s+/).length / 200) || 5,
     });
 
+    revalidatePublicPages();
     return NextResponse.json({ post: newPost }, { status: 201 });
   } catch (error: any) {
     if (error.code === 11000) return NextResponse.json({ error: "Slug already exists." }, { status: 400 });
@@ -105,6 +107,7 @@ export async function PUT(req: Request) {
     }
 
     await post.save();
+    revalidatePublicPages();
     return NextResponse.json({ post }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -120,6 +123,7 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
     await Post.findByIdAndDelete(id);
 
+    revalidatePublicPages();
     return NextResponse.json({ message: "Deleted successfully" }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });

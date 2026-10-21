@@ -22,7 +22,9 @@ export function middleware(request: NextRequest) {
     '/api/auth/login',
     '/api/auth/logout',
     '/api/push/subscribe',
-    '/api/views'
+    '/api/views',
+    '/api/analytics/track',
+    '/api/chat'
   ];
 
   if (path.startsWith('/api/') && !publicApiRoutes.includes(path)) {

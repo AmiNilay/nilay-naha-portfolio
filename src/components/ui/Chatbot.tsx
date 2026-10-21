@@ -684,6 +684,46 @@ export default function Chatbot() {
     setIsTyping(true);
     triggerEmotion("smiling", 2500);
 
+    const isResumeRequest =
+      isFuzzyMatch(text, "resume") || isFuzzyMatch(text, "cv") || isFuzzyMatch(text, "download");
+
+    // Keyword rules still supply quick replies/links, and are the full answer
+    // whenever the AI endpoint is unavailable (no API key, rate limit, network).
+    let bestRule: any = null;
+    let highestScore = 0;
+    if (!isResumeRequest) {
+      rules.forEach((rule) => {
+        let score = 0;
+        rule.keywords.forEach((kw) => {
+          if (isFuzzyMatch(text, kw)) score += 1;
+        });
+        if (score > highestScore) {
+          highestScore = score;
+          bestRule = rule;
+        }
+      });
+    }
+
+    let aiReply: string | null = null;
+    if (!isResumeRequest) {
+      try {
+        const history = [
+          ...messages
+            .filter((m) => m.id !== initialBotMessage.id)
+            .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
+          { role: "user", content: text },
+        ];
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: history }),
+        });
+        if (res.ok) aiReply = (await res.json()).reply || null;
+      } catch {
+        aiReply = null;
+      }
+    }
+
     setTimeout(() => {
       let responseText =
         "I'm just a simple bot and I don't know the answer to that yet! Please feel free to reach out to Nilay directly via the contact page.";
@@ -691,41 +731,28 @@ export default function Chatbot() {
       let links: LinkItem[] = [];
       let isResumeTrigger = false;
 
-      // Check for Resume Download Trigger
-      if (
-        isFuzzyMatch(text, "resume") ||
-        isFuzzyMatch(text, "cv") ||
-        isFuzzyMatch(text, "download")
-      ) {
+      if (isResumeRequest) {
+        // Resume trigger always pulls the live resume from /api/hero, never the AI.
         responseText = resumeUrl
           ? "Here is Nilay's resume! Tap the button below to view or download it."
           : "Sorry, Nilay hasn't uploaded a resume PDF yet.";
         isResumeTrigger = !!resumeUrl;
         triggerEmotion("smiling", 3500);
-      } else {
-        let bestRule: any = null;
-        let highestScore = 0;
-
-        rules.forEach((rule) => {
-          let score = 0;
-          rule.keywords.forEach((kw) => {
-            if (isFuzzyMatch(text, kw)) score += 1;
-          });
-          if (score > highestScore) {
-            highestScore = score;
-            bestRule = rule;
-          }
-        });
-
+      } else if (aiReply) {
+        responseText = aiReply;
         if (bestRule && highestScore > 0) {
-          responseText = bestRule.answer;
           quickReplies = bestRule.quickReplies || [];
           links = bestRule.links || [];
-          triggerEmotion("smiling", 3000);
-        } else {
-          // If no match found, bot looks confused
-          triggerEmotion("confused", 3500);
         }
+        triggerEmotion("smiling", 3000);
+      } else if (bestRule && highestScore > 0) {
+        responseText = bestRule.answer;
+        quickReplies = bestRule.quickReplies || [];
+        links = bestRule.links || [];
+        triggerEmotion("smiling", 3000);
+      } else {
+        // If no match found, bot looks confused
+        triggerEmotion("confused", 3500);
       }
 
       setMessages((prev) => [
@@ -740,7 +767,7 @@ export default function Chatbot() {
         },
       ]);
       setIsTyping(false);
-    }, 900);
+    }, aiReply ? 0 : 900);
   };
 
   const handleReset = () => {

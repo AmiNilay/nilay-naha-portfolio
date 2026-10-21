@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { fetchWithSessionCache } from "@/lib/clientCache";
 import { 
   Loader2, ArrowRight, ArrowUpRight, Github, ExternalLink, 
   Search, X, Layers, Sparkles, Monitor, Calendar, Laptop
@@ -57,7 +58,6 @@ export default function ProjectsClient() {
     let isMounted = true;
     const fetchProjects = async () => {
       try {
-        const { fetchWithSessionCache } = await import("@/lib/clientCache");
         const data = await fetchWithSessionCache<{ projects: Project[] }>("projects_catalog", "/api/projects");
         if (isMounted) {
           setProjects(data.projects || []);

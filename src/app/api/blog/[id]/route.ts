@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
+import { revalidatePublicPages } from "@/lib/revalidate";
 import Post from "@/models/Post";
 import { uploadToGithub, deleteFromGithub } from "@/lib/githubUpload";
 
@@ -66,6 +67,7 @@ export async function PUT(
       { new: true }
     );
 
+    revalidatePublicPages();
     return NextResponse.json({ message: "Blog post updated", post: updatedPost });
 
   } catch (error) {
@@ -97,6 +99,7 @@ export async function DELETE(
     // STEP 3: Delete from Database
     await Post.findByIdAndDelete(params.id);
 
+    revalidatePublicPages();
     return NextResponse.json({ message: "Blog post and image deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("DELETE Blog Error:", error);

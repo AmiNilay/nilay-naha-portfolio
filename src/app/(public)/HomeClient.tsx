@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 import Hero from "@/components/sections/Hero";
+import { primeCache } from "@/lib/clientCache";
 import ProjectsPage from "./projects/ProjectsClient";
 import BlogPage from "./blog/BlogClient";
 import AboutPage from "./about/AboutClient";
@@ -14,7 +15,10 @@ import ContactPage from "./contact/ContactClient";
 // Apple-spec: critically damped, no bounce
 const SLIDE_SPRING = { type: "spring", bounce: 0, duration: 0.45 } as const;
 
-export default function HomeClient() {
+export default function HomeClient({ initialHero = null }: { initialHero?: Record<string, any> | null }) {
+  // Runs during the first render, before any child effects, so About/Contact
+  // slides reading "hero_data" hit the cache instead of the network.
+  useState(() => primeCache("hero_data", initialHero));
   const [currentSlide, setCurrentSlide] = useState(0);
   const [direction, setDirection] = useState(0);
   const shouldReduce = useReducedMotion();
@@ -114,7 +118,7 @@ export default function HomeClient() {
         >
           {/* Each slide fills the full screen; individual pages handle their own scroll */}
           <div className="w-full h-full overflow-y-auto">
-            {currentSlide === 0 && <Hero />}
+            {currentSlide === 0 && <Hero initialData={initialHero} />}
             {currentSlide === 1 && <ProjectsPage />}
             {currentSlide === 2 && <BlogPage />}
             {currentSlide === 3 && <AboutPage />}

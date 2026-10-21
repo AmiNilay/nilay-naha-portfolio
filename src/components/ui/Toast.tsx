@@ -18,14 +18,14 @@ export default function Toast({ message, type, onClose }: ToastProps) {
   return (
     <div 
       role="alert" 
-      className={`fixed bottom-8 right-8 z-50 flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border transition-all animate-in slide-in-from-right-10 fade-in duration-300 ${
+      className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-8 sm:right-8 sm:max-w-md z-[200] flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl shadow-2xl border transition-all animate-in slide-in-from-right-10 fade-in duration-300 ${
         type === "success" 
           ? "bg-white dark:bg-gray-900 border-green-500 text-green-600" 
           : "bg-white dark:bg-gray-900 border-red-500 text-red-600"
       }`}
     >
-      {type === "success" ? <CheckCircle size={24} /> : <XCircle size={24} />}
-      <p className="font-bold text-gray-900 dark:text-white pr-4">{message}</p>
+      {type === "success" ? <CheckCircle size={24} className="shrink-0" /> : <XCircle size={24} className="shrink-0" />}
+      <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-white pr-2 sm:pr-4">{message}</p>
       
       {/* FIX: Added title and aria-label for accessibility */}
       <button 

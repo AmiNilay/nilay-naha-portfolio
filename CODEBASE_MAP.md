@@ -103,7 +103,7 @@ my-portfolio/
 * **Logic:**
   1. Incoming requests to `/admin/*` (except `/admin/login`) require the `admin_token` cookie to match `ADMIN_SECRET`. Non-matching requests are redirected to `/admin/login`.
   2. All state-mutating requests (`POST`, `PUT`, `DELETE`) hitting `/api/*` are blocked unless:
-     - They match the explicit whitelist: `['/api/contact', '/api/auth/login', '/api/push/subscribe', '/api/views']`
+     - They match the explicit whitelist: `['/api/contact', '/api/auth/login', '/api/auth/logout', '/api/push/subscribe', '/api/views', '/api/analytics/track', '/api/chat']`
      - OR the client provides a valid `admin_token` cookie matching `ADMIN_SECRET`.
   3. Login sets an `httpOnly`, `sameSite: "lax"`, 7-day cookie named `admin_token`.
 
@@ -126,7 +126,9 @@ my-portfolio/
   - Deletions in admin invoke `deleteFromGithub(url)` which parses owner, repository, and path directly from the URL, fetches the file SHA, and sends a `DELETE` request.
 
 ### 4. AI Chatbot Engine & 3D Interactive Cute Mascot
-* **Location:** [`src/components/ui/Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx), [`src/app/api/chatbot/route.ts`](file:///e:/my-portfolio/src/app/api/chatbot/route.ts)
+* **Location:** [`src/components/ui/Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx), [`src/app/api/chatbot/route.ts`](file:///e:/my-portfolio/src/app/api/chatbot/route.ts), [`src/app/api/chat/route.ts`](file:///e:/my-portfolio/src/app/api/chat/route.ts)
+* **AI answers (Claude):** `POST /api/chat` (public, rate-limited to 20 questions/IP/hour) answers with `claude-opus-5-5` at low effort, grounded in a knowledge base built from Hero, About, Projects, Posts, published Testimonials, and the curated `Chatbot` rules (rebuilt every 5 min, prompt-cached). Server-side refusal fallback (`fallbacks: "default"`) is enabled. Requires `ANTHROPIC_API_KEY`; without it the route returns `503`.
+* **Answer order in the widget:** (1) resume/cv/download trigger — always local and instant; (2) AI reply from `/api/chat`, with quick replies/links from the best keyword rule attached; (3) on any AI failure (no key, 429, network), the keyword matcher below answers on its own.
 * **Logic:**
   - **3D Cute Bot Mascot:** Replaces the static message icon with a hardware-accelerated 3D tactile companion. Features:
     - Real-time cursor/pointer tracking with smooth 3D head tilt (`rotateX`, `rotateY`) and pupil parallax using Framer Motion springs (`damping: 22, stiffness: 220`).
@@ -151,14 +153,15 @@ my-portfolio/
     3. Directional dominance: Horizontal delta must exceed vertical delta by a 2:1 ratio ($|\Delta X| > 2 \cdot |\Delta Y|$).
 
 ### 6. Web Push Notification Lifecycle
-* **Location:** [`index.js`](file:///e:/my-portfolio/index.js), [`src/components/ui/PushNotificationButton.tsx`](file:///e:/my-portfolio/src/components/ui/PushNotificationButton.tsx), [`src/app/api/push/`](file:///e:/my-portfolio/src/app/api/push/)
+* **Location:** [`public/push-sw.js`](file:///e:/my-portfolio/public/push-sw.js), [`src/components/ui/PushNotificationButton.tsx`](file:///e:/my-portfolio/src/components/ui/PushNotificationButton.tsx), [`src/app/api/push/`](file:///e:/my-portfolio/src/app/api/push/)
 * **Logic:**
-  1. Client checks `navigator.serviceWorker.ready` and requests notification permissions.
-  2. Browser generates a push subscription with ECDH keys (`p256dh`, `auth`).
-  3. Client sends subscription payload to `/api/push/subscribe` (upserted in MongoDB `Subscription` collection).
-  4. Admin enters title, body, and URL in `/admin/notifications` and dispatches via `/api/push/broadcast`.
-  5. Route handler executes `webpush.sendNotification()` in parallel. If an endpoint returns 404/410 (expired), it is pruned from MongoDB.
-  6. Service worker (`index.js`) intercepts `push` events, renders native notification with vibration, and routes users to the target URL on `notificationclick`.
+  1. Button checks support first and shows a specific message when push can't work: insecure origin, unsupported browser, or iPhone/iPad not opened from the Home Screen (iOS only allows web push for installed PWAs, iOS 16.4+).
+  2. Requests notification permission, then registers the **dedicated** worker `public/push-sw.js` on scope `/push/` and waits for it to activate.
+  3. Subscribes with the VAPID public key (reusing an existing subscription) and POSTs it to `/api/push/subscribe` (upserted in MongoDB `Subscription`).
+  4. Admin dispatches from `/admin/notifications` via `/api/push/broadcast`; 404/410 endpoints are pruned.
+  5. `push-sw.js` shows the notification and focuses/opens the target URL on `notificationclick`.
+* **Why a separate worker:** next-pwa generates `public/sw.js` (caching only, no `push` handler, gitignored) and is disabled in development. A dedicated worker on its own scope works in dev and prod without conflicting with it; push delivery doesn't depend on scope. Don't move push handling into `sw.js`.
+* **Mobile UI:** below the `sm` breakpoint the button is an icon-only bell (`h-9 w-9`) so it doesn't crowd the navbar.
 
 ### 7. Content Protection & Anti-Theft Guard
 * **Location:** [`src/components/ui/ContentProtection.tsx`](file:///e:/my-portfolio/src/components/ui/ContentProtection.tsx)
@@ -179,6 +182,25 @@ my-portfolio/
   - Runs a post-processor `addHeadingIds` that automatically injects unique `id="slug"` attributes to all `<h1-h6>` elements so `TableOfContents.tsx` can jump to anchors smoothly.
 
 ---
+
+### 9. Performance: ISR Caching, Cache Priming & Background Prefetch
+* **Location:** [`src/lib/publicData.ts`](file:///e:/my-portfolio/src/lib/publicData.ts), [`src/lib/revalidate.ts`](file:///e:/my-portfolio/src/lib/revalidate.ts), [`src/lib/clientCache.ts`](file:///e:/my-portfolio/src/lib/clientCache.ts), [`src/components/providers/CacheWarmer.tsx`](file:///e:/my-portfolio/src/components/providers/CacheWarmer.tsx)
+* **Logic:**
+  - Home, `/projects/[slug]`, and `/blog/[slug]` use `revalidate = 60`; the detail routes define `generateStaticParams` so every existing slug is pre-rendered at build (new slugs render on first visit, then cache).
+  - Every CMS mutation handler calls `revalidatePublicPages()` (`revalidatePath("/", "layout")`) so edits go live immediately.
+  - `getHeroData()` (React `cache`) is shared by Home's `generateMetadata` and page; the Hero is server-rendered from it, and `HomeClient` primes the `hero_data` client-cache key during its first render.
+  - `clientCache` dedupes in-flight requests per key; `primeCache` is browser-only (the module is a server-wide singleton during SSR).
+  - `CacheWarmer` (root layout, skipped on `/admin`) prefetches `hero_data`, `about_data`, `projects_catalog`, `blog_posts`, and `testimonials` at idle time, so later navigation needs no API calls.
+  - **Never import `@/lib/markdownProcessor` in a client component** — it pulls unified/remark/rehype/KaTeX/highlight.js (~225 KB) into the browser bundle. Process markdown on the server.
+  - The Hero profile photo uses Next image optimization for allow-listed hosts (`canOptimizeImage`), turning the ~465 KB upload into a 19–54 KB WebP.
+
+### 10. User-Flow Analytics (Phase 3)
+* **Location:** [`src/components/analytics/PageFlowTracker.tsx`](file:///e:/my-portfolio/src/components/analytics/PageFlowTracker.tsx), [`src/app/api/analytics/track/route.ts`](file:///e:/my-portfolio/src/app/api/analytics/track/route.ts), [`src/app/api/admin/analytics/flow/route.ts`](file:///e:/my-portfolio/src/app/api/admin/analytics/flow/route.ts), [`src/app/(admin)/admin/analytics/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/analytics/page.tsx)
+* **Logic:** On each public route change the tracker POSTs `{ sessionId, path, referrerPath }` (session id and previous path live in `sessionStorage`; no cookies, no PII). The admin endpoint aggregates `PageVisit` documents into per-page visits/entries/exits/exit rate and page→page transition counts for the dashboard (7/30/90-day ranges).
+
+### 11. Testimonials / Recommendations
+* **Location:** [`src/models/Testimonial.ts`](file:///e:/my-portfolio/src/models/Testimonial.ts), [`src/app/api/testimonials/route.ts`](file:///e:/my-portfolio/src/app/api/testimonials/route.ts), [`src/components/sections/Testimonials.tsx`](file:///e:/my-portfolio/src/components/sections/Testimonials.tsx), [`src/app/(admin)/admin/testimonials/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/testimonials/page.tsx)
+* **Logic:** Managed from `/admin/testimonials` (add, edit, publish/unpublish, order, delete). Public `GET` returns only `published: true` entries; `GET ?all=1` includes drafts **only** with a valid `admin_token` cookie (checked in the handler, since middleware doesn't guard GETs). Rendered as a "Recommendations" section on the About page; hidden entirely when nothing is published. Published testimonials also feed the AI chatbot's knowledge base.
 
 ## Exhaustive File-by-File Dictionary
 
@@ -249,6 +271,8 @@ my-portfolio/
 | [`admin/blog/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/blog/page.tsx) | Editorial post manager with search toolbar, category filter pills, reading time badges, copy link feedback, featured toggle, and delete confirmation modal. |
 | [`admin/blog/[id]/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/blog/[id]/page.tsx) | Markdown & rich-text blog post editor. Features macOS QuickLook preview, auto-slug generator, cover image upload to GitHub, Google Drive fallback, tag management, project linker, word/reading counter, and SEO social metadata accordion. |
 | [`admin/chatbot/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/chatbot/page.tsx) | Chatbot rule intelligence panel. Frosted rule composer with fuzzy keyword tag manager, bot answer preview bubbles, quick reply chips, and dynamic inline link manager. |
+| [`admin/analytics/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/analytics/page.tsx) | User-flow dashboard: sessions, page views, top page→page transitions, drop-off by page. |
+| [`admin/testimonials/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/testimonials/page.tsx) | Testimonial manager: add/edit, publish/unpublish, ordering, delete. |
 | [`admin/notifications/page.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/notifications/page.tsx) | Web Push notification broadcaster. Audience reach metric card, broadcast composer, and real-time interactive **Apple iOS lock-screen push notification preview**. |
 
 ---
@@ -292,6 +316,10 @@ my-portfolio/
 | [`projects/route.ts`](file:///e:/my-portfolio/src/app/api/projects/route.ts) | `GET`, `POST`, `PUT`, `DELETE` | CRUD for portfolio projects. Supports lookup by slug or ID, image upload to GitHub, and Google Drive thumbnail conversion. |
 | [`push/subscribe/route.ts`](file:///e:/my-portfolio/src/app/api/push/subscribe/route.ts) | `POST` | Stores or updates Web Push subscriptions (`endpoint`, `p256dh`, `auth`) in the MongoDB `Subscription` collection. |
 | [`push/broadcast/route.ts`](file:///e:/my-portfolio/src/app/api/push/broadcast/route.ts) | `GET`, `POST` | `GET` returns subscriber count. `POST` transmits push messages using VAPID keys via `web-push`, automatically pruning expired/unregistered endpoints. |
+| [`chat/route.ts`](file:///e:/my-portfolio/src/app/api/chat/route.ts) | `POST` (public) | Claude-powered chatbot answers grounded in CMS content; rate-limited per IP; `503` when `ANTHROPIC_API_KEY` is unset. |
+| [`testimonials/route.ts`](file:///e:/my-portfolio/src/app/api/testimonials/route.ts) | `GET`, `POST`, `PUT`, `DELETE` | Testimonial CRUD. Public GET = published only; `?all=1` + admin cookie includes drafts. |
+| [`analytics/track/route.ts`](file:///e:/my-portfolio/src/app/api/analytics/track/route.ts) | `POST` (public) | Records a `PageVisit` (session id, path, previous path). |
+| [`admin/analytics/flow/route.ts`](file:///e:/my-portfolio/src/app/api/admin/analytics/flow/route.ts) | `GET` | Aggregated user-flow stats for `/admin/analytics` (`?days=` 7, 30, or 90). |
 | [`views/route.ts`](file:///e:/my-portfolio/src/app/api/views/route.ts) | `POST` | Atomic counter route. Uses MongoDB `$inc: { views: 1 }` on `Post` models identified by slug. |
 
 ---
@@ -320,7 +348,8 @@ my-portfolio/
 * [`AboutPreview.tsx`](file:///e:/my-portfolio/src/components/sections/AboutPreview.tsx): Compact biography teaser with link to the complete `/about` page.
 * [`ContactCTA.tsx`](file:///e:/my-portfolio/src/components/sections/ContactCTA.tsx): Call-to-action banner driving recruiter inquiries to `/contact`.
 * [`FeaturedProjects.tsx`](file:///e:/my-portfolio/src/components/sections/FeaturedProjects.tsx): Apple-designed curated showcase card grid with continuous corners, macOS browser frame accents, direct case study links, and responsive CTAs.
-* [`Hero.tsx`](file:///e:/my-portfolio/src/components/sections/Hero.tsx): Dynamic hero section with animated headlines, profile avatar, status pill, CTA buttons, and tech stack tags.
+* [`Hero.tsx`](file:///e:/my-portfolio/src/components/sections/Hero.tsx): Dynamic hero section with animated headlines, profile avatar, status pill, CTA buttons, and tech stack tags. Accepts server-rendered `initialData`.
+* [`Testimonials.tsx`](file:///e:/my-portfolio/src/components/sections/Testimonials.tsx): "Recommendations" cards on the About page; renders nothing until a testimonial is published.
 * [`ProjectsSection.tsx`](file:///e:/my-portfolio/src/components/sections/ProjectsSection.tsx): Modular project listing section.
 * [`Skills.tsx`](file:///e:/my-portfolio/src/components/sections/Skills.tsx): Category-based skill grid with technology icons and proficiency badges.
 
@@ -335,7 +364,8 @@ my-portfolio/
 * [`ContentProtection.tsx`](file:///e:/my-portfolio/src/components/ui/ContentProtection.tsx): Anti-theft module disabling context menu, text selection, image drag, and devtools shortcut keys.
 * [`Input.tsx`](file:///e:/my-portfolio/src/components/ui/Input.tsx): Standardized text field input with focus rings and dark mode compatibility.
 * [`Modal.tsx`](file:///e:/my-portfolio/src/components/ui/Modal.tsx): Accessible dialog overlay with backdrop blur and escape key listener.
-* [`PushNotificationButton.tsx`](file:///e:/my-portfolio/src/components/ui/PushNotificationButton.tsx): Bell icon button allowing visitors to subscribe/unsubscribe to Web Push alerts.
+* [`PushNotificationButton.tsx`](file:///e:/my-portfolio/src/components/ui/PushNotificationButton.tsx): "Get Notified" button (icon-only on mobile). Registers `public/push-sw.js`, handles permission/iOS/unsupported cases with specific messages, and saves the subscription.
+* [`CursorTrail.tsx`](file:///e:/my-portfolio/src/components/ui/CursorTrail.tsx) / [`GhostCursor.tsx`](file:///e:/my-portfolio/src/components/ui/GhostCursor.tsx): Theme-aware Three.js smoke trail following the pointer site-wide. Bloom is intentionally disabled (it forced full-viewport alpha and broke page rendering).
 * [`SkillKeyboard.tsx`](file:///e:/my-portfolio/src/components/ui/SkillKeyboard.tsx): Interactive virtual keyboard where pressing physical or on-screen keys triggers skill highlights.
 * [`StaggerContainer.tsx`](file:///e:/my-portfolio/src/components/ui/StaggerContainer.tsx): Framer Motion animation parent that staggers child item entrances.
 * [`Toast.tsx`](file:///e:/my-portfolio/src/components/ui/Toast.tsx): Lightweight toast notification component for alerts.
@@ -348,6 +378,8 @@ my-portfolio/
 | :--- | :--- |
 | [`auth.ts`](file:///e:/my-portfolio/src/lib/auth.ts) | Helper function `isAuthenticated(req)` checking the `x-admin-secret` header against `process.env.ADMIN_SECRET`. |
 | [`clientCache.ts`](file:///e:/my-portfolio/src/lib/clientCache.ts) | In-memory and session storage cache providing instant 0ms data access across in-tab page transitions without redundant network roundtrips. Resets automatically on new tabs or tab close. |
+| [`publicData.ts`](file:///e:/my-portfolio/src/lib/publicData.ts) | Server-only `getHeroData()` (React `cache`) returning the same JSON shape as `/api/hero`. |
+| [`revalidate.ts`](file:///e:/my-portfolio/src/lib/revalidate.ts) | `revalidatePublicPages()` — purges ISR-cached public pages after CMS edits. |
 | [`connectToDB.ts`](file:///e:/my-portfolio/src/lib/connectToDB.ts) | **Active Mongoose connector.** Configures Google/Cloudflare DNS servers, manages cached connection pool, and connects to the `portfolio` database. |
 | [`db.ts`](file:///e:/my-portfolio/src/lib/db.ts) | Legacy database connection utility (kept for backward compatibility; prefer `connectToDB.ts`). |
 | [`githubUpload.ts`](file:///e:/my-portfolio/src/lib/githubUpload.ts) | GitHub REST API integration for uploading binary files (`uploadToGithub`) and deleting files (`deleteFromGithub`). |
@@ -373,6 +405,8 @@ my-portfolio/
 | [`Post.ts`](file:///e:/my-portfolio/src/models/Post.ts) | `posts` | `title`, `slug` (unique), `excerpt`, `content`, `coverImage`, `gDriveImage`, `category`, `tags[]`, `published`, `readTime`, `views`, `relatedProject`. |
 | [`Project.ts`](file:///e:/my-portfolio/src/models/Project.ts) | `projects` | `title`, `slug` (unique), `description`, `image`, `gDriveImage`, `tags[]`, `githubLink`, `liveLink`, `appLink`, `role`, `status`, `frameStyle`, `featured`, `publishDate`, `relatedBlog`. |
 | [`Subscription.ts`](file:///e:/my-portfolio/src/models/Subscription.ts) | `subscriptions` | `endpoint` (unique push service URL), `keys: { p256dh, auth }`. |
+| [`Testimonial.ts`](file:///e:/my-portfolio/src/models/Testimonial.ts) | `testimonials` | `name`, `role`, `company`, `relationship`, `quote`, `avatarUrl`, `linkedinUrl`, `published`, `order`. |
+| [`PageVisit.ts`](file:///e:/my-portfolio/src/models/PageVisit.ts) | `pagevisits` | `sessionId`, `path`, `referrerPath` (null = entry page), timestamps. |
 
 ---
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
+import { revalidatePublicPages } from "@/lib/revalidate";
 import Project from "@/models/Project";
 import { uploadToGithub } from "@/lib/githubUpload";
 
@@ -75,6 +76,7 @@ export async function POST(req: Request) {
       tags: tagsString ? tagsString.split(",").map(t => t.trim()) : []
     });
 
+    revalidatePublicPages();
     return NextResponse.json({ project: newProject }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -124,6 +126,7 @@ export async function PUT(req: Request) {
     }
 
     await project.save();
+    revalidatePublicPages();
     return NextResponse.json({ project }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -138,6 +141,7 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
     if (id.match(/^[0-9a-fA-F]{24}$/)) await Project.findByIdAndDelete(id);
     else await Project.findOneAndDelete({ slug: id });
+    revalidatePublicPages();
     return NextResponse.json({ message: "Deleted" }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });

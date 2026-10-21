@@ -1,12 +1,28 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import BlogPostClient from "./BlogPostClient";
 import { connectToDB } from "@/lib/connectToDB";
+import { getHeroData } from "@/lib/publicData";
 import Post from "@/models/Post";
-import Hero from "@/models/Hero";
 
-export const dynamic = "force-dynamic";
+// Cached and regenerated at most once a minute; CMS saves purge it immediately
+// via revalidatePublicPages().
+export const revalidate = 60;
 
-async function getPost(slug: string) {
+// Pre-render every existing post at build time; new slugs are rendered on
+// first visit and cached (dynamicParams defaults to true).
+export async function generateStaticParams() {
+  try {
+    await connectToDB();
+    const posts = await Post.find({}, { slug: 1 }).lean();
+    return posts.filter((p: any) => p.slug).map((p: any) => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
+}
+
+// Shared by generateMetadata and the page so each render queries once.
+const getPost = cache(async (slug: string) => {
   try {
     await connectToDB();
     const post = await Post.findOne({ slug }).lean();
@@ -15,20 +31,15 @@ async function getPost(slug: string) {
     console.error("Metadata post lookup error:", error);
     return null;
   }
-}
+});
 
 async function getHeroAuthor() {
-  try {
-    await connectToDB();
-    const hero = await Hero.findOne().lean();
-    if (!hero) return null;
-    return {
-      profilePic: (hero as any).profilePic || "",
-      gDriveProfilePic: (hero as any).gDriveProfilePic || "",
-    };
-  } catch {
-    return null;
-  }
+  const hero = await getHeroData();
+  if (!hero) return null;
+  return {
+    profilePic: hero.profilePic || "",
+    gDriveProfilePic: hero.gDriveProfilePic || "",
+  };
 }
 
 export async function generateMetadata({

@@ -26,6 +26,8 @@
 - 🛡️ **Anti-Theft Asset Protection:** Strict anti-download, no-right-click, and no-drag protections on all media, backed by a dual GitHub/Google Drive fallback system.
 - 🧭 **App-Like Navigation:** Swipe and arrow-key based page transitions powered by Framer Motion (no traditional scrolling on the Hero page).
 - 🔍 **Command Palette:** Global `Cmd + K` spotlight search for instant navigation and blog querying.
+- ✨ **Ghost Cursor:** A Three.js shader-based smoke trail that follows the pointer across the site, tuned separately for light and dark mode.
+- 📊 **User Flow Analytics:** First-party, cookie-free page-flow tracking with a CMS dashboard showing page-to-page transitions and drop-off rates.
 
 ---
 
@@ -37,7 +39,7 @@
 | **Backend** | Next.js Route Handlers (REST API), Node.js |
 | **Database** | MongoDB Atlas, Mongoose |
 | **Storage** | GitHub API (Primary), Google Drive (Fallback) |
-| **Animations** | Framer Motion, CSS Keyframes |
+| **Animations** | Framer Motion, CSS Keyframes, Three.js (shader-based cursor effect) |
 | **Infrastructure** | Vercel, next-pwa, Web Push API |
 
 ---
@@ -54,6 +56,7 @@ This project goes beyond a standard static portfolio. It is engineered as a comp
 - **Database:** MongoDB Atlas is used for its flexible document schema, allowing rapid iteration of Blog, Project, and Chatbot Rule models.
 - **Asset Pipeline:** To avoid heavy cloud storage costs, assets (images/resumes) are uploaded directly to a private GitHub repository via the GitHub API. A Google Drive fallback system ensures 100% uptime if GitHub API rate limits are hit.
 - **Authentication:** The `/admin` routes are protected at the edge using Next.js Middleware. A secure, HTTP-only cookie is verified before any admin page or protected API route is rendered.
+- **Analytics:** A first-party `PageFlowTracker` records the sequence of pages a visitor moves through in a browser session (via `sessionStorage`, no cookies, no third-party telemetry). Events feed a `PageVisit` collection, aggregated into page-to-page transition counts and per-page drop-off rates at `/admin/analytics`.
 
 ### 2. Technical Challenges & Solutions
 
@@ -76,6 +79,11 @@ This project goes beyond a standard static portfolio. It is engineered as a comp
 
 - **The Problem:** Google deprecated the `uc?export=view` endpoint, causing fallback images to break.
 - **The Solution:** Built a dynamic URL parser in the API that intercepts Google Drive links and converts them to use the hidden `lh3.googleusercontent.com` endpoint for thumbnails, and `<iframe>` embeds for larger project previews.
+
+#### Challenge E: Full-Viewport Cursor Shader Breaking Theme Rendering
+
+- **The Problem:** The Ghost Cursor effect used Three.js's `UnrealBloomPass` for glow. That pass hardcodes its output alpha to `1.0` and additively blends it in, saturating the canvas's alpha across the *entire* viewport rather than just near the cursor — harmless under `screen` blend mode against a near-black source, but it washed the whole page in a gray veil under `multiply` (light theme), and over-brightened dark mode on at least one real GPU badly enough to make text unreadable.
+- **The Solution:** Removed the bloom pass entirely instead of continuing to retune it. The shader's own localized alpha, with no post-processing, renders correctly across both themes and environments.
 
 ### 3. Performance & Security
 
@@ -126,10 +134,10 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ---
 
-## 🔮 Future Roadmap
+## 🔮 Roadmap
 
-- **WebSockets:** Implement real-time live chat fallback when the AI bot cannot answer a query.
-- **Analytics:** Add an analytics dashboard to the CMS to track user flow and interaction heatmaps.
+- **WebSockets (Planned):** Implement real-time live chat fallback when the AI bot cannot answer a query.
+- **User Flow Analytics (✅ Shipped):** CMS dashboard at `/admin/analytics` tracking page-to-page transitions and drop-off rates.
 
 ---
 

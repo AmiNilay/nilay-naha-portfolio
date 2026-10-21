@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
+import { connectToDB } from "@/lib/connectToDB";
+import { revalidatePublicPages } from "@/lib/revalidate";
 import About from "@/models/About";
-
-// ✅ Bulletproof DB connection
-async function connectDB() {
-  if (mongoose.connection.readyState >= 1) return;
-  await mongoose.connect(process.env.MONGODB_URI || "");
-}
 
 export async function GET() {
   try {
-    await connectDB();
+    await connectToDB();
     const about = await About.findOne({});
     return NextResponse.json(about || {});
   } catch (error) {
@@ -21,9 +16,10 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    await connectDB();
+    await connectToDB();
     const body = await req.json();
     const updated = await About.findOneAndUpdate({}, body, { new: true, upsert: true });
+    revalidatePublicPages();
     return NextResponse.json(updated);
   } catch (error) {
     console.error("PUT About Error:", error);

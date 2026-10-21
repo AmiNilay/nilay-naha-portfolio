@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import HomeClient from "./HomeClient";
-import { connectToDB } from "@/lib/connectToDB";
-import Hero from "@/models/Hero";
+import { getHeroData } from "@/lib/publicData";
 
 export const revalidate = 60; // Revalidate every minute or on on-demand purge
 
@@ -11,8 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
     "Portfolio of Nilay Naha — Software Engineer specializing in scalable backends, FastAPI, Node.js, and modern full-stack web applications.";
 
   try {
-    await connectToDB();
-    const hero: any = await Hero.findOne().lean();
+    const hero = await getHeroData();
 
     const title = hero?.siteTitle?.trim() || fallbackTitle;
     const description = hero?.subtitle?.trim() || fallbackDesc;
@@ -40,6 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function Page() {
-  return <HomeClient />;
+export default async function Page() {
+  const hero = await getHeroData();
+  return <HomeClient initialHero={hero} />;
 }

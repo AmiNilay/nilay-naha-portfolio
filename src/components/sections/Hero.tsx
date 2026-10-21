@@ -14,6 +14,38 @@ import {
   MotionValue,
 } from "framer-motion";
 import { fetchWithSessionCache } from "@/lib/clientCache";
+import { SKILL_CATEGORIES, readableIconColors } from "@/lib/skillData";
+
+const normalizeTech = (s: string) => s.toLowerCase().replace(/[^a-z0-9+#]/g, "");
+
+// "OpenAI / ChatGPT" matches "openai" or "chatgpt"; "Llama (Meta)" matches "llama" or "meta".
+const SKILL_LOOKUP = new Map(
+  SKILL_CATEGORIES.flatMap((c) => c.skills).flatMap((skill) =>
+    [skill.name, ...skill.name.split(/[/()]/)]
+      .map(normalizeTech)
+      .filter(Boolean)
+      .map((key) => [key, skill] as const)
+  )
+);
+
+function TechIcon({ tech }: { tech: string }) {
+  const skill = SKILL_LOOKUP.get(normalizeTech(tech));
+  if (skill) {
+    const colors = readableIconColors(skill.color);
+    return (
+      <skill.Icon
+        className="w-4 h-4 md:w-5 md:h-5 text-[var(--icon-light)] dark:text-[var(--icon-dark)]"
+        style={{ "--icon-light": colors.light, "--icon-dark": colors.dark } as React.CSSProperties}
+      />
+    );
+  }
+  const logo = getTechLogo(tech);
+  return logo ? (
+    <img src={logo} alt="" width={20} height={20} className="w-4 h-4 md:w-5 md:h-5 object-contain opacity-80" />
+  ) : (
+    <span className="text-[15px]">💻</span>
+  );
+}
 
 const HERO_DEFAULTS = {
   badgeText: "", showAvailability: true, subtitle: "",
@@ -529,14 +561,10 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
           <div className="hero-marquee-track">
             {/* Strip A */}
             {techArray.map((tech, i) => {
-              const logo = getTechLogo(tech);
               return (
                 <span key={`a-${i}`} className="inline-flex items-center">
                   <span className="inline-flex items-center gap-2 mx-7 md:mx-10 text-[11px] md:text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
-                    {logo
-                      ? <img src={logo} alt={tech} width={20} height={20} className="w-4 h-4 md:w-5 md:h-5 object-contain opacity-80" />
-                      : <span className="text-[15px]">💻</span>
-                    }
+                    <TechIcon tech={tech} />
                     {tech}
                   </span>
                   <span aria-hidden className="w-1 h-1 rounded-full bg-[#D1D5DB] dark:bg-[#2D3748] shrink-0" />
@@ -545,14 +573,10 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
             })}
             {/* Strip B — identical, gives the seamless loop */}
             {techArray.map((tech, i) => {
-              const logo = getTechLogo(tech);
               return (
                 <span key={`b-${i}`} className="inline-flex items-center">
                   <span className="inline-flex items-center gap-2 mx-7 md:mx-10 text-[11px] md:text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
-                    {logo
-                      ? <img src={logo} alt={tech} width={20} height={20} className="w-4 h-4 md:w-5 md:h-5 object-contain opacity-80" />
-                      : <span className="text-[15px]">💻</span>
-                    }
+                    <TechIcon tech={tech} />
                     {tech}
                   </span>
                   <span aria-hidden className="w-1 h-1 rounded-full bg-[#D1D5DB] dark:bg-[#2D3748] shrink-0" />

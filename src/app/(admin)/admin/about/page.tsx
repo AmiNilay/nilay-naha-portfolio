@@ -23,7 +23,7 @@ import {
   Clock,
 } from "lucide-react";
 import Toast from "@/components/ui/Toast";
-import { SKILL_CATEGORIES } from "@/lib/skillData";
+import { SKILL_CATEGORIES, readableIconColors } from "@/lib/skillData";
 import { motion } from "framer-motion";
 
 interface Education {
@@ -546,7 +546,17 @@ export default function AdminAbout() {
                               : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                           }`}
                         >
-                          <skill.Icon className="w-3.5 h-3.5" style={{ color: isSelected ? undefined : skill.color }} />
+                          <skill.Icon
+                            className={`w-3.5 h-3.5 ${isSelected ? "" : "text-[var(--icon-light)] dark:text-[var(--icon-dark)]"}`}
+                            style={
+                              isSelected
+                                ? undefined
+                                : ({
+                                    "--icon-light": readableIconColors(skill.color).light,
+                                    "--icon-dark": readableIconColors(skill.color).dark,
+                                  } as React.CSSProperties)
+                            }
+                          />
                           <span>{skill.name}</span>
                           {isSelected && <Check className="w-3 h-3 text-cyan-400" />}
                         </div>

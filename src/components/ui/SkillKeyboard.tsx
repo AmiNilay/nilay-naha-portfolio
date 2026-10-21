@@ -1,6 +1,7 @@
 "use client";
 
-import { SKILL_CATEGORIES } from "@/lib/skillData";
+import type { CSSProperties } from "react";
+import { SKILL_CATEGORIES, readableIconColors } from "@/lib/skillData";
 
 interface SkillKeyboardProps {
   activeSkills?: string[];
@@ -28,9 +29,14 @@ export default function SkillKeyboard({ activeSkills }: SkillKeyboardProps) {
                 key={skill.name} 
                 className="group flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-300 cursor-default hover:-translate-y-0.5"
               >
-                <skill.Icon 
-                  className="w-5 h-5 transition-transform group-hover:scale-110" 
-                  style={{ color: skill.color }} 
+                <skill.Icon
+                  className="w-5 h-5 transition-transform group-hover:scale-110 text-[var(--icon-light)] dark:text-[var(--icon-dark)]"
+                  style={
+                    {
+                      "--icon-light": readableIconColors(skill.color).light,
+                      "--icon-dark": readableIconColors(skill.color).dark,
+                    } as CSSProperties
+                  }
                 />
                 <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
                   {skill.name}

@@ -25,6 +25,8 @@ const AboutSchema = new Schema(
         company: { type: String },
         duration: { type: String },
         description: { type: String },
+        companyLogo: { type: String, default: "" },
+        companyLinkedin: { type: String, default: "" },
       }
     ],
     certifications: [

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
 import Testimonials from "@/components/sections/Testimonials";
+import CompanyLogo from "@/components/ui/CompanyLogo";
+import { Linkedin } from "lucide-react";
 import {
   motion,
   AnimatePresence,
@@ -51,6 +53,8 @@ interface Experience {
   company: string;
   duration: string;
   description: string;
+  companyLogo?: string;
+  companyLinkedin?: string;
 }
 
 interface Certification {
@@ -534,14 +538,29 @@ export default function AboutClient() {
                   className="rounded-3xl p-6 sm:p-8 bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 group"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                        {exp.role}
-                      </h3>
-                      <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-cyan-500" />
-                        {exp.company}
-                      </p>
+                    <div className="flex items-center gap-4 min-w-0">
+                      <CompanyLogo src={exp.companyLogo} company={exp.company} />
+                      <div className="min-w-0">
+                        <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                          {exp.role}
+                        </h3>
+                        <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                          <MapPin className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                          {exp.companyLinkedin ? (
+                            <a
+                              href={exp.companyLinkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 hover:text-[#0A66C2] transition-colors"
+                            >
+                              {exp.company}
+                              <Linkedin className="w-3.5 h-3.5" aria-label="LinkedIn" />
+                            </a>
+                          ) : (
+                            exp.company
+                          )}
+                        </p>
+                      </div>
                     </div>
 
                     {exp.duration && (

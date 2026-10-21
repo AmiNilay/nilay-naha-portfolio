@@ -22,7 +22,9 @@ import {
   MapPin,
   Clock,
 } from "lucide-react";
+import { Upload } from "lucide-react";
 import Toast from "@/components/ui/Toast";
+import CompanyLogo from "@/components/ui/CompanyLogo";
 import { SKILL_CATEGORIES, readableIconColors } from "@/lib/skillData";
 import { motion } from "framer-motion";
 
@@ -40,6 +42,8 @@ interface Experience {
   company: string;
   duration: string;
   description: string;
+  companyLogo?: string;
+  companyLinkedin?: string;
 }
 
 interface Certification {
@@ -173,12 +177,28 @@ export default function AdminAbout() {
   const addExperience = () =>
     setExperience([
       ...experience,
-      { role: "", company: "", duration: "", description: "" },
+      { role: "", company: "", duration: "", description: "", companyLogo: "", companyLinkedin: "" },
     ]);
   const updateExperience = (index: number, field: keyof Experience, value: string) => {
-    const newExp = [...experience];
-    newExp[index][field] = value;
-    setExperience(newExp);
+    setExperience((prev) => prev.map((exp, i) => (i === index ? { ...exp, [field]: value } : exp)));
+  };
+
+  const [uploadingLogo, setUploadingLogo] = useState<number | null>(null);
+  const uploadCompanyLogo = async (index: number, file: File) => {
+    setUploadingLogo(index);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      updateExperience(index, "companyLogo", data.url);
+      setToast({ message: "Logo uploaded. Click Save to publish.", type: "success" });
+    } catch (err: any) {
+      setToast({ message: err.message || "Logo upload failed", type: "error" });
+    } finally {
+      setUploadingLogo(null);
+    }
   };
   const removeExperience = (index: number) =>
     setExperience(experience.filter((_, i) => i !== index));
@@ -609,6 +629,44 @@ export default function AdminAbout() {
                       placeholder="Company Name"
                     />
                   </div>
+
+                  <div className="flex items-center gap-3 p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
+                    <CompanyLogo src={exp.companyLogo} company={exp.company || "Company"} size="sm" />
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <input
+                        value={exp.companyLogo || ""}
+                        onChange={(e) => updateExperience(index, "companyLogo", e.target.value)}
+                        className="w-full p-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[11px] text-zinc-900 dark:text-white"
+                        placeholder="Company logo URL or Google Drive link"
+                      />
+                      <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-400 cursor-pointer">
+                        {uploadingLogo === index ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Upload className="w-3 h-3" />
+                        )}
+                        {uploadingLogo === index ? "Uploading…" : "Upload logo"}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                          className="hidden"
+                          disabled={uploadingLogo !== null}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadCompanyLogo(index, file);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <input
+                    value={exp.companyLinkedin || ""}
+                    onChange={(e) => updateExperience(index, "companyLinkedin", e.target.value)}
+                    className="w-full p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs text-zinc-900 dark:text-white"
+                    placeholder="Company LinkedIn page (e.g. https://www.linkedin.com/company/...)"
+                  />
 
                   <input
                     value={exp.duration}

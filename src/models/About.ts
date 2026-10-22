@@ -7,6 +7,7 @@ const AboutSchema = new Schema(
     location: { type: String },
     availability: { type: String },
     skills: { type: [String], default: [] },
+    aiWorkflow: { type: String, default: "" }, // Markdown for the /ai "How I use AI" page
     image: { type: String }, // Old image field
     gDriveProfilePic: { type: String }, // ✅ New G-Drive field
     education: [
@@ -17,6 +18,9 @@ const AboutSchema = new Schema(
         relevantCoursework: { type: [String], default: [] },
         cgpa: { type: String },
         percentage: { type: String },
+        institutionLinkedin: { type: String, default: "" },
+        location: { type: String, default: "" },
+        image: { type: String, default: "" }, // College photo (URL or Google Drive link)
       }
     ],
     experience: [

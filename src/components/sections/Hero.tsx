@@ -50,7 +50,7 @@ function TechIcon({ tech }: { tech: string }) {
 const HERO_DEFAULTS = {
   badgeText: "", showAvailability: true, subtitle: "",
   profilePic: "", resumeUrl: "", gDriveProfilePic: "", gDriveResume: "",
-  socialGithub: "", socialLinkedin: "", techStack: "",
+  socialGithub: "", socialLinkedin: "", techStack: "", techMarqueeSpeed: 40,
   stat1Value: "", stat1Label: "", stat2Value: "", stat2Label: "",
   stat3Value: "", stat3Label: "", portfolioLastUpdated: "",
   line1Bold: "Build", line1Accent: "clean backends",
@@ -83,6 +83,7 @@ const normalizeHero = (prev: typeof HERO_DEFAULTS, d: Record<string, any>) => ({
   line1Accent: d.line1Accent || "clean backends",
   line2Bold: d.line2Bold || "Ship",
   line2Accent: d.line2Accent || "real products",
+  techMarqueeSpeed: Number(d.techMarqueeSpeed) > 0 ? Number(d.techMarqueeSpeed) : 40,
 });
 
 // ─── Tech Logo Resolver ────────────────────────────────────────────────────────
@@ -196,7 +197,7 @@ function TiltCard({
         {/* Avatar disc with Apple continuous curvature & fluid responsive clamp */}
         <div className="
           relative
-          w-[clamp(140px,26vw,380px)] h-[clamp(140px,26vw,380px)]
+          w-[clamp(132px,min(26vw,42dvh),380px)] h-[clamp(132px,min(26vw,42dvh),380px)]
           rounded-full overflow-hidden
           border-[3px] md:border-[5px] border-white dark:border-[#1C2333]
           shadow-[0_8px_40px_-8px_rgba(15,118,110,0.25),0_0_0_1px_rgba(15,118,110,0.12)]
@@ -258,6 +259,7 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
   );
   const [loading,  setLoading]  = useState(!initialData);
   const [imgError, setImgError] = useState(false);
+  const [marqueePaused, setMarqueePaused] = useState(false);
 
   const shouldReduce  = useReducedMotion();
   const containerRef  = useRef<HTMLDivElement>(null);
@@ -325,7 +327,7 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
       ref={containerRef}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
-      className="relative w-full min-h-[100dvh] h-full flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden bg-[#FAFAFA] dark:bg-[#0B0F14] overscroll-none"
+      className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center overflow-x-hidden bg-[#FAFAFA] dark:bg-[#0B0F14] overscroll-none"
     >
       {/* ── Ambient background glow ── */}
       <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
@@ -341,7 +343,7 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
       </div>
 
       {/* ── Main two-column layout (Fluid responsive containment) ── */}
-      <div className="relative z-10 w-full max-w-[1380px] mx-auto px-4 sm:px-8 lg:px-16 flex flex-col-reverse md:flex-row items-center justify-center md:justify-between gap-6 md:gap-10 lg:gap-12 min-h-full py-20 md:py-16 pb-24 md:pb-20">
+      <div className="relative z-10 w-full max-w-[1380px] mx-auto px-4 sm:px-8 lg:px-16 flex flex-col-reverse md:flex-row items-center justify-center md:justify-between gap-6 md:gap-8 lg:gap-12 py-20 md:py-16 pb-24 md:pb-20">
 
         {/* LEFT: Text content */}
         <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left min-w-0 w-full max-w-2xl">
@@ -558,7 +560,18 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
               - translateX(-50%) = exactly -1 strip → seamless loop
               - Pure CSS so no JS/hydration timing issues
           */}
-          <div className="hero-marquee-track">
+          <div
+            className="hero-marquee-track"
+            onMouseEnter={() => setMarqueePaused(true)}
+            onMouseLeave={() => setMarqueePaused(false)}
+            // Inline animation overrides the stylesheet's reduced-motion "none":
+            // Windows reports reduced motion whenever system animations are off,
+            // which froze the marquee. Reduced motion now just scrolls slower.
+            style={{
+              animation: `hero-scroll ${data.techMarqueeSpeed * (shouldReduce ? 2 : 1)}s linear infinite`,
+              animationPlayState: marqueePaused ? "paused" : "running",
+            }}
+          >
             {/* Strip A */}
             {techArray.map((tech, i) => {
               return (

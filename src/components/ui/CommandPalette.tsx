@@ -1,22 +1,54 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, Home, FolderGit2, FileText, User, Mail, 
-  Moon, Sun, Command, ArrowRight 
+  Moon, Sun, Command, ArrowRight, Sparkles, Loader2, Briefcase
 } from "lucide-react";
+import { loadModel, semanticRank, type SearchItem } from "@/lib/semanticSearch";
 
 interface Blog {
   title: string;
   slug: string;
+  excerpt?: string;
+  tags?: string[];
+  published?: boolean;
 }
+
+interface ProjectLite {
+  title: string;
+  slug: string;
+  description?: string;
+  tags?: string[];
+  status?: string;
+}
+
+type SmartStatus = "off" | "loading" | "ready" | "error";
+
+// Page descriptions give smart search something to match meaning against.
+const PAGE_ITEMS: SearchItem[] = [
+  { id: "page:/", kind: "page", url: "/", title: "Home", text: "Introduction, profile, tech stack and résumé" },
+  { id: "page:/projects", kind: "page", url: "/projects", title: "Projects", text: "Portfolio of apps and software built" },
+  { id: "page:/blog", kind: "page", url: "/blog", title: "Blog", text: "Articles and technical writing" },
+  { id: "page:/about", kind: "page", url: "/about", title: "About", text: "Experience, education, skills, certifications and recommendations" },
+  { id: "page:/contact", kind: "page", url: "/contact", title: "Contact", text: "Email, LinkedIn, hire, get in touch, message" },
+  { id: "page:/match", kind: "page", url: "/match", title: "Job Match", text: "Recruiters: compare a job description with his skills and get a tailored résumé" },
+];
+
+const strip = (s?: string) =>
+  (s || "").replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 export default function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [projects, setProjects] = useState<ProjectLite[]>([]);
+  const [smart, setSmart] = useState<SmartStatus>("off");
+  const [progress, setProgress] = useState(0);
+  const [smartResults, setSmartResults] = useState<SearchItem[] | null>(null);
+  const [ranking, setRanking] = useState(false);
   const router = useRouter();
 
   // Listen for Cmd+K or Ctrl+K
@@ -39,11 +71,74 @@ export default function CommandPalette() {
       fetch("/api/blog")
         .then((res) => res.json())
         .then((data) => {
-          if (data.posts) setBlogs(data.posts);
+          if (data.posts) setBlogs(data.posts.filter((p: Blog) => p.published !== false));
         })
         .catch((err) => console.error("Failed to fetch blogs for palette", err));
     }
   }, [isOpen, blogs.length]);
+
+  const items = useMemo<SearchItem[]>(
+    () => [
+      ...PAGE_ITEMS,
+      ...projects
+        .filter((p) => !/draft/i.test(p.status || ""))
+        .map((p) => ({
+          id: `project:${p.slug}`, kind: "project" as const, url: `/projects/${p.slug}`, title: p.title,
+          text: `${(p.tags || []).join(", ")}. ${strip(p.description).slice(0, 600)}`,
+        })),
+      ...blogs.map((b) => ({
+        id: `post:${b.slug}`, kind: "post" as const, url: `/blog/${b.slug}`, title: b.title,
+        text: `${(b.tags || []).join(", ")}. ${b.excerpt || ""}`,
+      })),
+    ],
+    [projects, blogs]
+  );
+
+  // Opt-in smart search: the on-device model is downloaded only when asked.
+  const toggleSmart = async () => {
+    if (smart === "ready" || smart === "loading") {
+      setSmart("off");
+      setSmartResults(null);
+      return;
+    }
+    setSmart("loading");
+    setProgress(0);
+    try {
+      if (!projects.length) {
+        const data = await fetch("/api/projects").then((r) => r.json()).catch(() => ({}));
+        if (data.projects) setProjects(data.projects);
+      }
+      await loadModel(setProgress);
+      setSmart("ready");
+    } catch (err) {
+      console.error("Smart search unavailable", err);
+      setSmart("error");
+    }
+  };
+
+  // Rank by meaning (debounced); keyword results below remain as the fallback.
+  useEffect(() => {
+    if (smart !== "ready" || query.trim().length < 3) {
+      setSmartResults(null);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setRanking(true);
+      try {
+        const ranked = await semanticRank(query, items, 6);
+        if (!cancelled) setSmartResults(ranked.map((r) => r.item));
+      } catch {
+        if (!cancelled) setSmartResults(null);
+      } finally {
+        if (!cancelled) setRanking(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [query, smart, items]);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -69,6 +164,7 @@ export default function CommandPalette() {
     { id: "blog", name: "Blog", icon: FileText, action: () => navigateTo("/blog") },
     { id: "about", name: "About", icon: User, action: () => navigateTo("/about") },
     { id: "contact", name: "Contact", icon: Mail, action: () => navigateTo("/contact") },
+    { id: "match", name: "Job Match (for recruiters)", icon: Briefcase, action: () => navigateTo("/match") },
     { id: "theme", name: "Toggle Dark/Light Mode", icon: Moon, action: toggleTheme },
   ];
 
@@ -118,8 +214,55 @@ export default function CommandPalette() {
               </div>
             </div>
 
+            {/* Smart search toggle */}
+            <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-gray-200 dark:border-gray-800 text-xs">
+              <button
+                onClick={toggleSmart}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold transition-colors ${
+                  smart === "ready"
+                    ? "bg-violet-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                {smart === "loading" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                Smart search (AI, on-device)
+              </button>
+              <span className="text-gray-400 truncate">
+                {smart === "loading" && `Downloading model… ${progress}%`}
+                {smart === "ready" && (ranking ? "Thinking…" : "Searches by meaning")}
+                {smart === "error" && "Couldn't load — using keyword search"}
+                {smart === "off" && "Free · runs in your browser"}
+              </span>
+            </div>
+
             {/* Results List */}
             <div className="max-h-[60vh] overflow-y-auto p-2">
+              {/* Smart (semantic) results */}
+              {smartResults && smartResults.length > 0 && (
+                <div className="mb-4">
+                  <div className="px-3 py-2 text-xs font-semibold text-violet-500 uppercase tracking-wider">
+                    Best matches by meaning
+                  </div>
+                  {smartResults.map((item) => {
+                    const Icon = item.kind === "project" ? FolderGit2 : item.kind === "post" ? FileText : Search;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => navigateTo(item.url)}
+                        className="w-full flex items-center px-3 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors group"
+                      >
+                        <Icon className="w-5 h-5 mr-3 text-violet-400" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-medium truncate">{item.title}</span>
+                          <span className="block text-xs text-gray-400 truncate">{item.text}</span>
+                        </span>
+                        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 text-primary transition-opacity" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Navigation & Actions */}
               {filteredActions.length > 0 && (
                 <div className="mb-4">
@@ -161,7 +304,7 @@ export default function CommandPalette() {
               )}
 
               {/* No Results */}
-              {filteredActions.length === 0 && filteredBlogs.length === 0 && (
+              {filteredActions.length === 0 && filteredBlogs.length === 0 && !smartResults?.length && (
                 <div className="px-4 py-8 text-center text-gray-500">
                   No results found for "{query}"
                 </div>

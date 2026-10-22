@@ -23,6 +23,7 @@ const HeroSchema = new Schema(
     socialInstagram: String,
     socialEmail: String,
     techStack: String,
+    techMarqueeSpeed: { type: Number, default: 40 }, // seconds per full loop of the tech marquee
     stat1Value: String,
     stat1Label: String,
     stat2Value: String,

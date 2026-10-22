@@ -1,24 +1,14 @@
-import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import Project from "@/models/Project";
 import Post from "@/models/Post";
 import About from "@/models/About";
 import Hero from "@/models/Hero";
+import type { Json, McpTool } from "@/lib/mcpProtocol";
 
 /**
  * Admin tools exposed over MCP (see src/app/api/mcp/route.ts).
  * Each tool mirrors an admin-panel action and revalidates public pages on writes.
  */
-
-type Json = Record<string, any>;
-
-interface McpTool {
-  name: string;
-  description: string;
-  inputSchema: Json;
-  annotations?: Json;
-  run: (args: Json) => Promise<unknown>;
-}
 
 const str = (description: string) => ({ type: "string", description });
 
@@ -37,6 +27,31 @@ const PROJECT_FIELDS: Json = {
   featured: { type: "boolean" },
   publishDate: str("ISO date"),
   relatedBlog: str("Slug of a related blog post"),
+  problem: str("Case study: the problem solved (markdown)"),
+  approach: str("Case study: architecture and key decisions (markdown)"),
+  results: str("Case study: measured outcome (markdown)"),
+  metrics: {
+    type: "array",
+    description: 'Headline impact metrics, e.g. {label:"Latency", value:"120 ms", hint:"p95"}',
+    items: { type: "object", properties: { label: { type: "string" }, value: { type: "string" }, hint: { type: "string" } }, required: ["label", "value"] },
+  },
+  evaluation: {
+    type: "object",
+    description: "ML/LLM evaluation showcase",
+    properties: {
+      dataset: { type: "string" },
+      method: { type: "string" },
+      results: { type: "string", description: "Findings (markdown)" },
+      benchmarks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { name: { type: "string" }, score: { type: "number" }, baseline: { type: "number" } },
+          required: ["name", "score"],
+        },
+      },
+    },
+  },
 };
 
 const POST_FIELDS: Json = {
@@ -195,10 +210,3 @@ export const MCP_TOOLS: McpTool[] = [
     run: (args) => write(() => Hero.findOneAndUpdate({}, args.fields || {}, { new: true, upsert: true }).lean()),
   },
 ];
-
-export async function callTool(name: string, args: Json) {
-  const tool = MCP_TOOLS.find((t) => t.name === name);
-  if (!tool) throw new Error(`Unknown tool: ${name}`);
-  await connectToDB();
-  return tool.run(args || {});
-}

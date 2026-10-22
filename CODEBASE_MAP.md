@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 09:50 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-22 10.11 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -212,6 +212,24 @@ my-portfolio/
 * **Auth:** `Authorization: Bearer <ADMIN_SECRET>`, compared with `timingSafeEqual`; refused when `ADMIN_SECRET` is unset. `/api/mcp` is in `publicApiRoutes` only because agents can't hold the `admin_token` cookie — the route enforces auth itself.
 * **Tools:** `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`, `list_posts`, `get_post`, `create_post`, `update_post`, `delete_post`, `get_about`, `update_about`, `get_hero`, `update_hero`. Ids accept a Mongo `_id` or slug; images are URLs / Google Drive links (Drive links converted to thumbnail URLs). Every write calls `revalidatePublicPages()`.
 * **Connect (Claude Code):** `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <ADMIN_SECRET>"`.
+* **Shared protocol:** [`src/lib/mcpProtocol.ts`](file:///e:/my-portfolio/src/lib/mcpProtocol.ts) holds JSON-RPC handling for both MCP routes.
+* **Public read-only MCP (2026-10-22):** `POST /api/mcp/public` (no auth, 120 req/IP/hour via [`rateLimit.ts`](file:///e:/my-portfolio/src/lib/rateLimit.ts)) — `get_profile`, `list_projects`, `get_project`, `list_posts`, `get_post`, `search_portfolio`, `match_job_description`. Published content only. Recruiters' AI agents connect with `claude mcp add --transport http nilay-portfolio https://nilay-naha-portfolio.vercel.app/api/mcp/public`.
+
+### 14. Recruiter Tools — added 2026-10-22
+* **Job match:** `/match` page + `POST /api/match` (public, 30 req/IP/hour) → [`src/lib/jobMatch.ts`](file:///e:/my-portfolio/src/lib/jobMatch.ts): ~75 canonical skills with aliases (JS→JavaScript, Postgres→PostgreSQL, k8s→Kubernetes). Score = 75% skill coverage + 25% BM25 relevance; returns matched skills with evidence, honestly-listed missing skills, and relevant projects/experience.
+* **Tailored résumé:** `/resume/tailored` (noindex) builds a one-page A4 résumé from CMS data prioritising the JD's skills; "Download PDF" = `window.print()` with print CSS. JD comes from `?jd=` or sessionStorage; `POST /api/match {jd, resume: true}` returns the data.
+* **Smart search:** Command Palette toggle "Smart search (AI, on-device)" lazy-loads Transformers.js 3.7.6 from jsDelivr + `Xenova/all-MiniLM-L6-v2` ([`semanticSearch.ts`](file:///e:/my-portfolio/src/lib/semanticSearch.ts)); cosine ranking, keyword fallback, zero initial-bundle cost.
+* **How I use AI:** `/ai` renders About `aiWorkflow` markdown (Admin → About); empty → honest list of selected AI tools.
+
+### 15. Chatbot Voice & Languages — added 2026-10-22
+* [`src/components/chatbot/language.ts`](file:///e:/my-portfolio/src/components/chatbot/language.ts): mic button (Web Speech recognition), read-aloud toggle (`speechSynthesis`, `chatbot_speak_enabled`), language picker (`chatbot_lang`: en, hi, bn, ta, te, mr, es, fr, de). Script-based detection for Indic languages; translation via Chrome's on-device Translator API (138+), English fallback with a note elsewhere. Nothing sent to third parties.
+
+### 16. Project Case Studies & Evals — added 2026-10-22
+* `Project` gains `problem`, `approach`, `results` (markdown), `metrics[{label,value,hint}]`, `evaluation{dataset,method,results,benchmarks[{name,score,baseline}]}`. Edited in [`CaseStudyEditor.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/projects/CaseStudyEditor.tsx); rendered by [`ProjectCaseStudy.tsx`](file:///e:/my-portfolio/src/components/projects/ProjectCaseStudy.tsx) (hidden when empty). Also settable via MCP `PROJECT_FIELDS`.
+
+### 17. Hero Tech Marquee & Education Media — added 2026-10-22
+* Hero tech chips auto-scroll continuously; list (chip editor, reorder) and `techMarqueeSpeed` (seconds per loop, default 40) edited in Admin → Home. Inline animation so Windows reduced-motion halves speed instead of freezing. Hero no longer clips at md widths/short heights (removed `h-full md:overflow-hidden`; avatar `clamp(132px, min(26vw, 42dvh), 380px)`).
+* Education entries gain `institutionLinkedin`, `location`, `image` (large 16:9 banner on About). Skill catalog ([`skillData.ts`](file:///e:/my-portfolio/src/lib/skillData.ts)) expanded 62 → 172 incl. mobile, automation/scraping, Bitbucket, cloud/DevOps, testing.
 
 ## Exhaustive File-by-File Dictionary
 
@@ -452,6 +470,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-22 10.11 | Public read-only MCP, job match, tailored résumé, on-device smart search, /ai page, chatbot voice + 9 languages, realistic 3D avatar, project case studies & evals, education photo/location/LinkedIn, 172-skill catalog, auto-scrolling hero tech marquee with admin speed, hero responsive fix. |
 | 2026-10-22 09:50 | Admin MCP server (`/api/mcp`); AI-crawler rules in robots.txt; Instagram social link; 3D-style chatbot avatar; chatbot auto-navigation and non-repeating follow-ups; home slider keeps section/scroll on reload; ghost cursor moved behind content (z-index -1); urgent-contact copy (email/LinkedIn) replaces the 24 h reply promise; admin pages network-only in the service worker; client cache 60 s expiry. |
 | 2026-10-22 03:27 | Social preview image fix, Person JSON-LD, `/llms.txt`. |
 | 2026-10-22 03:21 | Human avatar assistant with emotions, sounds and Claude-style chat UI. |

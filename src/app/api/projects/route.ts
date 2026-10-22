@@ -14,6 +14,53 @@ const formatGDriveUrl = (url: string | null) => {
   return match ? `https://drive.google.com/thumbnail?id=${match[0]}&sz=w1000` : url;
 };
 
+// Case-study / evaluation fields. Text fields arrive as strings; metrics and
+// evaluation arrive as JSON strings. Only keys present in the form are returned,
+// so a PUT that omits them leaves stored values untouched.
+const CASE_STUDY_TEXT = ["problem", "approach", "results"] as const;
+
+const parseJson = (raw: FormDataEntryValue | null) => {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+};
+
+function caseStudyFields(formData: FormData) {
+  const out: Record<string, unknown> = {};
+  for (const key of CASE_STUDY_TEXT) {
+    if (formData.has(key)) out[key] = (formData.get(key) as string) || "";
+  }
+  if (formData.has("metrics")) {
+    const metrics = parseJson(formData.get("metrics"));
+    out.metrics = Array.isArray(metrics)
+      ? metrics
+          .filter((m) => m && (m.label || m.value))
+          .map((m) => ({ label: String(m.label || ""), value: String(m.value || ""), hint: String(m.hint || "") }))
+      : [];
+  }
+  if (formData.has("evaluation")) {
+    const e = parseJson(formData.get("evaluation")) || {};
+    out.evaluation = {
+      dataset: String(e.dataset || ""),
+      method: String(e.method || ""),
+      results: String(e.results || ""),
+      benchmarks: Array.isArray(e.benchmarks)
+        ? e.benchmarks
+            .filter((b: any) => b && b.name && Number.isFinite(Number(b.score)))
+            .map((b: any) => ({
+              name: String(b.name),
+              score: Number(b.score),
+              ...(b.baseline !== "" && b.baseline != null && Number.isFinite(Number(b.baseline)) && { baseline: Number(b.baseline) }),
+            }))
+        : [],
+    };
+  }
+  return out;
+}
+
 export async function GET(req: Request  ) {
   try {
     await connectToDB();
@@ -73,7 +120,8 @@ export async function POST(req: Request) {
       gDriveImage: formatGDriveUrl(gDriveImage),
       relatedBlog: relatedBlog || "", // ✅ Save
       publishDate: publishDate ? new Date(publishDate) : new Date(),
-      tags: tagsString ? tagsString.split(",").map(t => t.trim()) : []
+      tags: tagsString ? tagsString.split(",").map(t => t.trim()) : [],
+      ...caseStudyFields(formData),
     });
 
     revalidatePublicPages();
@@ -118,6 +166,8 @@ export async function PUT(req: Request) {
     
     const tagsString = formData.get("tags") as string;
     if (tagsString) project.tags = tagsString.split(",").map((t: string) => t.trim());
+
+    project.set(caseStudyFields(formData));
 
     const imageFile = formData.get("image") as File;
     if (imageFile && typeof imageFile !== "string" && imageFile.size > 0) {

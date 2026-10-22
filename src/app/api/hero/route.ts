@@ -38,7 +38,7 @@ export async function PUT(req: Request) {
       "badgeText", "showAvailability", 
       "line1Bold", "line1Accent", "line2Bold", "line2Accent",
       "socialGithub", "socialLinkedin", "socialTwitter", "socialInstagram", "socialEmail",
-      "techStack", 
+      "techStack", "techMarqueeSpeed",
       "stat1Value", "stat1Label", 
       "stat2Value", "stat2Label", 
       "stat3Value", "stat3Label",
@@ -49,6 +49,9 @@ export async function PUT(req: Request) {
       if (formData.has(field)) {
         if (field === "showAvailability") {
           updateData[field] = formData.get(field) === "true";
+        } else if (field === "techMarqueeSpeed") {
+          const secs = Number(formData.get(field));
+          if (Number.isFinite(secs)) updateData[field] = Math.min(240, Math.max(5, secs));
         } else {
           updateData[field] = formData.get(field);
         }

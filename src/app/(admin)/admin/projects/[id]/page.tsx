@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import Cropper from "react-easy-crop";
 import Toast from "@/components/ui/Toast";
+import CaseStudyEditor, { EMPTY_CASE_STUDY, appendCaseStudy, caseStudyFrom, type CaseStudy } from "../CaseStudyEditor";
 import { motion, AnimatePresence } from "framer-motion";
 
 const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<File> => {
@@ -56,6 +57,7 @@ export default function ProjectEditorPage() {
     relatedBlog: ""
   });
 
+  const [caseStudy, setCaseStudy] = useState<CaseStudy>(EMPTY_CASE_STUDY);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
@@ -95,6 +97,7 @@ export default function ProjectEditorPage() {
             featured: p.featured || false, frameStyle: p.frameStyle || "Browser",
             relatedBlog: p.relatedBlog || ""
           });
+          setCaseStudy(caseStudyFrom(p));
           setTags(p.tags || (typeof p.techStack === 'string' ? p.techStack.split(',') : p.techStack) || []);
           if (p.image) setPreviewUrl(p.image);
         }
@@ -240,6 +243,7 @@ export default function ProjectEditorPage() {
         if (key !== "image") data.append(key, value as string);
       });
       data.append("tags", tags.join(","));
+      appendCaseStudy(data, caseStudy);
       
       if (newImage) {
         data.append("image", newImage);
@@ -944,6 +948,8 @@ export default function ProjectEditorPage() {
             )}
           </div>
         </div>
+
+        <CaseStudyEditor value={caseStudy} onChange={setCaseStudy} />
       </form>
     </div>
   );

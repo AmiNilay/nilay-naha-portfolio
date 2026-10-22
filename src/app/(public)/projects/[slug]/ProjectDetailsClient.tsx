@@ -14,6 +14,11 @@ import Toast from "@/components/ui/Toast";
 import ReadingProgress from "@/components/blog/ReadingProgress";
 import TableOfContents from "@/components/blog/TableOfContents";
 import { motion, AnimatePresence } from "framer-motion";
+import ProjectCaseStudy, {
+  type CaseStudyHTML,
+  type ProjectEvaluation,
+  type ProjectMetric,
+} from "@/components/projects/ProjectCaseStudy";
 
 // Apple WWDC critically damped spring
 const appleSpring = {
@@ -53,6 +58,8 @@ interface Project {
   createdAt?: string;
   relatedBlog?: string;
   tags?: string[];
+  metrics?: ProjectMetric[];
+  evaluation?: ProjectEvaluation;
   techStack?: string[] | string;
 }
 
@@ -72,6 +79,7 @@ interface ProjectDetailsClientProps {
     prevProject: Project | null;
     nextProject: Project | null;
     processedHTML: string;
+    caseStudyHTML?: CaseStudyHTML;
     linkedBlog: LinkedBlog | null;
   } | null;
 }
@@ -660,6 +668,13 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
                 prose-th:p-3 prose-th:bg-zinc-100/80 dark:prose-th:bg-zinc-900/80 prose-th:text-zinc-900 dark:prose-th:text-zinc-100 prose-th:border prose-th:border-zinc-200 dark:prose-th:border-zinc-800
                 prose-td:p-3 prose-td:text-zinc-700 dark:prose-td:text-zinc-300 prose-td:border prose-td:border-zinc-200 dark:prose-td:border-zinc-800"
               dangerouslySetInnerHTML={{ __html: processedHTML }}
+            />
+
+            {/* Markdown is rendered server-side; only trust it for the server-supplied project */}
+            <ProjectCaseStudy
+              html={initialData?.project?.slug === project.slug ? initialData?.caseStudyHTML : undefined}
+              metrics={project.metrics}
+              evaluation={project.evaluation}
             />
 
             {/* PREVIOUS & NEXT PROJECT SWITCHER */}

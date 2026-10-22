@@ -4,11 +4,28 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { X, Send, RotateCcw, Volume2, VolumeX, Download, ExternalLink, ArrowUpRight } from "lucide-react";
+import { X, Send, RotateCcw, Volume2, VolumeX, Download, ExternalLink, ArrowUpRight, Mic, Square, AudioLines } from "lucide-react";
 import HumanAvatar, { type AvatarEmotion } from "@/components/chatbot/HumanAvatar";
 import MessageContent from "@/components/chatbot/MessageContent";
 import { playSound, isSoundEnabled, setSoundEnabled, type SoundName } from "@/components/chatbot/sounds";
 import { fetchWithSessionCache } from "@/lib/clientCache";
+import {
+  LANGUAGES,
+  type ChatLang,
+  detectLanguage,
+  translate,
+  speak,
+  stopSpeaking,
+  getRecognition,
+  speechLocale,
+  loadSpeakPref,
+  saveSpeakPref,
+  loadLangPref,
+  saveLangPref,
+} from "@/components/chatbot/language";
+
+const NO_TRANSLATION_NOTE =
+  "Replying in English — translation runs on-device and needs a recent Chrome or Edge browser.";
 
 interface LinkItem {
   label: string;
@@ -120,6 +137,11 @@ export default function Chatbot() {
   const [teaserDismissed, setTeaserDismissed] = useState(false);
   const [resumeUrl, setResumeUrl] = useState("");
   const [rules, setRules] = useState<Rule[]>([]);
+  const [lang, setLang] = useState<ChatLang>("en");
+  const [speakOn, setSpeakOn] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const contextRef = useRef<string | undefined>(undefined);
   const askedRef = useRef<Set<string>>(new Set());
@@ -147,6 +169,9 @@ export default function Chatbot() {
 
   useEffect(() => {
     setSoundOn(isSoundEnabled());
+    setSpeakOn(loadSpeakPref());
+    setLang(loadLangPref());
+    setVoiceSupported(Boolean((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition));
     fetchWithSessionCache<any>("hero_data", "/api/hero")
       .then((h) => setResumeUrl(h?.resumeUrl || (h?.gDriveResume ? toDriveView(h.gDriveResume) : "")))
       .catch(() => {});
@@ -192,6 +217,9 @@ export default function Chatbot() {
 
   const close = () => {
     setIsOpen(false);
+    stopSpeaking();
+    recognitionRef.current?.abort?.();
+    setListening(false);
     playSound("close");
   };
 
@@ -222,12 +250,32 @@ export default function Chatbot() {
     feel("thinking", 0);
     const minDelay = new Promise((r) => setTimeout(r, 450));
 
-    if (RESUME_PATTERN.test(text)) {
+    // Non-English questions are translated on-device to English, and answers back.
+    const replyLang: ChatLang = (await detectLanguage(text)) || lang;
+    let ask = text;
+    let note = "";
+    if (replyLang !== "en") {
+      const english = await translate(text, replyLang, "en");
+      if (english) ask = english;
+      else note = NO_TRANSLATION_NOTE;
+    }
+    const localize = async (content: string) => {
+      if (replyLang === "en" || note) return content;
+      const out = await translate(content, "en", replyLang);
+      if (out) return out;
+      note = NO_TRANSLATION_NOTE;
+      return content;
+    };
+    const say = (content: string) => speakOn && speak(content, note ? "en" : replyLang);
+
+    if (RESUME_PATTERN.test(text) || RESUME_PATTERN.test(ask)) {
       await minDelay;
       setWaiting(false);
       if (resumeUrl) {
+        const content = await localize("Here's Nilay's latest résumé — tap below to view or download it.");
+        say(content);
         addBot({
-          content: "Here's Nilay's latest résumé — tap below to view or download it.",
+          content,
           resumeUrl,
           quickReplies: ["How can I contact him?", "What projects has he built?"],
         });
@@ -243,10 +291,12 @@ export default function Chatbot() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, context: contextRef.current }),
+        body: JSON.stringify({ question: ask, context: contextRef.current }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
+      const localized = await localize(data.reply);
+      const reply = note ? `${localized}\n\n_${note}_` : localized;
       await minDelay;
       contextRef.current = data.context || contextRef.current;
       setWaiting(false);
@@ -256,10 +306,11 @@ export default function Chatbot() {
       );
       const goTo: string | undefined = data.navigate && data.navigate !== pathname ? data.navigate : undefined;
       addBot({
-        content: goTo ? `${data.reply}\n\n_Opening it for you…_` : data.reply,
+        content: goTo ? `${reply}\n\n_Opening it for you…_` : reply,
         links: data.links,
         quickReplies: suggestions.slice(0, 3),
       });
+      say(localized);
       if (goTo) setTimeout(() => router.push(goTo), 1200);
       // "Not on the portfolio" answers read as apologetic, not puzzled.
       const mood: AvatarEmotion = data.emotion === "confused" ? "sad" : data.emotion || "happy";
@@ -293,6 +344,56 @@ export default function Chatbot() {
     setMessages([WELCOME]);
     contextRef.current = undefined;
     feel("happy", 1500, "receive");
+  };
+
+  const toggleSpeak = () => {
+    const next = !speakOn;
+    setSpeakOn(next);
+    saveSpeakPref(next);
+    if (!next) stopSpeaking();
+  };
+
+  const changeLang = (next: ChatLang) => {
+    setLang(next);
+    saveLangPref(next);
+  };
+
+  // Speech-to-text in the chosen language; the final transcript is sent as a question.
+  const toggleListening = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const rec = getRecognition();
+    if (!rec) return;
+    stopSpeaking();
+    rec.lang = speechLocale(lang);
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    let finalText = "";
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t;
+        else interim += t;
+      }
+      setInput((finalText + interim).trim());
+    };
+    rec.onend = () => {
+      setListening(false);
+      setEmotion((e) => (e === "surprised" ? "neutral" : e));
+      if (finalText.trim()) send(finalText);
+    };
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    setListening(true);
+    feel("surprised", 0);
+    try {
+      rec.start();
+    } catch {
+      setListening(false);
+    }
   };
 
   const toggleSound = () => {
@@ -379,9 +480,31 @@ export default function Chatbot() {
                 <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">Nilay&apos;s Assistant</p>
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${waiting ? "bg-amber-400 animate-pulse" : "bg-emerald-500"}`} />
-                  {waiting ? "Thinking…" : "Answers from this portfolio"}
+                  {listening ? "Listening…" : waiting ? "Thinking…" : "Answers from this portfolio"}
                 </p>
               </div>
+              <select
+                value={lang}
+                onChange={(e) => changeLang(e.target.value as ChatLang)}
+                aria-label="Answer language"
+                title="Answer language"
+                className="max-w-[84px] px-1.5 py-1 rounded-lg text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border-none focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={toggleSpeak}
+                aria-label={speakOn ? "Stop reading answers aloud" : "Read answers aloud"}
+                aria-pressed={speakOn}
+                title={speakOn ? "Stop reading answers aloud" : "Read answers aloud"}
+                className={`p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 ${speakOn ? "text-cyan-600 dark:text-cyan-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"}`}
+              >
+                <AudioLines className="w-4 h-4" />
+              </button>
               <button
                 onClick={toggleSound}
                 aria-label={soundOn ? "Mute sounds" : "Turn on sounds"}
@@ -513,6 +636,19 @@ export default function Chatbot() {
                   aria-label="Your question"
                   className="flex-1 bg-transparent text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none"
                 />
+                {voiceSupported && (
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    disabled={waiting}
+                    aria-label={listening ? "Stop voice input" : "Ask with your voice"}
+                    aria-pressed={listening}
+                    title={listening ? "Stop voice input" : "Ask with your voice"}
+                    className={`p-2.5 rounded-xl transition-colors disabled:opacity-40 ${listening ? "bg-rose-500 text-white animate-pulse" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800"}`}
+                  >
+                    {listening ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={!input.trim() || waiting}

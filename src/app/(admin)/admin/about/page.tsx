@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { Upload } from "lucide-react";
 import Toast from "@/components/ui/Toast";
-import CompanyLogo from "@/components/ui/CompanyLogo";
+import CompanyLogo, { resolveLogoUrl } from "@/components/ui/CompanyLogo";
 import { SKILL_CATEGORIES, readableIconColors } from "@/lib/skillData";
 import { motion } from "framer-motion";
 
@@ -35,6 +35,9 @@ interface Education {
   cgpa: string;
   percentage: string;
   relevantCoursework: string[];
+  institutionLinkedin?: string;
+  location?: string;
+  image?: string;
 }
 
 interface Experience {
@@ -64,6 +67,7 @@ export default function AdminAbout() {
   const [education, setEducation] = useState<Education[]>([]);
   const [experience, setExperience] = useState<Experience[]>([]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [aiWorkflow, setAiWorkflow] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -97,6 +101,7 @@ export default function AdminAbout() {
           setEducation(data.education || []);
           setExperience(data.experience || []);
           setCertifications(data.certifications || []);
+          setAiWorkflow(data.aiWorkflow || "");
         }
         setLoading(false);
       })
@@ -143,6 +148,9 @@ export default function AdminAbout() {
         cgpa: "",
         percentage: "",
         relevantCoursework: [],
+        institutionLinkedin: "",
+        location: "",
+        image: "",
       },
     ]);
   const updateEducation = (index: number, field: keyof Education, value: string) => {
@@ -164,6 +172,23 @@ export default function AdminAbout() {
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     [newEdu[index], newEdu[swapIndex]] = [newEdu[swapIndex], newEdu[index]];
     setEducation(newEdu);
+  };
+  const [uploadingCollege, setUploadingCollege] = useState<number | null>(null);
+  const uploadCollegeImage = async (index: number, file: File) => {
+    setUploadingCollege(index);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      updateEducation(index, "image", data.url);
+      setToast({ message: "College photo uploaded. Click Save to publish.", type: "success" });
+    } catch (err: any) {
+      setToast({ message: err.message || "College photo upload failed", type: "error" });
+    } finally {
+      setUploadingCollege(null);
+    }
   };
   const removeCoursework = (eduIndex: number, courseIndex: number) => {
     const newEdu = [...education];
@@ -227,6 +252,7 @@ export default function AdminAbout() {
           availability,
           gDriveProfilePic,
           skills: selectedSkills,
+          aiWorkflow,
           education,
           experience,
           certifications,
@@ -466,6 +492,66 @@ export default function AdminAbout() {
                     />
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">
+                        College Location
+                      </label>
+                      <input
+                        value={edu.location || ""}
+                        onChange={(e) => updateEducation(index, "location", e.target.value)}
+                        className="w-full p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs text-zinc-900 dark:text-white"
+                        placeholder="e.g. Siliguri, West Bengal"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">
+                        College LinkedIn Page
+                      </label>
+                      <input
+                        value={edu.institutionLinkedin || ""}
+                        onChange={(e) => updateEducation(index, "institutionLinkedin", e.target.value)}
+                        className="w-full p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs text-zinc-900 dark:text-white"
+                        placeholder="https://www.linkedin.com/school/..."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">
+                      College Photo (shown large on the About page)
+                    </label>
+                    {edu.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={resolveLogoUrl(edu.image)}
+                        alt={edu.institution || "College"}
+                        className="w-full aspect-video object-cover rounded-xl border border-zinc-200 dark:border-zinc-700 mb-2"
+                      />
+                    )}
+                    <input
+                      value={edu.image || ""}
+                      onChange={(e) => updateEducation(index, "image", e.target.value)}
+                      className="w-full p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs text-zinc-900 dark:text-white mb-1.5"
+                      placeholder="Image URL or Google Drive link"
+                    />
+                    <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-400 cursor-pointer">
+                      {uploadingCollege === index ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      {uploadingCollege === index ? "Uploading…" : "Upload photo"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        disabled={uploadingCollege !== null}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadCollegeImage(index, file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">
@@ -520,6 +606,23 @@ export default function AdminAbout() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* How I Use AI Card (public page: /ai) */}
+          <div className="p-6 sm:p-8 rounded-[32px] bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_16px_40px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] space-y-3">
+            <h3 className="font-bold text-base text-zinc-900 dark:text-white flex items-center gap-2 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+              <Sparkles className="w-4 h-4 text-cyan-500" /> How I Use AI
+            </h3>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Markdown shown on the public <span className="font-mono">/ai</span> page: your workflow with AI tools, agents, prompting and evals. Leave empty to show an automatic summary of your selected AI tools.
+            </p>
+            <textarea
+              value={aiWorkflow}
+              onChange={(e) => setAiWorkflow(e.target.value)}
+              rows={10}
+              className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-mono text-zinc-900 dark:text-white"
+              placeholder={"## My AI workflow\n\n- I plan features with Claude, then implement with Claude Code...\n\n## How I verify AI output\n\n..."}
+            />
           </div>
         </div>
 

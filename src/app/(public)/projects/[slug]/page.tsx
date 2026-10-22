@@ -41,6 +41,15 @@ const getProjectWithContext = cache(async (slug: string) => {
     const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
     const processedHTML = isRawHtml ? rawContent : await processContent(rawContent);
 
+    // Case-study / evaluation markdown, rendered server-side like the description.
+    const md = async (s?: string) => (s && s.trim() ? processContent(s) : "");
+    const caseStudyHTML = {
+      problem: await md(currentProject.problem),
+      approach: await md(currentProject.approach),
+      results: await md(currentProject.results),
+      evaluation: await md(currentProject.evaluation?.results),
+    };
+
     // Fetch linked blog if exists
     let linkedBlog = null;
     if (currentProject.relatedBlog) {
@@ -55,6 +64,7 @@ const getProjectWithContext = cache(async (slug: string) => {
       prevProject,
       nextProject,
       processedHTML,
+      caseStudyHTML,
       linkedBlog,
     };
   } catch (error) {

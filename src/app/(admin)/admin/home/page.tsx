@@ -23,6 +23,9 @@ import {
   Layers,
   Globe,
   Radio,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
 } from "lucide-react";
 import Image from "next/image";
 import Toast from "@/components/ui/Toast";
@@ -89,6 +92,7 @@ export default function AdminHome() {
     gDriveProfilePic: "",
     gDriveResume: "",
     techStack: "Python, FastAPI, Docker, PostgreSQL, MongoDB",
+    techMarqueeSpeed: 40,
     stat1Value: "5+",
     stat1Label: "Projects Built",
     stat2Value: "100%",
@@ -142,6 +146,7 @@ export default function AdminHome() {
             line2Bold: data.line2Bold || prev.line2Bold,
             line2Accent: data.line2Accent || prev.line2Accent,
             techStack: data.techStack || prev.techStack,
+            techMarqueeSpeed: Number(data.techMarqueeSpeed) || prev.techMarqueeSpeed,
             stat1Value: data.stat1Value || prev.stat1Value,
             stat1Label: data.stat1Label || prev.stat1Label,
             stat2Value: data.stat2Value || prev.stat2Value,
@@ -801,14 +806,48 @@ export default function AdminHome() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
-                Tech Stack Marquee (Comma separated)
+                Tech Stack Marquee
               </label>
-              <input
+              <TechStackEditor
                 value={formData.techStack}
-                onChange={(e) => setFormData({ ...formData, techStack: e.target.value })}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 font-medium"
-                placeholder="e.g. Python, FastAPI, Docker, PostgreSQL, MongoDB"
+                onChange={(techStack) => setFormData({ ...formData, techStack })}
               />
+              <div className="flex items-center gap-3 pt-2">
+                <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 shrink-0">Scroll speed</span>
+                <input
+                  type="range"
+                  min={10}
+                  max={120}
+                  step={5}
+                  // Slider runs fast → slow left to right is unintuitive; invert so right = faster.
+                  value={130 - formData.techMarqueeSpeed}
+                  onChange={(e) => setFormData({ ...formData, techMarqueeSpeed: 130 - Number(e.target.value) })}
+                  className="flex-1 accent-cyan-500"
+                  aria-label="Marquee speed"
+                />
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 w-24 text-right shrink-0">
+                  {formData.techMarqueeSpeed}s per loop
+                </span>
+              </div>
+              <div className="relative overflow-hidden rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-800/40 py-2">
+                <div
+                  className="flex w-max"
+                  style={{ animation: `hero-scroll ${formData.techMarqueeSpeed}s linear infinite` }}
+                >
+                  {[0, 1].map((copy) =>
+                    formData.techStack
+                      .split(",")
+                      .map((t) => t.trim())
+                      .filter(Boolean)
+                      .map((t, i) => (
+                        <span key={`${copy}-${i}`} className="mx-5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">
+                          {t}
+                        </span>
+                      ))
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400">Live preview. Lower seconds = faster. Hover pauses it on the site.</p>
             </div>
 
             <div className="space-y-2 pt-2">
@@ -879,6 +918,66 @@ export default function AdminHome() {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Chip editor for the comma-separated hero tech list: add, remove and reorder items. */
+function TechStackEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [draft, setDraft] = useState("");
+  const items = value.split(",").map((t) => t.trim()).filter(Boolean);
+  const commit = (next: string[]) => onChange(next.join(", "));
+  const add = () => {
+    const extra = draft.split(",").map((t) => t.trim()).filter((t) => t && !items.includes(t));
+    if (extra.length) commit([...items, ...extra]);
+    setDraft("");
+  };
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    const next = [...items];
+    [next[i], next[j]] = [next[j], next[i]];
+    commit(next);
+  };
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {items.map((t, i) => (
+          <span
+            key={t}
+            className="inline-flex items-center gap-0.5 pl-1 pr-1.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-semibold text-zinc-800 dark:text-zinc-200"
+          >
+            <button type="button" onClick={() => move(i, -1)} aria-label={`Move ${t} left`} className="p-0.5 text-zinc-400 hover:text-cyan-500 disabled:opacity-30" disabled={i === 0}>
+              <ChevronLeft className="w-3 h-3" />
+            </button>
+            {t}
+            <button type="button" onClick={() => move(i, 1)} aria-label={`Move ${t} right`} className="p-0.5 text-zinc-400 hover:text-cyan-500 disabled:opacity-30" disabled={i === items.length - 1}>
+              <ChevronRight className="w-3 h-3" />
+            </button>
+            <button type="button" onClick={() => commit(items.filter((_, k) => k !== i))} aria-label={`Remove ${t}`} className="p-0.5 text-zinc-400 hover:text-rose-500">
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+        {!items.length && <span className="text-[11px] italic text-zinc-400">No items yet.</span>}
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          className="flex-1 p-2.5 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl text-xs text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+          placeholder="Add technology (comma-separate several), press Enter"
+        />
+        <button type="button" onClick={add} className="px-3 rounded-xl bg-cyan-500 text-white text-xs font-bold inline-flex items-center gap-1">
+          <Plus className="w-3.5 h-3.5" /> Add
+        </button>
       </div>
     </div>
   );

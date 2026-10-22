@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 10.11 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -216,21 +216,34 @@ Features that would make a software engineer's portfolio stand out in the AI era
 | ✅ | AI assistant answering from live content | Recruiters ask instead of browse | — | Free |
 | ✅ | MCP server for the CMS | Proves AI-native engineering | — | Free |
 | ✅ | `llms.txt` + JSON-LD + AI crawler rules | Be the source AI answer engines quote | — | Free |
-| 1 | **Public read-only MCP server** (`get_profile`, `search_projects`) | Recruiters' own AI agents can query you directly ("compare these 5 candidates") | Small | Free |
-| 2 | **Job-description matcher**: paste a JD and get a match score with evidence from your projects | Saves a recruiter time and shows fit instantly | Medium | Free (BM25 engine) |
-| 3 | **Tailored résumé generator**: produces a PDF that highlights the projects relevant to a JD | Personalisation at scale | Medium | Free |
-| 4 | **Voice mode** for the assistant (Web Speech API speech-to-text and text-to-speech) | Hands-free, accessible, memorable | Small | Free (browser) |
-| 5 | **Multilingual answers** (Hindi, Bengali, …) | Wider reach | Medium | Free |
+| ✅ 1 | **Public read-only MCP server** (`/api/mcp/public`) (`get_profile`, `search_projects`) | Recruiters' own AI agents can query you directly ("compare these 5 candidates") | Small | Free |
+| ✅ 2 | **Job-description matcher** (`/match`): paste a JD and get a match score with evidence from your projects | Saves a recruiter time and shows fit instantly | Medium | Free (BM25 engine) |
+| ✅ 3 | **Tailored résumé generator** (`/resume/tailored`): produces a PDF that highlights the projects relevant to a JD | Personalisation at scale | Medium | Free |
+| ✅ 4 | **Voice mode** for the assistant (Web Speech API speech-to-text and text-to-speech) | Hands-free, accessible, memorable | Small | Free (browser) |
+| ✅ 5 | **Multilingual answers** (9 languages, on-device) (Hindi, Bengali, …) | Wider reach | Medium | Free |
 | 6 | **Live GitHub activity + "currently building"** feed | Proves you ship continuously | Small | Free (GitHub API) |
-| 7 | **AI project case studies with metrics**: problem → approach → results (latency, accuracy, users) | Recruiters want impact, not tech lists | Content | Free |
+| ✅ 7 | **AI project case studies with metrics**: problem → approach → results (latency, accuracy, users) | Recruiters want impact, not tech lists | Content | Free |
 | 8 | **Interactive project demos / sandboxes** embedded on project pages | Try-before-you-hire | Medium | Free tiers |
-| 9 | **"How I use AI" page**: your workflow with Claude Code, MCP, agents, prompt engineering and evals | The 2026 hiring question is how you work *with* AI | Content | Free |
-| 10 | **AI evals showcase**: how you test ML/LLM features (datasets, accuracy, regression checks) | Signals senior-level AI engineering | Medium | Free |
-| 11 | **Semantic search** with on-device embeddings (e.g. Transformers.js) | Smarter search with no API bill | Medium | Free |
+| ✅ 9 | **"How I use AI" page** (`/ai`): your workflow with Claude Code, MCP, agents, prompt engineering and evals | The 2026 hiring question is how you work *with* AI | Content | Free |
+| ✅ 10 | **AI evals showcase**: how you test ML/LLM features (datasets, accuracy, regression checks) | Signals senior-level AI engineering | Medium | Free |
+| ✅ 11 | **Semantic search** (Ctrl+K → Smart search) with on-device embeddings (e.g. Transformers.js) | Smarter search with no API bill | Medium | Free |
 | 12 | **Book-a-call / availability calendar** (Cal.com embed) | Shortest path from interest to interview | Small | Free tier |
 | 13 | **Chat transcript insights** in the admin panel: top questions visitors ask | Tells you what recruiters care about, so you can improve content | Small | Free |
 | 14 | **Accessibility & Core Web Vitals badge** (Lighthouse CI in GitHub Actions) | Shows engineering rigor | Small | Free |
 | 15 | **Security hardening**: rate limits on all admin routes, audit log of MCP / admin actions, optional 2FA | AI agents with write access need guardrails | Medium | Free |
 | 16 | **Open-source the CMS as a template** | Stars and community credibility | Medium | Free |
 
-**Suggested order:** 13 → 1 → 2 → 9 → 7 → 4. The first two reuse code that already exists. Items 9 and 7 are content that speaks directly to 2026 hiring managers.
+**Shipped 2026-10-22:** 1, 2, 3, 4, 5, 7, 9, 10, 11 — see below. **Next suggested:** 13 → 6 → 12 → 15.
+
+### How to use the new recruiter & AI features
+| Feature | How to use |
+| :--- | :--- |
+| Public MCP | Anyone's AI agent: `claude mcp add --transport http nilay-portfolio https://nilay-naha-portfolio.vercel.app/api/mcp/public` then ask *"Is Nilay a fit for this JD?"* |
+| Job match | Visit `/match` (or Ctrl+K → Job Match), paste a JD → score, evidence, gaps. |
+| Tailored résumé | From the match result → *Tailored résumé* → **Download PDF** (browser print, A4). |
+| Voice & languages | Chat header: language picker, speaker toggle; mic button in the input bar. Translation needs Chrome/Edge 138+. |
+| Case studies & evals | Admin → Projects → edit → *Case Study & Impact* and *Evaluation* cards. |
+| How I use AI | Admin → About → *How I Use AI* (markdown) → shown at `/ai`. |
+| Smart search | Ctrl+K → toggle *Smart search* (one-time ~25 MB model download, cached by the browser). |
+| Hero tech marquee | Admin → Home → *Stats Counters & Tech Stack*: chips + speed slider. |
+| College details | Admin → About → *Academic Journey*: photo, location, college LinkedIn. | The first two reuse code that already exists. Items 9 and 7 are content that speaks directly to 2026 hiring managers.

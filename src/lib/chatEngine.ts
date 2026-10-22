@@ -446,7 +446,7 @@ const INTENT_ANSWERS: Partial<Record<IntentName, (kb: Knowledge) => ChatReply | 
     if (!found.length) return null;
     return {
       reply: `On the AI side, ${NAME} works with ${listJoin(found)}. He uses AI-assisted development tools in his day-to-day engineering workflow alongside applied ML for computer vision.`,
-      links: [{ label: "Full stack", url: "/about" }],
+      links: [{ label: "How he uses AI", url: "/ai" }, { label: "Full stack", url: "/about" }],
       quickReplies: ["Show me his AI/ML projects", "What's his full tech stack?"],
       context: "skills",
       emotion: "excited",
@@ -474,7 +474,7 @@ const INTENT_ANSWERS: Partial<Record<IntentName, (kb: Knowledge) => ChatReply | 
     const status = kb.about.availability ? `His current status: **${kb.about.availability.trim().replace(/\.$/, "")}**. ` : "";
     return {
       reply: `${status}${cur ? `He's currently a ${cur.role} at ${cur.company.trim().replace(/\.$/, "")}, and is open to discussing new opportunities. ` : ""}The quickest way to start a conversation is the contact page.`,
-      links: contactLinks(kb).slice(0, 2),
+      links: [...contactLinks(kb).slice(0, 2), { label: "Match him to your job", url: "/match" }],
       quickReplies: ["What roles is he looking for?", "Can I see his resume?"],
       context: "availability",
       emotion: "happy",
@@ -782,3 +782,51 @@ export async function answerQuestion(question: string, context?: string): Promis
 export async function resumeLink() {
   return resumeUrl(await loadKnowledge());
 }
+
+// ── Public search API (recruiter tools: /api/mcp/public, /api/match) ──────────
+// Draft projects and unpublished posts are excluded from everything below.
+const isPublicProject = (p: any) => !/draft/i.test(p.status || "");
+const isPublicPost = (p: any) => p.published === true;
+
+export interface PortfolioHit {
+  kind: string;
+  title: string;
+  url?: string;
+  score: number;
+  snippet: string;
+}
+
+/** Published profile data: hero, about, projects and posts (no drafts). */
+export async function getPublicKnowledge() {
+  const kb = await loadKnowledge();
+  return {
+    hero: kb.hero,
+    about: kb.about,
+    projects: kb.projects.filter(isPublicProject),
+    posts: kb.posts.filter(isPublicPost),
+    testimonials: kb.testimonials,
+  };
+}
+
+/** BM25-ranked search over published portfolio content. */
+export async function searchPortfolio(query: string, limit = 8, kinds?: string[]): Promise<PortfolioHit[]> {
+  const kb = await loadKnowledge();
+  const q = tokenize(query);
+  if (!q.length) return [];
+  const hidden = new Set([
+    ...kb.projects.filter((p) => !isPublicProject(p)).map((p) => `project:${p.slug}`),
+    ...kb.posts.filter((p) => !isPublicPost(p)).map((p) => `post:${p.slug}`),
+  ]);
+  return kb.docs
+    .filter((d) => d.kind !== "rule" && !hidden.has(d.key) && (!kinds || kinds.includes(d.kind)))
+    .map((d) => ({ d, score: bm25(kb, q, d) }))
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ d, score }) => ({
+      kind: d.kind, title: d.title, url: d.url, score: Math.round(score * 100) / 100,
+      snippet: summarize(d.text, 220),
+    }));
+}
+
+export { stripHtml as stripPortfolioHtml, projectTech as portfolioProjectTech };

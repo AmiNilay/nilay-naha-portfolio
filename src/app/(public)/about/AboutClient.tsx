@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
 import Testimonials from "@/components/sections/Testimonials";
-import CompanyLogo from "@/components/ui/CompanyLogo";
+import CompanyLogo, { resolveLogoUrl } from "@/components/ui/CompanyLogo";
 import { Linkedin } from "lucide-react";
 import {
   motion,
@@ -46,6 +46,9 @@ interface EducationEntry {
   relevantCoursework: string[];
   cgpa: string;
   percentage: string;
+  institutionLinkedin?: string;
+  location?: string;
+  image?: string;
 }
 
 interface Experience {
@@ -609,8 +612,20 @@ export default function AboutClient() {
                   whileInView="visible"
                   viewport={{ once: true, amount: 0.15 }}
                   variants={sectionVariant}
-                  className="rounded-3xl p-6 sm:p-8 bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col justify-between"
+                  className="rounded-3xl overflow-hidden bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col"
                 >
+                  {edu.image && (
+                    <div className="relative w-full aspect-video bg-zinc-100 dark:bg-zinc-800">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={resolveLogoUrl(edu.image)}
+                        alt={`${edu.institution || "College"} campus`}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between">
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
@@ -625,11 +640,33 @@ export default function AboutClient() {
                     </div>
 
                     {edu.institution && (
-                      <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mb-5">
-                        <MapPin className="w-3.5 h-3.5 text-cyan-500" />
+                      <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 mb-1.5">
+                        <GraduationCap className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
                         {edu.institution}
                       </p>
                     )}
+                    {(edu.location || edu.institutionLinkedin) && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                        {edu.location && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                            {edu.location}
+                          </span>
+                        )}
+                        {edu.institutionLinkedin && (
+                          <a
+                            href={edu.institutionLinkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[#0A66C2] dark:text-[#5AA9F0] hover:underline"
+                          >
+                            <Linkedin className="w-3.5 h-3.5" />
+                            LinkedIn
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {!edu.location && !edu.institutionLinkedin && edu.institution && <div className="mb-4" />}
 
                     {/* Scores & CGPA */}
                     {(edu.cgpa || edu.percentage) && (
@@ -671,6 +708,7 @@ export default function AboutClient() {
                         </div>
                       </div>
                     )}
+                  </div>
                 </motion.div>
               ))}
             </div>

@@ -25,6 +25,9 @@ const GhostCursor = dynamic(() => import("./GhostCursor").then((m) => m.GhostCur
  * background (screen(x, 1) = 1 for any x), so it can never be made visible
  * in light mode. Light mode uses "multiply" instead.
  *
+ * Rendered at z-index -1: body is not a stacking context, so the canvas
+ * paints above the page background but beneath all text, images and cards.
+ *
  * Deliberately does NOT gate on `prefers-reduced-motion`: this is an
  * explicitly requested background effect, and many Windows setups report
  * reduced-motion simply because "Show animations" is off system-wide, which
@@ -55,7 +58,7 @@ export default function CursorTrail() {
       edgeIntensity={0}
       fadeDelayMs={250}
       fadeDurationMs={1200}
-      zIndex={30}
+      zIndex={-1}
     />
   );
 }

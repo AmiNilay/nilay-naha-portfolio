@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X, Send, RotateCcw, Volume2, VolumeX, Download, ExternalLink, ArrowUpRight } from "lucide-react";
 import HumanAvatar, { type AvatarEmotion } from "@/components/chatbot/HumanAvatar";
@@ -95,8 +95,19 @@ function LinkChip({ link }: { link: LinkItem }) {
   );
 }
 
+// Fallback follow-up questions, used when an answer's own suggestions were already asked.
+const FOLLOW_UP_POOL = [
+  "What projects has he built?",
+  "What's his tech stack?",
+  "Tell me about his experience",
+  "What has he written about?",
+  "What's his education?",
+  "How can I contact him?",
+];
+
 export default function Chatbot() {
   const pathname = usePathname();
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -111,6 +122,7 @@ export default function Chatbot() {
   const [rules, setRules] = useState<Rule[]>([]);
 
   const contextRef = useRef<string | undefined>(undefined);
+  const askedRef = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emotionTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -203,6 +215,7 @@ export default function Chatbot() {
     const text = raw.trim();
     if (!text || waiting) return;
     setMessages((prev) => [...prev, { id: `${Date.now()}-u`, role: "user", content: text }]);
+    askedRef.current.add(text.toLowerCase());
     setInput("");
     setWaiting(true);
     playSound("send");
@@ -237,7 +250,17 @@ export default function Chatbot() {
       await minDelay;
       contextRef.current = data.context || contextRef.current;
       setWaiting(false);
-      addBot({ content: data.reply, links: data.links, quickReplies: data.quickReplies });
+      // Suggest follow-ups the visitor hasn't asked yet, topping up from the general pool.
+      const suggestions = Array.from(new Set<string>([...(data.quickReplies || []), ...FOLLOW_UP_POOL])).filter(
+        (q) => !askedRef.current.has(q.toLowerCase())
+      );
+      const goTo: string | undefined = data.navigate && data.navigate !== pathname ? data.navigate : undefined;
+      addBot({
+        content: goTo ? `${data.reply}\n\n_Opening it for you…_` : data.reply,
+        links: data.links,
+        quickReplies: suggestions.slice(0, 3),
+      });
+      if (goTo) setTimeout(() => router.push(goTo), 1200);
       // "Not on the portfolio" answers read as apologetic, not puzzled.
       const mood: AvatarEmotion = data.emotion === "confused" ? "sad" : data.emotion || "happy";
       feel(mood, 4000, mood === "thinking" ? "receive" : (mood as SoundName));

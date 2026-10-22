@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
+import { invalidateKnowledge } from "@/lib/chatEngine";
 import mongoose from "mongoose";
 
 const ChatbotSchema = new mongoose.Schema({
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
   const repliesArray = quickReplies ? quickReplies.split(",").map((k: string) => k.trim()).filter(Boolean) : [];
   
   const rule = await Chatbot.create({ keywords: keywordArray, answer, quickReplies: repliesArray, links: links || [] });
+  invalidateKnowledge();
   return NextResponse.json({ success: true, rule });
 }
 
@@ -36,6 +38,7 @@ export async function PUT(req: NextRequest) {
   const repliesArray = quickReplies ? quickReplies.split(",").map((k: string) => k.trim()).filter(Boolean) : [];
   
   const rule = await Chatbot.findByIdAndUpdate(id, { keywords: keywordArray, answer, quickReplies: repliesArray, links: links || [] }, { new: true });
+  invalidateKnowledge();
   return NextResponse.json({ success: true, rule });
 }
 
@@ -43,5 +46,6 @@ export async function DELETE(req: NextRequest) {
   await connectToDB();
   const id = req.nextUrl.searchParams.get("id");
   await Chatbot.findByIdAndDelete(id);
+  invalidateKnowledge();
   return NextResponse.json({ success: true });
 }

@@ -6,6 +6,12 @@ const withPWA = require('next-pwa')({
   skipWaiting: true,
   buildExcludes: [/middleware-manifest\.json$/, /app-build-manifest\.json$/],
   disable: process.env.NODE_ENV === 'development',
+  // Admin pages always come from the network so CMS UI changes (e.g. new
+  // fields) appear right after a deploy instead of from a stale SW cache.
+  runtimeCaching: [
+    { urlPattern: ({ url }) => url.pathname.startsWith('/admin'), handler: 'NetworkOnly' },
+    ...require('next-pwa/cache'),
+  ],
 });
 
 const nextConfig = {

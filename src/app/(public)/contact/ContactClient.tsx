@@ -287,9 +287,13 @@ export default function ContactClient() {
                   <Clock className="w-3.5 h-3.5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF]">Replies</p>
-                  <p className="text-xs font-semibold truncate text-[#111827] dark:text-white">
-                    Within 24h
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF]">Urgent?</p>
+                  <p className="text-xs font-semibold text-[#111827] dark:text-white leading-snug">
+                    <a href={`mailto:${contactInfo.email}`} className="hover:underline">Email</a>
+                    {" or "}
+                    <a href={contactInfo.linkedin} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      LinkedIn
+                    </a>
                   </p>
                 </div>
               </div>

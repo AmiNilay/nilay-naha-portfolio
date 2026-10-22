@@ -27,6 +27,8 @@ export interface ChatReply {
   links: ChatLink[];
   quickReplies: string[];
   context?: string;
+  /** Page the widget should open for the visitor (a specific project or article). */
+  navigate?: string;
   emotion: "happy" | "thinking" | "confused" | "excited";
 }
 
@@ -146,7 +148,12 @@ interface Knowledge {
 }
 
 let cache: { kb: Knowledge; at: number } | null = null;
-const TTL_MS = 2 * 60 * 1000;
+const TTL_MS = 60 * 1000;
+
+/** Drop the knowledge base so the next question rebuilds it from fresh CMS data. */
+export function invalidateKnowledge() {
+  cache = null;
+}
 
 const projectTech = (p: any): string[] => {
   const raw = [].concat(p.techStack || [], p.tags || []) as unknown[];
@@ -304,6 +311,7 @@ function answerProject(p: any): ChatReply {
     links,
     quickReplies: ["What other projects?", "What's his tech stack?", "How can I contact him?"],
     context: `project:${p.slug}`,
+    navigate: `/projects/${p.slug}`,
     emotion: "excited",
   };
 }
@@ -314,6 +322,7 @@ function answerPost(p: any): ChatReply {
     links: [{ label: "Read the article", url: `/blog/${p.slug}` }],
     quickReplies: ["Show his other articles", "What projects has he built?"],
     context: `post:${p.slug}`,
+    navigate: `/blog/${p.slug}`,
     emotion: "happy",
   };
 }
@@ -444,7 +453,7 @@ const INTENT_ANSWERS: Partial<Record<IntentName, (kb: Knowledge) => ChatReply | 
     };
   },
   contact: (kb) => ({
-    reply: `The best way to reach ${NAME} is through the contact form${kb.hero.socialEmail ? ` or by email at ${kb.hero.socialEmail}` : ""}. He typically replies within 24 hours.`,
+    reply: `You can reach ${NAME} through the contact form on this site. If it's urgent, email him directly${kb.hero.socialEmail ? ` at ${kb.hero.socialEmail}` : ""} or message him on LinkedIn.`,
     links: contactLinks(kb),
     quickReplies: ["Is he open to opportunities?", "Where is he based?"],
     context: "contact",
@@ -462,9 +471,9 @@ const INTENT_ANSWERS: Partial<Record<IntentName, (kb: Knowledge) => ChatReply | 
       : null,
   availability: (kb) => {
     const cur = currentExperience(kb);
-    const status = kb.about.availability ? `His current status: **${kb.about.availability.trim().replace(/.$/, "")}**. ` : "";
+    const status = kb.about.availability ? `His current status: **${kb.about.availability.trim().replace(/\.$/, "")}**. ` : "";
     return {
-      reply: `${status}${cur ? `He's currently a ${cur.role} at ${cur.company.trim().replace(/.$/, "")}, and is open to discussing new opportunities. ` : ""}The quickest way to start a conversation is the contact page.`,
+      reply: `${status}${cur ? `He's currently a ${cur.role} at ${cur.company.trim().replace(/\.$/, "")}, and is open to discussing new opportunities. ` : ""}The quickest way to start a conversation is the contact page.`,
       links: contactLinks(kb).slice(0, 2),
       quickReplies: ["What roles is he looking for?", "Can I see his resume?"],
       context: "availability",

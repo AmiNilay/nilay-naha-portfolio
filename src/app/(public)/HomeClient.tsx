@@ -15,6 +15,10 @@ import ContactPage from "./contact/ContactClient";
 // Apple-spec: critically damped, no bounce
 const SLIDE_SPRING = { type: "spring", bounce: 0, duration: 0.45 } as const;
 
+// URL hash per slide, so a reload (or shared link) reopens the same section.
+const SLIDE_HASHES = ["", "projects", "blog", "about", "contact"];
+const SCROLL_KEY = "home_slide_scroll";
+
 export default function HomeClient({ initialHero = null }: { initialHero?: Record<string, any> | null }) {
   // Runs during the first render, before any child effects, so About/Contact
   // slides reading "hero_data" hit the cache instead of the network.
@@ -24,7 +28,43 @@ export default function HomeClient({ initialHero = null }: { initialHero?: Recor
   const shouldReduce = useReducedMotion();
 
   const touchStart = useRef<{ x: number; y: number; t: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const restored = useRef(false);
   const totalSlides = 5;
+
+  // ── Restore the slide from the URL hash after a reload ───────────────────
+  useEffect(() => {
+    const idx = SLIDE_HASHES.indexOf(window.location.hash.replace("#", ""));
+    if (idx > 0) setCurrentSlide(idx);
+    else restored.current = true;
+  }, []);
+
+  // ── Keep the hash in sync, and restore the saved scroll once per load ────
+  useEffect(() => {
+    const hash = SLIDE_HASHES[currentSlide];
+    window.history.replaceState(window.history.state, "", hash ? `#${hash}` : window.location.pathname + window.location.search);
+    if (restored.current) return;
+    restored.current = true;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(SCROLL_KEY) || "null");
+      if (saved?.slide !== currentSlide) return;
+      // Slide content loads async; retry until it is tall enough to scroll.
+      let tries = 0;
+      const apply = () => {
+        const el = scrollRef.current;
+        if (!el) return;
+        el.scrollTop = saved.top;
+        if (el.scrollTop < saved.top - 2 && ++tries < 20) setTimeout(apply, 100);
+      };
+      setTimeout(apply, 50);
+    } catch {}
+  }, [currentSlide]);
+
+  const saveScroll = () => {
+    try {
+      sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ slide: currentSlide, top: scrollRef.current?.scrollTop || 0 }));
+    } catch {}
+  };
 
   const paginate = (newDirection: number) => {
     if (currentSlide === 0 && newDirection === -1) return;
@@ -117,7 +157,7 @@ export default function HomeClient({ initialHero = null }: { initialHero?: Recor
           style={{ willChange: "transform, opacity" }}
         >
           {/* Each slide fills the full screen; individual pages handle their own scroll */}
-          <div className="w-full h-full overflow-y-auto">
+          <div ref={scrollRef} onScroll={saveScroll} className="w-full h-full overflow-y-auto">
             {currentSlide === 0 && <Hero initialData={initialHero} />}
             {currentSlide === 1 && <ProjectsPage />}
             {currentSlide === 2 && <BlogPage />}

@@ -122,6 +122,15 @@ export default function MascotScene({
           if (o.isMesh && o.material && "metalness" in o.material) {
             o.material.metalness = Math.min(o.material.metalness, 0.05);
             o.material.roughness = Math.max(o.material.roughness, 0.7);
+            // The baked texture already carries the shading: let a little of it
+            // glow through so colours stay vivid instead of light-dependent and dull.
+            if (o.material.map) {
+              o.material.map.colorSpace = THREE.SRGBColorSpace;
+              o.material.emissive = new THREE.Color(0xffffff);
+              o.material.emissiveMap = o.material.map;
+              o.material.emissiveIntensity = theme === "dark" ? 0.45 : 0.35;
+            }
+            o.material.needsUpdate = true;
           }
           if (!head && o.isBone && /head/i.test(o.name)) head = o;
         });

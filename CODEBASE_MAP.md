@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 11:33 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-22 11:38 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -499,6 +499,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-22 11:38 | Fix grey 3D mascot: CSP connect-src now allows blob:/data: (GLTFLoader fetches embedded textures via blob URLs); MascotScene forces sRGB map, matte material and subtle emissive from the texture. **Rule: any new client-side loader using blob:/data: URLs needs the CSP updated.** |
 | 2026-10-22 11:33 | Real 3D mascot GLB (TRELLIS image-to-3D, rotated to face +Z, JPEG texture + meshopt, 266 KB) in public/models; MascotScene frames busts whole, turns unrigged models toward the pointer with breathing/expression gestures, forces matte materials; home hero "Check job fit" button → /match. |
 | 2026-10-22 11:23 | STANDOUT_FEATURES.md: portfolio rating (8.5/10 with breakdown), 15 round-2 feature ideas, restored the corrupted ideas table and Setup Checklist heading. |
 | 2026-10-22 11:17 | Mascot re-cut as transparent figures (no blue tile, disc or glow); launcher backdrop removed; regeneration steps in MASCOT_PIPELINE.md. |

@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 11:33 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 11:38 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -405,6 +405,7 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 | :--- | :--- |
 | **What** | The chatbot mascot is now a **real 3D model** (`public/models/chatbot-mascot.glb`, 266 KB), generated from my reference portrait with free **TRELLIS** image-to-3D. It has textured hair, glasses, face and the hoodie with the `</>` logo, viewable from any angle. On the site it turns toward the cursor, breathes, nods when happy and tilts when thinking, on a transparent background. The home hero also has a **Check job fit** button next to *View Work* and *Résumé*, so recruiters reach `/match` in one click. |
 | **Why it stands out** | A personal 3D brand character with zero cost. Meshopt geometry plus a JPEG texture keep it to 266 KB, loaded only after the page is idle, and the transparent 2D figure shows instantly until it's ready. |
+| **Fix (2026-10-22 11:38)** | The mascot first rendered grey because the CSP blocked the embedded texture (`connect-src` lacked `blob:`) and the file marked the material 100% metallic. Both are fixed: full colour in light and dark mode, and the baked texture glows slightly so colours stay vivid. |
 | **Limitations** | Generated from one image, so the back of the head is softer than the front. The model has no skeleton or facial shape keys yet, so expressions are head gestures rather than mouth or eye changes. |
 | **How to upgrade** | Optional: open the GLB in Blender, add shape keys (`happy`, `thinking`, `blink`, `mouthOpen`) and a `Head` bone (or rig it with Mixamo), re-export, and replace the file. The component picks these up automatically; see [MASCOT_PIPELINE.md](MASCOT_PIPELINE.md). |
 

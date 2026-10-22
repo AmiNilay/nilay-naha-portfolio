@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-22 11:38 IST** — Fixed the 3D mascot showing grey: its colours now load in light and dark mode.
 - **2026-10-22 11:33 IST** — Real 3D chatbot mascot model (generated from the reference with TRELLIS, 266 KB) and a "Check job fit" button on the home page.
 - **2026-10-22 11:23 IST** — Added portfolio rating and round-2 feature ideas to STANDOUT_FEATURES.md.
 - **2026-10-22 11:17 IST** — Chatbot mascot is now a transparent cut-out figure (no background disc), same in light and dark mode.

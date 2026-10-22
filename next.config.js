@@ -38,7 +38,7 @@ const csp = [
   "img-src 'self' data: blob: https:",
   "media-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co https://*.hf.co https://api.github.com",
+  "connect-src 'self' blob: data: https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co https://*.hf.co https://api.github.com",
   "frame-src 'self' https://drive.google.com https://docs.google.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://codepen.io https://codesandbox.io https://stackblitz.com https://cal.com https://app.cal.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",

@@ -117,14 +117,22 @@ export default function MascotScene({
         scene.add(model);
         model.traverse((o: any) => {
           if (o.isMesh && o.morphTargetDictionary) morphMeshes.push(o);
+          // Image-to-3D exports often ship metallic PBR values that render dark;
+          // the texture already carries the shading, so keep it matte.
+          if (o.isMesh && o.material && "metalness" in o.material) {
+            o.material.metalness = Math.min(o.material.metalness, 0.05);
+            o.material.roughness = Math.max(o.material.roughness, 0.7);
+          }
           if (!head && o.isBone && /head/i.test(o.name)) head = o;
         });
 
-        // Frame head and shoulders: top ~30% of the model's height.
+        // Frame head and shoulders. A full-body model is tall (height > 2x width):
+        // show its top ~30%. A bust (e.g. image-to-3D output) is framed whole.
         const box = new THREE.Box3().setFromObject(model);
         const sz = box.getSize(new THREE.Vector3());
-        const focusY = box.max.y - sz.y * 0.15;
-        const frameH = Math.min(sz.y, sz.y * 0.32);
+        const isBust = sz.y < sz.x * 2;
+        const focusY = isBust ? box.min.y + sz.y * 0.5 : box.max.y - sz.y * 0.15;
+        const frameH = isBust ? sz.y * 0.98 : sz.y * 0.32;
         const dist = frameH / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.08;
         const cx = (box.min.x + box.max.x) / 2;
         camera.position.set(cx, focusY, box.max.z + dist);
@@ -165,10 +173,19 @@ export default function MascotScene({
           infl[i] += (target - infl[i]) * Math.min(1, dt * 8);
         }
       }
-      if (animate && head) {
-        const h = head as THREE.Object3D;
-        h.rotation.y += (pointer.x * 0.35 - h.rotation.y) * Math.min(1, dt * 4);
-        h.rotation.x += (pointer.y * 0.2 - h.rotation.x) * Math.min(1, dt * 4);
+      if (animate) {
+        // Rigged model: turn the Head bone. Unrigged bust: turn the whole model,
+        // plus gentle breathing and a per-expression gesture (no morphs to drive).
+        const h = (head || model) as THREE.Object3D;
+        const t = clock.elapsedTime;
+        const e = exprRef.current;
+        const tiltZ = !head && (e === "thinking" || e === "confused") ? 0.12 : 0;
+        const nod = !head && (e === "happy" || e === "excited") ? Math.sin(t * 6) * 0.04 : 0;
+        const k = Math.min(1, dt * 4);
+        h.rotation.y += (pointer.x * (head ? 0.35 : 0.45) + (head ? 0 : Math.sin(t * 0.6) * 0.06) - h.rotation.y) * k;
+        h.rotation.x += (pointer.y * 0.2 + nod - h.rotation.x) * k;
+        h.rotation.z += (tiltZ - h.rotation.z) * k;
+        if (!head) model.scale.setScalar(1 + Math.sin(t * 1.6) * 0.008);
       }
       renderer.render(scene, camera);
     };

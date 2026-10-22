@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-22 11:33 IST** — Real 3D chatbot mascot model (generated from the reference with TRELLIS, 266 KB) and a "Check job fit" button on the home page.
 - **2026-10-22 11:23 IST** — Added portfolio rating and round-2 feature ideas to STANDOUT_FEATURES.md.
 - **2026-10-22 11:17 IST** — Chatbot mascot is now a transparent cut-out figure (no background disc), same in light and dark mode.
 - **2026-10-22 10:54 IST** — New chatbot mascot based on the reference design (theme-aware icon + expressions); automatically upgrades to a real 3D model when `public/models/chatbot-mascot.glb` is added (see `MASCOT_PIPELINE.md`).

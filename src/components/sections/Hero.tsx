@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Github, Linkedin, Download, Loader2, FileX } from "lucide-react";
+import { ArrowRight, Github, Linkedin, Download, Loader2, FileX, Target } from "lucide-react";
 import {
   motion,
   useMotionValue,
@@ -456,6 +456,22 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
                 No Résumé <FileX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
+
+            {/* Job fit: recruiters paste a JD at /match */}
+            <Link
+              href="/match"
+              className="inline-flex items-center justify-center gap-2
+                px-5 py-2.5 sm:px-6 sm:py-3.5
+                bg-white/80 dark:bg-white/[0.05]
+                border border-[#0F766E]/40 dark:border-[#F59E0B]/40
+                text-[#0F766E] dark:text-[#F59E0B]
+                text-xs sm:text-sm font-semibold rounded-full backdrop-blur-sm
+                hover:bg-white dark:hover:bg-white/10 hover:border-[#0F766E] dark:hover:border-[#F59E0B]
+                active:scale-[0.97] hover:scale-[1.02]
+                transition-all duration-[170ms] ease-out will-change-transform"
+            >
+              Check job fit <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </Link>
 
             {/* Social icons */}
             <div className="flex items-center gap-2 md:ml-1">

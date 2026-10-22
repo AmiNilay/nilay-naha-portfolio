@@ -146,3 +146,12 @@ rbenv/Scripts/python -c "from rembg import remove,new_session;from PIL import Im
 ```
 
 Trim to the alpha bounding box, pad to a square with the shoulders on the bottom edge, and export `<name>-256.webp` and `<name>-128.webp` (quality 88). The main avatar (`avatar-light` / `avatar-dark`) uses the same cut-out in both themes; dark mode only adds a faint cool rim via CSS.
+
+## Current model (2026-10-22 11:33)
+
+`public/models/chatbot-mascot.glb` was generated from the transparent portrait cut-out with **TRELLIS** (Hugging Face Space `trellis-community/TRELLIS`, `/generate_and_extract_glb`, mesh simplify 0.95, texture 1024) through `gradio_client`. It was then:
+1. rotated 180° about Y with `trimesh`, because TRELLIS output faced −Z;
+2. given a JPEG texture (quality 86) with `pygltflib` + Pillow, since `gltf-transform --texture-compress` failed here (sharp colourspace error);
+3. compressed with `npx @gltf-transform/cli@4.1.1 optimize in.glb out.glb --compress meshopt --texture-compress false`, going from 1.83 MB to 266 KB.
+
+It has no bones or shape keys. `MascotScene` therefore turns the whole model toward the pointer and adds breathing, a nod (happy) and a tilt (thinking). Add a `Head` bone or shape keys in Blender to unlock full expressions.

@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 11:23 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 11:33 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -399,6 +399,15 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 14. **OpenTelemetry**: one observability standard for apps and LLMs.
 15. **Docker Compose + Cloudflare Workers**: reproducible development and free edge deploys.
 
+## 41. Real 3D Mascot Model + "Check job fit" Button (2026-10-22)
+
+| | |
+| :--- | :--- |
+| **What** | The chatbot mascot is now a **real 3D model** (`public/models/chatbot-mascot.glb`, 266 KB), generated from my reference portrait with free **TRELLIS** image-to-3D. It has textured hair, glasses, face and the hoodie with the `</>` logo, viewable from any angle. On the site it turns toward the cursor, breathes, nods when happy and tilts when thinking, on a transparent background. The home hero also has a **Check job fit** button next to *View Work* and *Résumé*, so recruiters reach `/match` in one click. |
+| **Why it stands out** | A personal 3D brand character with zero cost. Meshopt geometry plus a JPEG texture keep it to 266 KB, loaded only after the page is idle, and the transparent 2D figure shows instantly until it's ready. |
+| **Limitations** | Generated from one image, so the back of the head is softer than the front. The model has no skeleton or facial shape keys yet, so expressions are head gestures rather than mouth or eye changes. |
+| **How to upgrade** | Optional: open the GLB in Blender, add shape keys (`happy`, `thinking`, `blink`, `mouthOpen`) and a `Head` bone (or rig it with Mixamo), re-export, and replace the file. The component picks these up automatically; see [MASCOT_PIPELINE.md](MASCOT_PIPELINE.md). |
+
 ## 40. Branded Chatbot Mascot (3D-ready)
 
 | | |
@@ -454,9 +463,9 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 
 **How to reach 9.5–10:**
 1. Fill in 3 flagship case studies: problem → approach → results with real numbers, a demo GIF/video, and evals for the ML project.
-2. Add the real 3D mascot GLB (see `MASCOT_PIPELINE.md`).
+2. ✅ Real 3D mascot GLB added (2026-10-22 11:33); optional: add shape keys and a rig in Blender.
 3. Publish 1 post per month, for example how you built the MCP server or the free chatbot engine. These double as proof.
-4. Trim the home page to one clear call to action ("View work" plus "Check job fit").
+4. ✅ "Check job fit" button added to the home hero (2026-10-22 11:33).
 
 ## 🚀 New Feature Ideas — Round 2 (2026)
 

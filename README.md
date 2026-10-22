@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-22 10:42 IST** — Swagger/OpenAPI API docs at `/api-docs`, click-to-select logo picker for the Home tech marquee, tech catalog expanded to 286 (2026 AI agents, frameworks, LLMOps, inference, modern web).
 - **2026-10-22 10:34 IST** — Security hardening (signed admin sessions, login throttling, rate limits, CSP/HSTS headers, audit log), drafts hidden from the public, chat insights dashboard, live GitHub activity, book-a-call, interactive project demos, Claude-style chatbot with a real 3D avatar, duplicate files removed.
 - **2026-10-22 10:21 IST** — Rich HTML/CSS content with Google Drive image/GIF/video embeds (see `AI_CONTENT_PROMPT.md`), admin panel always light, separate Home/About media (GIF/video), Drive link fixes, automatic deploy-time "Last updated". Setup checklist (env vars, VAPID keys) in `STANDOUT_FEATURES.md`.
 - **2026-10-22 10:11 IST** — Recruiter tools: public read-only MCP server (`/api/mcp/public`), job-description matcher (`/match`), tailored résumé PDF (`/resume/tailored`), on-device AI smart search (Ctrl+K), `/ai` workflow page; chatbot voice input, read-aloud and 9 languages; realistic 3D avatar; project case studies & evaluation benchmarks; college photo/location/LinkedIn; 172-skill catalog; auto-scrolling hero tech marquee (speed editable).

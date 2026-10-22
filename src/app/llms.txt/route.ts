@@ -49,6 +49,7 @@ export async function GET() {
     `- Job-description match (score + evidence): ${SITE_URL}/match`,
     `- Tailored résumé for a job description: ${SITE_URL}/resume/tailored`,
     `- How Nilay uses AI in his workflow: ${SITE_URL}/ai`,
+    `- API docs (OpenAPI): ${SITE_URL}/api-docs, spec ${SITE_URL}/api/openapi.json`,
     `- Public read-only MCP server (no auth): POST ${SITE_URL}/api/mcp/public — tools: get_profile, list_projects, get_project, list_posts, get_post, search_portfolio, match_job_description`,
     "",
     "## Contact",

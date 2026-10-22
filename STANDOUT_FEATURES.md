@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 10:34 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 10:42 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -364,6 +364,40 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 | **How to use** | Admin → Projects → edit → *Interactive Demo Embed URL*. |
 
 ---
+
+## 38. Swagger / OpenAPI API Docs
+
+| | |
+| :--- | :--- |
+| **What** | `/api-docs`: interactive, themed Swagger UI for the whole backend: 26 endpoints and 48 operations, with auth schemes, rate limits and example requests (chat, job match, MCP JSON-RPC). The raw spec is at `/api/openapi.json`. |
+| **Why I added it** | It shows backend professionalism: a documented, testable API like a real product. |
+| **Why it stands out** | Very few portfolios publish an OpenAPI contract. Recruiters and engineers can **try endpoints live** in the browser. |
+| **How to use** | Open `/api-docs`, pick an endpoint, then **Try it out → Execute**. Admin endpoints work when you're logged in. Import `/api/openapi.json` into Postman, Insomnia or any code generator. |
+
+## 39. Logo Tech Picker on Home + 2026 Tech Catalog (286)
+
+| | |
+| :--- | :--- |
+| **What** | Admin → Home's scrolling tech strip uses the same **click-to-select logo grid** as About, so every chip shows its logo. The catalog was researched and expanded in one pass to 286 entries, covering AI coding agents, agent frameworks (LangGraph, CrewAI, Claude/OpenAI Agents SDK, A2A), RAG and vector DBs, LLMOps and evals, inference and fine-tuning, modern web (Bun, Hono, tRPC, Astro), backend SaaS, infra and security, and data engineering. |
+| **How to use** | Admin → Home → *Stats Counters & Tech Stack*: click logos to add them, use ‹ › to reorder, and set the speed slider. Future updates are just a click; nothing needs adding from scratch. |
+
+### 📚 15 Technologies to Learn Next (2026)
+
+1. **Claude Code**: the most-used coding agent of 2026.
+2. **MCP**: the standard for agent-to-tool connections, which you already ship.
+3. **LangGraph**: stateful, human-in-the-loop agents.
+4. **Claude Agent SDK / OpenAI Agents SDK**: production agent building.
+5. **Vercel AI SDK**: streaming AI interfaces in Next.js.
+6. **pgvector**: vector search in plain Postgres.
+7. **Langfuse**: open-source LLM tracing and observability.
+8. **Promptfoo / Ragas**: evals, the senior AI-engineer signal.
+9. **vLLM / Ollama**: serve open models yourself.
+10. **Unsloth + LoRA**: cheap fine-tuning on one GPU.
+11. **Pydantic AI**: type-safe agents that pair with FastAPI.
+12. **A2A Protocol**: agent-to-agent communication, alongside MCP.
+13. **Bun + Hono**: a fast, edge-ready TypeScript backend.
+14. **OpenTelemetry**: one observability standard for apps and LLMs.
+15. **Docker Compose + Cloudflare Workers**: reproducible development and free edge deploys.
 
 ## 🧭 Honest Assessment — How This Portfolio Compares in the 2026 AI Era
 

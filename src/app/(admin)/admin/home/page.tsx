@@ -1,5 +1,6 @@
 "use client";
 
+import SkillPicker, { SkillIcon } from "@/components/admin/SkillPicker";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Loader2,
@@ -854,7 +855,8 @@ export default function AdminHome() {
                       .map((t) => t.trim())
                       .filter(Boolean)
                       .map((t, i) => (
-                        <span key={`${copy}-${i}`} className="mx-5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">
+                        <span key={`${copy}-${i}`} className="mx-5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">
+                          <SkillIcon name={t} />
                           {t}
                         </span>
                       ))
@@ -941,16 +943,18 @@ export default function AdminHome() {
   );
 }
 
-/** Chip editor for the comma-separated hero tech list: add, remove and reorder items. */
+/**
+ * Hero tech list editor: the selected items (with logos) can be reordered or
+ * removed, and new ones are picked from the same logo catalog as Admin → About.
+ * Stored as the comma-separated `techStack` string; legacy free-text items keep working.
+ */
 function TechStackEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [draft, setDraft] = useState("");
   const items = value.split(",").map((t) => t.trim()).filter(Boolean);
   const commit = (next: string[]) => onChange(next.join(", "));
-  const add = () => {
-    const extra = draft.split(",").map((t) => t.trim()).filter((t) => t && !items.includes(t));
-    if (extra.length) commit([...items, ...extra]);
-    setDraft("");
-  };
+  const toggle = (name: string) =>
+    commit(items.some((t) => t.toLowerCase() === name.toLowerCase())
+      ? items.filter((t) => t.toLowerCase() !== name.toLowerCase())
+      : [...items, name]);
   const move = (i: number, dir: -1 | 1) => {
     const j = i + dir;
     if (j < 0 || j >= items.length) return;
@@ -959,16 +963,17 @@ function TechStackEditor({ value, onChange }: { value: string; onChange: (v: str
     commit(next);
   };
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex flex-wrap gap-1.5">
         {items.map((t, i) => (
           <span
             key={t}
-            className="inline-flex items-center gap-0.5 pl-1 pr-1.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-semibold text-zinc-800 dark:text-zinc-200"
+            className="inline-flex items-center gap-1 pl-1 pr-1.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-semibold text-zinc-800 dark:text-zinc-200"
           >
             <button type="button" onClick={() => move(i, -1)} aria-label={`Move ${t} left`} className="p-0.5 text-zinc-400 hover:text-cyan-500 disabled:opacity-30" disabled={i === 0}>
               <ChevronLeft className="w-3 h-3" />
             </button>
+            <SkillIcon name={t} />
             {t}
             <button type="button" onClick={() => move(i, 1)} aria-label={`Move ${t} right`} className="p-0.5 text-zinc-400 hover:text-cyan-500 disabled:opacity-30" disabled={i === items.length - 1}>
               <ChevronRight className="w-3 h-3" />
@@ -978,24 +983,10 @@ function TechStackEditor({ value, onChange }: { value: string; onChange: (v: str
             </button>
           </span>
         ))}
-        {!items.length && <span className="text-[11px] italic text-zinc-400">No items yet.</span>}
+        {!items.length && <span className="text-[11px] italic text-zinc-400">Nothing selected yet — click logos below.</span>}
       </div>
-      <div className="flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              add();
-            }
-          }}
-          className="flex-1 p-2.5 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl text-xs text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
-          placeholder="Add technology (comma-separate several), press Enter"
-        />
-        <button type="button" onClick={add} className="px-3 rounded-xl bg-cyan-500 text-white text-xs font-bold inline-flex items-center gap-1">
-          <Plus className="w-3.5 h-3.5" /> Add
-        </button>
+      <div className="flex flex-col h-[340px] p-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80">
+        <SkillPicker selected={items} onToggle={toggle} />
       </div>
     </div>
   );

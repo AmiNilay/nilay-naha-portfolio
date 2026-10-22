@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 10:34 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-22 10:42 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -248,6 +248,11 @@ my-portfolio/
 * **Chat UI:** Claude-style warm palette, settings `⋯` menu (language, read-aloud, sounds, new chat), auto-grow composer. **3D avatar:** [`Avatar.tsx`](file:///e:/my-portfolio/src/components/chatbot/Avatar.tsx) shows the SVG instantly, then idle-loads [`Avatar3D.tsx`](file:///e:/my-portfolio/src/components/chatbot/Avatar3D.tsx) (procedural three.js head, ~150–180 KB gz, paused offscreen); message avatars use a captured snapshot.
 * **Removed (verified unused):** `lib/db.ts`, `lib/models/*`, `lib/auth.ts`, `components/theme-provider.tsx`, admin `AboutEditor`/`HomeEditor`/`BlogForm`/`AdminNav`, sections `FeaturedProjects`/`ProjectsSection`/`AboutPreview`/`Skills`/`ContactCTA`.
 
+### 20. API Docs (OpenAPI + Swagger) & Shared Skill Picker — added 2026-10-22
+* **OpenAPI 3.1:** [`openapi.ts`](file:///e:/my-portfolio/src/lib/openapi.ts) documents all 26 API paths (48 operations), tagged Public / Recruiter / AI-MCP / Content / Admin / Analytics / Push, with `adminSession` cookie and `mcpBearer` security, rate limits and examples. Served at `GET /api/openapi.json` (CORS *, 1 h cache). **Update the spec whenever an API route changes.**
+* **Swagger UI:** `/api-docs` (themed, swagger-ui-dist 5.17.14 from jsDelivr, loaded only on that page; CSP style-src allows jsDelivr).
+* **Skill picker:** [`SkillPicker.tsx`](file:///e:/my-portfolio/src/components/admin/SkillPicker.tsx) (+ `SkillIcon`) is shared by Admin → About (skills) and Admin → Home (tech marquee, stored as comma list of catalog names). Catalog [`skillData.ts`](file:///e:/my-portfolio/src/lib/skillData.ts) = 286 entries incl. AI coding agents, agent frameworks, RAG/vector, LLMOps/evals, inference/fine-tuning, modern web, backend SaaS, infra/security, data engineering. Never rename existing names (saved selections depend on them).
+
 ### 17. Hero Tech Marquee & Education Media — added 2026-10-22
 * Hero tech chips auto-scroll continuously; list (chip editor, reorder) and `techMarqueeSpeed` (seconds per loop, default 40) edited in Admin → Home. Inline animation so Windows reduced-motion halves speed instead of freezing. Hero no longer clips at md widths/short heights (removed `h-full md:overflow-hidden`; avatar `clamp(132px, min(26vw, 42dvh), 380px)`).
 * Education entries gain `institutionLinkedin`, `location`, `image` (large 16:9 banner on About). Skill catalog ([`skillData.ts`](file:///e:/my-portfolio/src/lib/skillData.ts)) expanded 62 → 172 incl. mobile, automation/scraping, Bitbucket, cloud/DevOps, testing.
@@ -491,6 +496,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-22 10:42 | OpenAPI 3.1 spec + themed Swagger UI at /api-docs; Home tech marquee uses the shared logo SkillPicker; skill catalog researched and expanded 172 → 286. |
 | 2026-10-22 10:34 | Security hardening (signed sessions, login throttle, rate limits everywhere, CSRF same-origin, CSP + headers, Mongo sanitising, audit log), drafts hidden site-wide, content protection on, chat insights, GitHub activity, book-a-call, interactive demos, Claude-style chat UI with procedural 3D avatar, 15 duplicate/unused files removed. |
 | 2026-10-22 10:21 | Rich HTML/CSS content + Drive image/GIF/video embeds everywhere (AI_CONTENT_PROMPT.md), admin always light, separate Home/About media with GIF/video, Drive URL fixes (incl. blog API), automatic deploy-time "Last updated", setup checklist in STANDOUT_FEATURES.md. |
 | 2026-10-22 10:11 | Public read-only MCP, job match, tailored résumé, on-device smart search, /ai page, chatbot voice + 9 languages, realistic 3D avatar, project case studies & evals, education photo/location/LinkedIn, 172-skill catalog, auto-scrolling hero tech marquee with admin speed, hero responsive fix. |

@@ -153,6 +153,9 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
    - Never make the assistant claim something the portfolio content doesn't support; unknown topics get an honest "not on the portfolio" reply.
    - Any modification must preserve the instant résumé trigger (`resume`, `cv`, `résumé`) in [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx), which uses the live résumé from `/api/hero`.
 
+### I. API Documentation
+1. Every API route is documented in [`src/lib/openapi.ts`](file:///e:/my-portfolio/src/lib/openapi.ts) (served at `/api/openapi.json`, UI at `/api-docs`). When adding or changing a route, update the spec in the same change.
+
 ### G. Admin Theme
 1. The admin panel is **always light**: `(admin)/layout.tsx` + `AdminLayoutClient.tsx` strip the `dark` class while on `/admin` and restore the visitor's theme on exit. Never write the next-themes preference from admin.
 

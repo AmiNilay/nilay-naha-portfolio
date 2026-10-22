@@ -78,7 +78,7 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
 
 | Layer | Standard | Invariant / Rule |
 | :--- | :--- | :--- |
-| **Framework** | Next.js 14.1.0 (App Router) | All routes reside in `src/app`. No `pages/` directory. |
+| **Framework** | Next.js 14.2.35 (App Router) | All routes reside in `src/app`. No `pages/` directory. |
 | **Language** | TypeScript 5 (Strict Mode) | Zero type errors (`npx tsc --noEmit` must always pass). |
 | **Styling** | Tailwind CSS 3.3.0 | Use Tailwind classes; merge with `cn()` from `@/lib/utils`. |
 | **Database** | MongoDB Atlas via Mongoose 8.1.1 | Must use `@/lib/connectToDB` connection cache. |

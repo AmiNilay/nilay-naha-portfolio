@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 11:38 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 11:44 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -416,6 +416,14 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 | **What** | The chatbot uses my own mascot (a young engineer with glasses, a black hoodie and a cyan `</>` logo) as a **transparent cut-out figure**: no background, disc or glow, just the character with a soft shadow, and a faint cool rim in dark mode. It has neutral, happy, thinking, explaining and coding expressions that crossfade as the bot reacts. The component automatically switches to a **real 3D model** once `public/models/chatbot-mascot.glb` is added, with lighting, framing, expressions and animations mapped by name. |
 | **Why it stands out** | A consistent personal brand character rather than a generic bot icon. The same figure is used in light and dark mode, the backgrounds were removed locally with free rembg, it loads only ~140 KB of images, and the 3D model is lazy-loaded. |
 | **How to use / upgrade** | Follow **[MASCOT_PIPELINE.md](MASCOT_PIPELINE.md)** to make the GLB for free (image → 3D → Blender cleanup → rig → compress), then drop it into `public/models/` and push. No code changes are needed. |
+
+## 42. Framework Security Upgrade (2026-10-22 11:44)
+
+| | |
+| :--- | :--- |
+| **What** | Next.js 14.1.0 → **14.2.35**, closing CVE-2025-29927 (middleware auth bypass) plus SSRF, cache-poisoning and DoS fixes. |
+| **Verified** | Production build, every public page and API returned 200, the admin panel still redirects when logged out (also when the attack header is sent), and unauthenticated writes return 401. |
+| **Maintenance** | Every 3–6 months: `npm update` within 14.2.x, then build and push. It takes about 10 minutes, and any AI agent can do it. |
 
 ## 🧭 Honest Assessment — How This Portfolio Compares in the 2026 AI Era
 

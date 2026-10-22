@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next';
 import { connectToDB } from '@/lib/connectToDB';
-import mongoose from 'mongoose';
+import Project from '@/models/Project';
+import Post from '@/models/Post';
+import { PUBLISHED_POST, PUBLISHED_PROJECT } from '@/lib/visibility';
 
 const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
 
@@ -8,15 +10,13 @@ export default async function sitemap( ): Promise<MetadataRoute.Sitemap> {
   try {
     await connectToDB();
 
-    // Dynamically fetch all Projects and Blog Posts from MongoDB
-    const Project = mongoose.models.Project;
-    const Post = mongoose.models.Post;
+    // Published projects and posts only (drafts never reach search engines).
 
     let projectUrls: MetadataRoute.Sitemap = [];
     let postUrls: MetadataRoute.Sitemap = [];
 
-    if (Project) {
-      const projects = await Project.find({}).select('slug updatedAt');
+    {
+      const projects = await Project.find(PUBLISHED_PROJECT).select('slug updatedAt');
       projectUrls = projects.map((project) => ({
         url: `${SITE_URL}/projects/${project.slug}`,
         lastModified: project.updatedAt || new Date(),
@@ -25,8 +25,8 @@ export default async function sitemap( ): Promise<MetadataRoute.Sitemap> {
       }));
     }
 
-    if (Post) {
-      const posts = await Post.find({ status: 'published' }).select('slug updatedAt');
+    {
+      const posts = await Post.find(PUBLISHED_POST).select('slug updatedAt');
       postUrls = posts.map((post) => ({
         url: `${SITE_URL}/blog/${post.slug}`,
         lastModified: post.updatedAt || new Date(),

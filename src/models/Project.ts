@@ -17,6 +17,7 @@ const ProjectSchema = new Schema(
     featured: { type: Boolean, default: false },
     publishDate: { type: Date, default: Date.now },
     relatedBlog: { type: String, default: "" }, // ✅ NEW: Link to a Blog Post
+    demoEmbed: { type: String, default: "" }, // Interactive demo URL (StackBlitz, CodeSandbox, HF Spaces, …), click-to-load on the detail page
     // Case study (markdown) + headline impact metrics
     problem: { type: String, default: "" },
     approach: { type: String, default: "" },

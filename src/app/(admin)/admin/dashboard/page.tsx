@@ -48,8 +48,8 @@ export default function AdminDashboard() {
     try {
       const [msgRes, projRes, blogRes] = await Promise.all([
         fetch("/api/contact"),
-        fetch("/api/projects"),
-        fetch("/api/blog"),
+        fetch("/api/projects?all=1"),
+        fetch("/api/blog?all=1"),
       ]);
 
       const msgData = await msgRes.json();

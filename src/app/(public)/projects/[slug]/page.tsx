@@ -5,6 +5,8 @@ import { connectToDB } from "@/lib/connectToDB";
 import Project from "@/models/Project";
 import Post from "@/models/Post";
 import { processContent } from "@/lib/markdownProcessor";
+import { notFound } from "next/navigation";
+import { PUBLISHED_POST, PUBLISHED_PROJECT } from "@/lib/visibility";
 
 // Cached and regenerated at most once a minute; CMS saves purge it immediately
 // via revalidatePublicPages().
@@ -15,7 +17,7 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   try {
     await connectToDB();
-    const projects = await Project.find({}, { slug: 1 }).lean();
+    const projects = await Project.find(PUBLISHED_PROJECT, { slug: 1 }).lean();
     return projects.filter((p: any) => p.slug).map((p: any) => ({ slug: p.slug }));
   } catch {
     return [];
@@ -26,7 +28,8 @@ export async function generateStaticParams() {
 const getProjectWithContext = cache(async (slug: string) => {
   try {
     await connectToDB();
-    const projects = await Project.find({}).sort({ publishDate: -1, createdAt: -1 }).lean();
+    // Published only, so drafts 404 and never appear as prev/next neighbours.
+    const projects = await Project.find(PUBLISHED_PROJECT).sort({ publishDate: -1, createdAt: -1 }).lean();
     const allProjects: any[] = JSON.parse(JSON.stringify(projects));
     const currentIndex = allProjects.findIndex((p) => p.slug === slug);
 
@@ -54,7 +57,7 @@ const getProjectWithContext = cache(async (slug: string) => {
     let linkedBlog = null;
     if (currentProject.relatedBlog) {
       try {
-        const post = await Post.findById(currentProject.relatedBlog).lean();
+        const post = await Post.findOne({ _id: currentProject.relatedBlog, ...PUBLISHED_POST }).lean();
         if (post) linkedBlog = JSON.parse(JSON.stringify(post));
       } catch {}
     }
@@ -69,7 +72,8 @@ const getProjectWithContext = cache(async (slug: string) => {
     };
   } catch (error) {
     console.error("Project lookup error:", error);
-    return null;
+    // undefined = lookup failed (client retries); null = no published project.
+    return undefined;
   }
 });
 
@@ -123,5 +127,6 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: { slug: string } }) {
   const projectData = await getProjectWithContext(params.slug);
-  return <ProjectDetailsClient initialData={projectData} />;
+  if (projectData === null) notFound();
+  return <ProjectDetailsClient initialData={projectData ?? null} />;
 }

@@ -94,7 +94,7 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
 1. **Single Connection Point:**
    - **ALWAYS** import `connectToDB` from [`@/lib/connectToDB`](file:///e:/my-portfolio/src/lib/connectToDB.ts).
    - **NEVER** call `mongoose.connect()` independently in route handlers.
-   - **NEVER** use the deprecated [`@/lib/db.ts`](file:///e:/my-portfolio/src/lib/db.ts).
+   - The legacy `@/lib/db.ts` was deleted (2026-10-22); `connectToDB` is the only connection helper.
 2. **Active Schema Directory:**
    - **ALWAYS** import Mongoose models from [`@/models/*`](file:///e:/my-portfolio/src/models/).
      - `Post` from `@/models/Post` (for blog posts)
@@ -103,7 +103,7 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
      - `About` from `@/models/About`
      - `Subscription` from `@/models/Subscription`
      - `Chatbot` from `@/models/Chatbot`
-   - **NEVER** import from `src/lib/models/*` (legacy schemas).
+   - Legacy `src/lib/models/*` schemas were deleted (2026-10-22). Other models: `ChatLog`, `AuditLog`, `PageVisit`, `Testimonial`.
 
 ### B. Security & Middleware Rules
 1. **Edge Middleware Integrity:**
@@ -119,7 +119,13 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
        // Add new public mutating routes here
      ];
      ```
-3. **Content Protection Guard:**
+3. **Admin auth & security (2026-10-22):**
+   - Admin session = HMAC-signed, expiring `admin_token` cookie from [`@/lib/adminAuth`](file:///e:/my-portfolio/src/lib/adminAuth.ts) (`createSessionToken`, `verifySessionToken`, `isAdminRequest`). Never store or compare the raw `ADMIN_SECRET` in cookies; no fallback secrets — fail closed.
+   - Admin-only GETs must call `isAdminRequest` (middleware also guards `/api/admin/**` and `?all=1`). Cookie-authenticated writes must be same-origin (middleware enforces).
+   - Every public endpoint is rate-limited with [`@/lib/rateLimit`](file:///e:/my-portfolio/src/lib/rateLimit.ts); sanitize Mongo input with `sanitizeMongo` / `pickFields` / `isObjectId` from [`@/lib/audit`](file:///e:/my-portfolio/src/lib/audit.ts); log admin and MCP mutations to `AuditLog`.
+   - Security headers + CSP live in `next.config.js` `headers()`. Adding a new third-party script, iframe or fetch origin requires updating the CSP.
+   - Drafts are never public: use [`@/lib/visibility`](file:///e:/my-portfolio/src/lib/visibility.ts) filters (posts `published: true`; projects `status !== "Draft"`); drafts only with `?all=1` + admin cookie.
+4. **Content Protection Guard:**
    - [`ContentProtection.tsx`](file:///e:/my-portfolio/src/components/ui/ContentProtection.tsx) enforces anti-theft rules (disabling context menu, image dragging, text selection, and devtool shortcuts). Do not disable or circumvent this guard unless explicitly asked by the user.
 
 ### C. Asset Storage & File Uploads

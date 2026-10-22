@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import PageVisit from "@/models/PageVisit";
+import { rateLimit, HOUR } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, "track", 300, HOUR);
+  if (limited) return limited;
   try {
     const body = await req.json();
     const { sessionId, path, referrerPath } = body ?? {};

@@ -27,6 +27,7 @@ const PROJECT_FIELDS: Json = {
   featured: { type: "boolean" },
   publishDate: str("ISO date"),
   relatedBlog: str("Slug of a related blog post"),
+  demoEmbed: str("Interactive demo URL (StackBlitz, CodeSandbox, CodePen, Hugging Face Space, Replit, YouTube or deployed app)"),
   problem: str("Case study: the problem solved (markdown)"),
   approach: str("Case study: architecture and key decisions (markdown)"),
   results: str("Case study: measured outcome (markdown)"),

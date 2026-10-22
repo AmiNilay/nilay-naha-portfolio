@@ -21,7 +21,12 @@ export interface McpServer {
   tools: McpTool[];
   /** Runs before each tool call (e.g. connecting to the database). */
   beforeCall?: () => Promise<unknown>;
+  /** Runs after each tool call (e.g. audit logging of write operations). */
+  afterCall?: (tool: McpTool, args: Json, ok: boolean) => Promise<unknown>;
 }
+
+const MAX_BODY_BYTES = 256 * 1024;
+const MAX_BATCH = 20;
 
 const PROTOCOL_VERSION = "2025-06-18";
 
@@ -49,9 +54,16 @@ async function handle(server: McpServer, msg: RpcRequest) {
       try {
         const tool = server.tools.find((t) => t.name === msg.params?.name);
         if (!tool) throw new Error(`Unknown tool: ${msg.params?.name}`);
+        const args = msg.params?.arguments && typeof msg.params.arguments === "object" ? msg.params.arguments : {};
         await server.beforeCall?.();
-        const result = await tool.run(msg.params?.arguments || {});
-        return ok(msg.id, { content: [{ type: "text", text: JSON.stringify(result ?? null, null, 2) }] });
+        try {
+          const result = await tool.run(args);
+          await server.afterCall?.(tool, args, true);
+          return ok(msg.id, { content: [{ type: "text", text: JSON.stringify(result ?? null, null, 2) }] });
+        } catch (err) {
+          await server.afterCall?.(tool, args, false);
+          throw err;
+        }
       } catch (err: any) {
         return ok(msg.id, { content: [{ type: "text", text: err?.message || "Tool failed" }], isError: true });
       }
@@ -64,11 +76,14 @@ async function handle(server: McpServer, msg: RpcRequest) {
 export async function handleMcpRequest(req: Request, server: McpServer) {
   let body: RpcRequest | RpcRequest[];
   try {
-    body = await req.json();
+    const text = await req.text();
+    if (text.length > MAX_BODY_BYTES) return NextResponse.json(rpcError(null, -32600, "Request too large"), { status: 413 });
+    body = JSON.parse(text);
   } catch {
     return NextResponse.json(rpcError(null, -32700, "Parse error"), { status: 400 });
   }
-  const batch = Array.isArray(body) ? body : [body];
+  const batch = (Array.isArray(body) ? body : [body]).filter((m) => m && typeof m === "object");
+  if (batch.length > MAX_BATCH) return NextResponse.json(rpcError(null, -32600, "Batch too large"), { status: 413 });
   // Notifications (no id) get no response.
   const replies = await Promise.all(batch.filter((m) => m.id !== undefined && m.id !== null).map((m) => handle(server, m)));
   if (!replies.length) return new NextResponse(null, { status: 202 });

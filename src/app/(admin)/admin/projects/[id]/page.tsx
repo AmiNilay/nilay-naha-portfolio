@@ -55,7 +55,7 @@ export default function ProjectEditorPage() {
     title: "", slug: "", description: "", githubLink: "", liveLink: "", appLink: "", image: "",
     gDriveImage: "",
     publishDate: "", role: "", status: "Published", featured: false, frameStyle: "Browser",
-    relatedBlog: ""
+    relatedBlog: "", demoEmbed: ""
   });
 
   const [caseStudy, setCaseStudy] = useState<CaseStudy>(EMPTY_CASE_STUDY);
@@ -73,7 +73,7 @@ export default function ProjectEditorPage() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   useEffect(() => {
-    fetch("/api/blog")
+    fetch("/api/blog?all=1")
       .then(res => res.json())
       .then(data => {
         if (data.posts) setAvailableBlogs(data.posts);
@@ -84,7 +84,7 @@ export default function ProjectEditorPage() {
       setFormData(prev => ({ ...prev, publishDate: new Date().toISOString().slice(0, 16) }));
       return;
     }
-    fetch(`/api/projects?id=${id}`)
+    fetch(`/api/projects?id=${id}&all=1`)
       .then((res) => res.json())
       .then((data) => {
         if (data.project) {
@@ -96,7 +96,7 @@ export default function ProjectEditorPage() {
             gDriveImage: p.gDriveImage || "",
             publishDate: formattedDate, role: p.role || "", status: p.status || "Published", 
             featured: p.featured || false, frameStyle: p.frameStyle || "Browser",
-            relatedBlog: p.relatedBlog || ""
+            relatedBlog: p.relatedBlog || "", demoEmbed: p.demoEmbed || ""
           });
           setCaseStudy(caseStudyFrom(p));
           setTags(p.tags || (typeof p.techStack === 'string' ? p.techStack.split(',') : p.techStack) || []);
@@ -687,6 +687,18 @@ export default function ProjectEditorPage() {
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold tracking-wider text-zinc-500 dark:text-zinc-400 uppercase flex items-center gap-1">
+                <LinkIcon size={12} /> Interactive Demo Embed
+              </label>
+              <input 
+                value={formData.demoEmbed} 
+                onChange={(e) => setFormData({ ...formData, demoEmbed: e.target.value })} 
+                className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500/20" 
+                placeholder="StackBlitz, CodeSandbox, CodePen, Hugging Face Space, Replit, YouTube or your deployed app URL" 
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold tracking-wider text-zinc-500 dark:text-zinc-400 uppercase flex items-center gap-1">
                 <LinkIcon size={12} /> Linked Blog Post
               </label>
               <select 
@@ -940,7 +952,7 @@ export default function ProjectEditorPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
                 className="w-full h-[440px] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-950 text-zinc-100 font-mono text-xs leading-relaxed outline-none focus:ring-2 focus:ring-blue-500/20 resize-y" 
                 placeholder="<h2>Architectural Blueprint</h2>&#10;<p>Describe system design, trade-offs, benchmarks and interactive capabilities here...</p>" 
-              />
+              />
               <ContentSyntaxHint />
             </>
             ) : (

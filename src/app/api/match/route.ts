@@ -13,7 +13,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests — please try again later." }, { status: 429 });
   }
   try {
-    const { jd, resume } = await req.json();
+    const { jd: rawJd, resume } = await req.json();
+    // Cap input size: scoring cost grows with text length.
+    const jd = typeof rawJd === "string" ? rawJd.slice(0, 20000) : "";
     const hasJd = typeof jd === "string" && jd.trim().length >= 20;
     // `resume: true` also returns a tailored résumé (a general one when no JD is given).
     if (resume) {

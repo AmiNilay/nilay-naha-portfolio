@@ -6,6 +6,8 @@ import { connectToDB } from "@/lib/connectToDB";
 import { getHeroData } from "@/lib/publicData";
 import Post from "@/models/Post";
 import { processContent } from "@/lib/markdownProcessor";
+import { notFound } from "next/navigation";
+import { PUBLISHED_POST } from "@/lib/visibility";
 
 // Cached and regenerated at most once a minute; CMS saves purge it immediately
 // via revalidatePublicPages().
@@ -16,7 +18,7 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   try {
     await connectToDB();
-    const posts = await Post.find({}, { slug: 1 }).lean();
+    const posts = await Post.find(PUBLISHED_POST, { slug: 1 }).lean();
     return posts.filter((p: any) => p.slug).map((p: any) => ({ slug: p.slug }));
   } catch {
     return [];
@@ -24,14 +26,16 @@ export async function generateStaticParams() {
 }
 
 // Shared by generateMetadata and the page so each render queries once.
+// null = no published post with this slug (drafts included); undefined = lookup
+// failed, in which case the client retries instead of showing a 404.
 const getPost = cache(async (slug: string) => {
   try {
     await connectToDB();
-    const post = await Post.findOne({ slug }).lean();
+    const post = await Post.findOne({ slug, ...PUBLISHED_POST }).lean();
     return post ? JSON.parse(JSON.stringify(post)) : null;
   } catch (error) {
     console.error("Metadata post lookup error:", error);
-    return null;
+    return undefined;
   }
 });
 
@@ -98,6 +102,7 @@ export default async function Page({ params }: { params: { slug: string } }) {
     getPost(params.slug),
     getHeroAuthor(),
   ]);
+  if (initialPost === null) notFound();
 
   // Markdown/HTML → sanitized HTML with Drive media embeds, rendered on the server.
   const post = initialPost ? { ...initialPost, content: await processContent(initialPost.content || "") } : null;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import Hero from "@/models/Hero";
+import { audit } from "@/lib/audit";
 import { uploadToGithub, deleteFromGithub } from "@/lib/githubUpload";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export async function PUT(req: Request) {
       "siteTitle", "siteSubtitle",
       "badgeText", "showAvailability", 
       "line1Bold", "line1Accent", "line2Bold", "line2Accent",
-      "socialGithub", "socialLinkedin", "socialTwitter", "socialInstagram", "socialEmail",
+      "socialGithub", "socialLinkedin", "socialTwitter", "socialInstagram", "socialEmail", "bookingUrl",
       "techStack", "techMarqueeSpeed",
       "stat1Value", "stat1Label", 
       "stat2Value", "stat2Label", 
@@ -105,6 +106,7 @@ export async function PUT(req: Request) {
     );
 
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "hero.update", target: Object.keys(updateData).join(",") });
     return NextResponse.json(updatedHero);
   } catch (error) {
     console.error("API Error:", error);

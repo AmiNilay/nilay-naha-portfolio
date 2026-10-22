@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
 import Testimonials from "@/components/sections/Testimonials";
+import GitHubActivity from "@/components/sections/GitHubActivity";
 import CompanyLogo, { resolveLogoUrl } from "@/components/ui/CompanyLogo";
 import MediaFrame from "@/components/ui/MediaFrame";
 import { Linkedin } from "lucide-react";
@@ -793,6 +794,9 @@ export default function AboutClient() {
 
         {/* Recommendations (managed in /admin/testimonials) */}
         <Testimonials />
+
+        {/* Live public GitHub activity (/api/github) */}
+        <GitHubActivity />
 
         {/* =============================================================== */}
         {/* 9. BOTTOM APPLE STUDIO CTA                                     */}

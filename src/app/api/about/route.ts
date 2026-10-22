@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import About from "@/models/About";
+import { audit, pickFields } from "@/lib/audit";
 import { processContent } from "@/lib/markdownProcessor";
 
 export async function GET() {
@@ -20,9 +21,14 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     await connectToDB();
-    const body = await req.json();
-    const updated = await About.findOneAndUpdate({}, body, { new: true, upsert: true });
+    // Only schema fields, with Mongo operators / dotted keys stripped (NoSQL-injection guard).
+    const allowed = Object.keys(About.schema.paths)
+      .map((p) => p.split(".")[0])
+      .filter((p) => !["_id", "__v", "createdAt", "updatedAt"].includes(p));
+    const body = pickFields(await req.json(), allowed);
+    const updated = await About.findOneAndUpdate({}, { $set: body }, { new: true, upsert: true, runValidators: true });
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "about.update", target: Object.keys(body).join(",") });
     return NextResponse.json(updated);
   } catch (error) {
     console.error("PUT About Error:", error);

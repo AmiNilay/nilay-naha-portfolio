@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { X, Send, RotateCcw, Volume2, VolumeX, Download, ExternalLink, ArrowUpRight, Mic, Square, AudioLines } from "lucide-react";
-import HumanAvatar, { type AvatarEmotion } from "@/components/chatbot/HumanAvatar";
+import { X, ArrowUp, RotateCcw, Volume2, VolumeX, Download, ExternalLink, ArrowUpRight, Mic, Square, AudioLines, MoreHorizontal, Languages, Check } from "lucide-react";
+import { type AvatarEmotion } from "@/components/chatbot/HumanAvatar";
+import Avatar, { AvatarMark, preload3DAvatar } from "@/components/chatbot/Avatar";
 import MessageContent from "@/components/chatbot/MessageContent";
 import { playSound, isSoundEnabled, setSoundEnabled, type SoundName } from "@/components/chatbot/sounds";
 import { fetchWithSessionCache } from "@/lib/clientCache";
@@ -98,7 +99,7 @@ const toDriveView = (url: string) => {
 function LinkChip({ link }: { link: LinkItem }) {
   const internal = link.url.startsWith("/");
   const className =
-    "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border border-cyan-500/30 bg-cyan-500/5 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/15 transition-colors";
+    "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] border border-[#D97757]/35 text-[#B4532F] dark:text-[#E8957A] hover:bg-[#D97757]/10 transition-colors";
   return internal ? (
     <Link href={link.url} className={className}>
       {link.label}
@@ -146,7 +147,9 @@ export default function Chatbot() {
   const contextRef = useRef<string | undefined>(undefined);
   const askedRef = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const emotionTimer = useRef<ReturnType<typeof setTimeout>>();
   const idleTimer = useRef<ReturnType<typeof setTimeout>>();
   const clicks = useRef<number[]>([]);
@@ -207,7 +210,26 @@ export default function Chatbot() {
   }, []);
   useEffect(scrollToEnd, [messages, waiting, scrollToEnd]);
 
+  // Settings popover closes on any outside click.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", onDown);
+    return () => window.removeEventListener("pointerdown", onDown);
+  }, [menuOpen]);
+
+  // Composer grows with its content (up to ~5 lines).
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+  }, [input, isOpen]);
+
   const open = () => {
+    preload3DAvatar();
     setIsOpen(true);
     setTeaserDismissed(true);
     feel("surprised", 900, "open");
@@ -217,6 +239,7 @@ export default function Chatbot() {
 
   const close = () => {
     setIsOpen(false);
+    setMenuOpen(false);
     stopSpeaking();
     recognitionRef.current?.abort?.();
     setListening(false);
@@ -291,7 +314,7 @@ export default function Chatbot() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: ask, context: contextRef.current }),
+        body: JSON.stringify({ question: ask, context: contextRef.current, language: lang, path: pathname }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
@@ -341,6 +364,7 @@ export default function Chatbot() {
   };
 
   const reset = () => {
+    setMenuOpen(false);
     setMessages([WELCOME]);
     contextRef.current = undefined;
     feel("happy", 1500, "receive");
@@ -407,13 +431,14 @@ export default function Chatbot() {
 
   const last = messages[messages.length - 1];
   const showStarters = messages.length === 1 && !waiting;
+  const status = listening ? "Listening…" : waiting ? "Thinking…" : "Answers from this portfolio";
 
   return (
     <>
       {/* Invisible viewport bounds for dragging the launcher. */}
       <div ref={dragBounds} className="fixed inset-3 pointer-events-none z-[59]" aria-hidden />
 
-      {/* Launcher */}
+      {/* Launcher: the 3D character itself, no backdrop disc */}
       <motion.div
         drag
         dragConstraints={dragBounds}
@@ -421,7 +446,7 @@ export default function Chatbot() {
         dragElastic={0.15}
         onDragStart={() => (dragged.current = true)}
         onDragEnd={() => setTimeout(() => (dragged.current = false), 50)}
-        className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-[60] touch-none"
+        className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-[60] touch-none"
       >
         <AnimatePresence>
           {!isOpen && !teaserDismissed && (
@@ -430,13 +455,15 @@ export default function Chatbot() {
               initial={{ opacity: 0, x: 8, scale: 0.95 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 8, scale: 0.95 }}
-              className="absolute right-[calc(100%+10px)] bottom-3 hidden sm:flex items-center gap-2 whitespace-nowrap pl-3.5 pr-2 py-2 rounded-2xl rounded-br-md bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-lg text-xs font-semibold text-zinc-800 dark:text-zinc-100"
+              className="absolute right-[calc(100%+6px)] bottom-6 hidden sm:flex items-center gap-2 whitespace-nowrap pl-3.5 pr-2 py-2 rounded-2xl rounded-br-md bg-[#FAF9F5]/95 dark:bg-[#30302E]/95 backdrop-blur-xl border border-[#E8E4DA] dark:border-[#3D3D3A] shadow-lg text-[13px] text-[#1F1E1D] dark:text-[#F5F4EF]"
             >
-              <button onClick={open} className="text-left">{TEASERS[teaser]}</button>
+              <button onClick={open} onPointerEnter={preload3DAvatar} className="text-left">
+                {TEASERS[teaser]}
+              </button>
               <button
                 onClick={() => setTeaserDismissed(true)}
                 aria-label="Dismiss"
-                className="p-0.5 rounded-full text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                className="p-0.5 rounded-full text-[#8A877E] hover:text-[#1F1E1D] dark:hover:text-white"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -446,17 +473,17 @@ export default function Chatbot() {
 
         <motion.button
           onClick={onLauncherClick}
-          tabIndex={0}
+          onPointerEnter={preload3DAvatar}
           onHoverStart={() => !isOpen && emotion !== "thinking" && feel("happy", 1800)}
-          whileHover={reduceMotion ? undefined : { scale: 1.06 }}
+          whileHover={reduceMotion ? undefined : { scale: 1.06, y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.94 }}
           aria-label={isOpen ? "Close chat assistant" : "Open chat assistant"}
           aria-expanded={isOpen}
-          className="relative block rounded-full shadow-[0_10px_30px_-6px_rgba(79,70,229,0.55)] ring-4 ring-white dark:ring-zinc-900 focus:outline-none focus-visible:ring-cyan-400"
+          className="relative block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D97757] drop-shadow-[0_10px_18px_rgba(0,0,0,0.28)]"
         >
-          <HumanAvatar emotion={emotion} size={60} />
+          <Avatar emotion={emotion} size={76} />
           {!isOpen && (
-            <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900" aria-hidden />
+            <span className="absolute top-2 right-2 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#262624]" aria-hidden />
           )}
         </motion.button>
       </motion.div>
@@ -467,84 +494,102 @@ export default function Chatbot() {
           <motion.section
             role="dialog"
             aria-label="Chat with Nilay's assistant"
-            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 380, damping: 32 }}
-            className="fixed z-[60] inset-x-2 top-16 bottom-24 sm:inset-auto sm:bottom-28 sm:right-6 sm:w-[400px] sm:h-[620px] sm:max-h-[calc(100dvh-9rem)] flex flex-col rounded-[28px] overflow-hidden bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-[0_24px_70px_-12px_rgba(0,0,0,0.35)]"
+            exit={{ opacity: 0, y: 20, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 380, damping: 34 }}
+            className="fixed z-[60] inset-x-2 top-16 bottom-28 sm:inset-auto sm:bottom-28 sm:right-5 sm:w-[430px] sm:h-[660px] sm:max-h-[calc(100dvh-9rem)] flex flex-col rounded-[24px] overflow-hidden bg-[#FAF9F5] dark:bg-[#262624] text-[#1F1E1D] dark:text-[#F5F4EF] border border-[#E8E4DA] dark:border-[#3D3D3A] shadow-[0_28px_80px_-16px_rgba(31,30,29,0.35)]"
           >
             {/* Header */}
-            <header className="flex items-center gap-3 px-4 py-3 border-b border-zinc-200/70 dark:border-zinc-800">
-              <HumanAvatar emotion={emotion} size={44} />
+            <header className="relative flex items-center gap-3 pl-4 pr-2.5 py-3 border-b border-[#EDE9DF] dark:border-[#34342F]">
+              <Avatar emotion={emotion} size={44} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">Nilay&apos;s Assistant</p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${waiting ? "bg-amber-400 animate-pulse" : "bg-emerald-500"}`} />
-                  {listening ? "Listening…" : waiting ? "Thinking…" : "Answers from this portfolio"}
+                <p className="font-serif text-[17px] leading-tight tracking-[-0.01em] whitespace-nowrap">Nilay&apos;s Assistant</p>
+                <p className="mt-0.5 text-xs text-[#6B6860] dark:text-[#A3A097] flex items-center gap-1.5 whitespace-nowrap">
+                  <span className={`w-1.5 h-1.5 rounded-full ${listening ? "bg-rose-500 animate-pulse" : waiting ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
+                  {status}
                 </p>
               </div>
-              <select
-                value={lang}
-                onChange={(e) => changeLang(e.target.value as ChatLang)}
-                aria-label="Answer language"
-                title="Answer language"
-                className="max-w-[84px] px-1.5 py-1 rounded-lg text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border-none focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-              >
-                {LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={toggleSpeak}
-                aria-label={speakOn ? "Stop reading answers aloud" : "Read answers aloud"}
-                aria-pressed={speakOn}
-                title={speakOn ? "Stop reading answers aloud" : "Read answers aloud"}
-                className={`p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 ${speakOn ? "text-cyan-600 dark:text-cyan-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"}`}
-              >
-                <AudioLines className="w-4 h-4" />
-              </button>
-              <button
-                onClick={toggleSound}
-                aria-label={soundOn ? "Mute sounds" : "Turn on sounds"}
-                title={soundOn ? "Mute sounds" : "Turn on sounds"}
-                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={reset}
-                aria-label="Start over"
-                title="Start over"
-                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
+
+              <div ref={menuRef} className="relative">
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="Chat settings"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  title="Settings"
+                  className="p-2 rounded-xl text-[#6B6860] dark:text-[#A3A097] hover:text-[#1F1E1D] dark:hover:text-white hover:bg-[#F0EEE6] dark:hover:bg-[#30302E] transition-colors"
+                >
+                  <MoreHorizontal className="w-[18px] h-[18px]" />
+                </button>
+                <AnimatePresence>
+                  {menuOpen && (
+                    <motion.div
+                      role="menu"
+                      initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                      transition={{ duration: 0.14 }}
+                      className="absolute right-0 top-[calc(100%+6px)] z-10 w-60 p-1.5 rounded-2xl bg-white dark:bg-[#30302E] border border-[#E8E4DA] dark:border-[#3D3D3A] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.3)]"
+                    >
+                      <label className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px]">
+                        <Languages className="w-4 h-4 text-[#6B6860] dark:text-[#A3A097] shrink-0" />
+                        <span className="flex-1">Language</span>
+                        <select
+                          value={lang}
+                          onChange={(e) => changeLang(e.target.value as ChatLang)}
+                          aria-label="Answer language"
+                          className="max-w-[110px] px-2 py-1 rounded-lg text-xs bg-[#F0EEE6] dark:bg-[#262624] border-none focus:outline-none focus:ring-2 focus:ring-[#D97757]/40"
+                        >
+                          {LANGUAGES.map((l) => (
+                            <option key={l.code} value={l.code}>
+                              {l.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <MenuItem
+                        icon={<AudioLines className="w-4 h-4" />}
+                        label="Read answers aloud"
+                        checked={speakOn}
+                        onClick={toggleSpeak}
+                      />
+                      <MenuItem
+                        icon={soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                        label="Sound effects"
+                        checked={soundOn}
+                        onClick={toggleSound}
+                      />
+                      <div className="my-1 h-px bg-[#EDE9DF] dark:bg-[#3D3D3A]" />
+                      <MenuItem icon={<RotateCcw className="w-4 h-4" />} label="Start a new chat" onClick={reset} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <button
                 onClick={close}
                 aria-label="Close chat"
-                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                className="p-2 rounded-xl text-[#6B6860] dark:text-[#A3A097] hover:text-[#1F1E1D] dark:hover:text-white hover:bg-[#F0EEE6] dark:hover:bg-[#30302E] transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-[18px] h-[18px]" />
               </button>
             </header>
 
             {/* Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-5 overscroll-contain" aria-live="polite">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 space-y-6 overscroll-contain" aria-live="polite">
               {messages.map((m) =>
                 m.role === "user" ? (
                   <div key={m.id} className="flex justify-end">
-                    <p className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-[14px] leading-relaxed whitespace-pre-wrap">
+                    <p className="max-w-[85%] px-4 py-2.5 rounded-[20px] bg-[#F0EEE6] dark:bg-[#393937] text-[15px] leading-relaxed whitespace-pre-wrap break-words">
                       {m.content}
                     </p>
                   </div>
                 ) : (
-                  <div key={m.id} className="flex gap-2.5">
-                    <div className="shrink-0 mt-0.5">
-                      <HumanAvatar emotion={m === last ? emotion : "neutral"} size={28} track={false} />
+                  <div key={m.id} className="flex gap-3">
+                    <div className="shrink-0 mt-0.5 w-7 h-7 flex items-center justify-center">
+                      <AvatarMark size={28} />
                     </div>
-                    <div className="min-w-0 flex-1 text-zinc-700 dark:text-zinc-300 space-y-3">
+                    <div className="min-w-0 flex-1 text-[15px] leading-[1.7] text-[#2B2A27] dark:text-[#E8E6DF] space-y-3">
                       <MessageContent
                         text={m.content}
                         animate={m.animate && m === last}
@@ -556,7 +601,7 @@ export default function Chatbot() {
                           href={m.resumeUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 text-white text-sm font-semibold shadow-md hover:opacity-95"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#D97757] hover:bg-[#C6613F] text-white text-sm font-medium shadow-sm transition-colors"
                         >
                           <Download className="w-4 h-4" /> View / download résumé
                         </a>
@@ -574,15 +619,17 @@ export default function Chatbot() {
               )}
 
               {waiting && (
-                <div className="flex gap-2.5 items-center">
-                  <HumanAvatar emotion="thinking" size={28} track={false} />
-                  <div className="flex gap-1 px-3 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+                <div className="flex gap-3 items-center">
+                  <div className="shrink-0 w-7 h-7 flex items-center justify-center">
+                    <AvatarMark size={28} />
+                  </div>
+                  <div className="flex gap-1.5 py-2">
                     {[0, 1, 2].map((i) => (
                       <motion.span
                         key={i}
-                        className="w-1.5 h-1.5 rounded-full bg-zinc-400"
-                        animate={{ y: [0, -3, 0], opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                        className="w-2 h-2 rounded-full bg-[#D97757]"
+                        animate={{ scale: [0.6, 1, 0.6], opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
                       />
                     ))}
                   </div>
@@ -590,12 +637,12 @@ export default function Chatbot() {
               )}
 
               {showStarters && (
-                <div className="grid grid-cols-1 gap-2 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   {STARTERS.map((q) => (
                     <button
                       key={q}
                       onClick={() => send(q)}
-                      className="text-left px-3.5 py-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:border-cyan-500/50 hover:bg-cyan-500/5 transition-colors"
+                      className="text-left px-4 py-3 rounded-2xl border border-[#E8E4DA] dark:border-[#3D3D3A] bg-white/60 dark:bg-[#30302E]/60 text-[13.5px] leading-snug text-[#3D3B36] dark:text-[#D6D3CA] hover:border-[#D97757]/50 hover:bg-white dark:hover:bg-[#30302E] transition-colors"
                     >
                       {q}
                     </button>
@@ -604,12 +651,12 @@ export default function Chatbot() {
               )}
 
               {!waiting && last.role === "bot" && !last.animate && (last.quickReplies?.length ?? 0) > 0 && (
-                <div className="flex flex-wrap gap-1.5 pl-[38px]">
+                <div className="flex flex-wrap gap-2 pl-10">
                   {last.quickReplies!.slice(0, 3).map((q) => (
                     <button
                       key={q}
                       onClick={() => send(q)}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                      className="px-3.5 py-1.5 rounded-full text-[13px] border border-[#E8E4DA] dark:border-[#3D3D3A] text-[#3D3B36] dark:text-[#D6D3CA] hover:border-[#D97757]/50 hover:bg-white dark:hover:bg-[#30302E] transition-colors"
                     >
                       {q}
                     </button>
@@ -624,45 +671,69 @@ export default function Chatbot() {
                 e.preventDefault();
                 send(input);
               }}
-              className="p-3 border-t border-zinc-200/70 dark:border-zinc-800"
+              className="px-4 pb-3 pt-2"
             >
-              <div className="flex items-center gap-2 pl-4 pr-1.5 py-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-transparent focus-within:border-cyan-500/40 transition-colors">
-                <input
+              <div className="rounded-[22px] bg-white dark:bg-[#30302E] border border-[#E2DDD1] dark:border-[#45453F] shadow-[0_2px_10px_-4px_rgba(31,30,29,0.12)] focus-within:border-[#D97757]/60 transition-colors">
+                <textarea
                   ref={inputRef}
                   value={input}
+                  rows={1}
                   onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      send(input);
+                    }
+                  }}
                   maxLength={500}
-                  placeholder="Ask about projects, skills, experience…"
+                  placeholder={listening ? "Listening…" : "Ask about projects, skills, experience…"}
                   aria-label="Your question"
-                  className="flex-1 bg-transparent text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none"
+                  className="block w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-[15px] leading-relaxed placeholder:text-[#9A968C] focus:outline-none"
                 />
-                {voiceSupported && (
+                <div className="flex items-center justify-end gap-1.5 px-2.5 pb-2.5">
+                  {voiceSupported && (
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      disabled={waiting}
+                      aria-label={listening ? "Stop voice input" : "Ask with your voice"}
+                      aria-pressed={listening}
+                      title={listening ? "Stop voice input" : "Ask with your voice"}
+                      className={`p-2 rounded-xl transition-colors disabled:opacity-40 ${listening ? "bg-rose-500 text-white animate-pulse" : "text-[#6B6860] dark:text-[#A3A097] hover:text-[#1F1E1D] dark:hover:text-white hover:bg-[#F0EEE6] dark:hover:bg-[#393937]"}`}
+                    >
+                      {listening ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    </button>
+                  )}
                   <button
-                    type="button"
-                    onClick={toggleListening}
-                    disabled={waiting}
-                    aria-label={listening ? "Stop voice input" : "Ask with your voice"}
-                    aria-pressed={listening}
-                    title={listening ? "Stop voice input" : "Ask with your voice"}
-                    className={`p-2.5 rounded-xl transition-colors disabled:opacity-40 ${listening ? "bg-rose-500 text-white animate-pulse" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800"}`}
+                    type="submit"
+                    disabled={!input.trim() || waiting}
+                    aria-label="Send"
+                    className="p-2 rounded-xl bg-[#D97757] hover:bg-[#C6613F] text-white disabled:bg-[#E8D5CC] dark:disabled:bg-[#4A3F3A] disabled:text-white/80 transition-colors"
                   >
-                    {listening ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
                   </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={!input.trim() || waiting}
-                  aria-label="Send"
-                  className="p-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 text-white disabled:opacity-40 transition-opacity"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
+                </div>
               </div>
-              <p className="mt-1.5 text-center text-[10px] text-zinc-400">Answers are generated from Nilay&apos;s portfolio content.</p>
+              <p className="mt-2 text-center text-[11px] text-[#9A968C]">Answers come from Nilay&apos;s portfolio content.</p>
             </form>
           </motion.section>
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function MenuItem({ icon, label, checked, onClick }: { icon: React.ReactNode; label: string; checked?: boolean; onClick: () => void }) {
+  return (
+    <button
+      role={checked === undefined ? "menuitem" : "menuitemcheckbox"}
+      aria-checked={checked}
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] text-left hover:bg-[#F0EEE6] dark:hover:bg-[#393937] transition-colors"
+    >
+      <span className="text-[#6B6860] dark:text-[#A3A097]">{icon}</span>
+      <span className="flex-1">{label}</span>
+      {checked && <Check className="w-4 h-4 text-[#D97757]" />}
+    </button>
   );
 }

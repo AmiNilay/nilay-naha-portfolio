@@ -5,6 +5,7 @@ import Project from "@/models/Project";
 import Post from "@/models/Post";
 import Chatbot from "@/models/Chatbot";
 import Testimonial from "@/models/Testimonial";
+import { PUBLISHED_POST, PUBLISHED_PROJECT } from "@/lib/visibility";
 
 /**
  * Free, self-contained portfolio assistant (no LLM, no API key). Answers are
@@ -166,8 +167,8 @@ async function loadKnowledge(): Promise<Knowledge> {
   const [hero, about, projects, posts, testimonials, rules] = await Promise.all([
     Hero.findOne().lean(),
     About.findOne({}).lean(),
-    Project.find().sort({ featured: -1, publishDate: -1, createdAt: -1 }).lean(),
-    Post.find().sort({ publishDate: -1, createdAt: -1 }).lean(),
+    Project.find(PUBLISHED_PROJECT).sort({ featured: -1, publishDate: -1, createdAt: -1 }).lean(),
+    Post.find(PUBLISHED_POST).sort({ publishDate: -1, createdAt: -1 }).lean(),
     Testimonial.find({ published: true }).sort({ order: 1 }).lean(),
     Chatbot.find().lean(),
   ]);

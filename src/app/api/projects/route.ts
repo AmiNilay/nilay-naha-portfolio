@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { audit } from "@/lib/audit";
+import { includeDrafts, PUBLISHED_PROJECT } from "@/lib/visibility";
 import Project from "@/models/Project";
 import { uploadToGithub } from "@/lib/githubUpload";
 
@@ -67,20 +69,22 @@ export async function GET(req: Request  ) {
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get("slug");
     const id = searchParams.get("id");
+    // Drafts only for admin screens (?all=1 + admin cookie).
+    const scope = (await includeDrafts(req)) ? {} : PUBLISHED_PROJECT;
 
     if (slug) {
-      const project = await Project.findOne({ slug });
+      const project = await Project.findOne({ slug, ...scope });
       return project ? NextResponse.json({ project }) : NextResponse.json({ error: "Not Found" }, { status: 404 });
     }
 
     if (id) {
       const project = id.match(/^[0-9a-fA-F]{24}$/) 
-        ? await Project.findById(id) 
-        : await Project.findOne({ slug: id });
+        ? await Project.findOne({ _id: id, ...scope }) 
+        : await Project.findOne({ slug: id, ...scope });
       return project ? NextResponse.json({ project }) : NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const projects = await Project.find().sort({ publishDate: -1, createdAt: -1 });
+    const projects = await Project.find(scope).sort({ publishDate: -1, createdAt: -1 });
     return NextResponse.json({ projects: projects || [] });
   } catch (error: any) {
     return NextResponse.json({ error: "Server Error", details: error.message }, { status: 500 });
@@ -106,6 +110,7 @@ export async function POST(req: Request) {
     const featured = formData.get("featured") === "true";
     const gDriveImage = formData.get("gDriveImage") as string;
     const relatedBlog = formData.get("relatedBlog") as string; // ✅ Extract
+    const demoEmbed = formData.get("demoEmbed") as string;
     const imageFile = formData.get("image") as File;
 
     let imageUrl = "";
@@ -119,12 +124,14 @@ export async function POST(req: Request) {
       role, status, frameStyle, featured,
       gDriveImage: formatGDriveUrl(gDriveImage),
       relatedBlog: relatedBlog || "", // ✅ Save
+      demoEmbed: demoEmbed || "",
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       tags: tagsString ? tagsString.split(",").map(t => t.trim()) : [],
       ...caseStudyFields(formData),
     });
 
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "project.create" });
     return NextResponse.json({ project: newProject }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -157,6 +164,7 @@ export async function PUT(req: Request) {
     
     if (formData.has("featured")) project.featured = formData.get("featured") === "true";
     if (formData.has("relatedBlog")) project.relatedBlog = formData.get("relatedBlog") as string; // ✅ Update
+    if (formData.has("demoEmbed")) project.demoEmbed = formData.get("demoEmbed") as string;
     
     const gDriveImage = formData.get("gDriveImage") as string;
     if (gDriveImage !== null) project.gDriveImage = formatGDriveUrl(gDriveImage);
@@ -177,6 +185,7 @@ export async function PUT(req: Request) {
 
     await project.save();
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "project.update" });
     return NextResponse.json({ project }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -192,6 +201,7 @@ export async function DELETE(req: Request) {
     if (id.match(/^[0-9a-fA-F]{24}$/)) await Project.findByIdAndDelete(id);
     else await Project.findOneAndDelete({ slug: id });
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "project.delete" });
     return NextResponse.json({ message: "Deleted" }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });

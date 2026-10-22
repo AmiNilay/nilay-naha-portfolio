@@ -12,12 +12,13 @@ import {
   LogOut,
   Bot,
   BellRing,
+  ShieldCheck,
   X,
   ExternalLink,
   Sparkles,
-  ShieldCheck,
   TrendingUp,
   MessageSquareQuote,
+  MessageCircleQuestion,
 } from "lucide-react";
 
 interface NavItem {
@@ -33,6 +34,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
       { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
+      { name: "Chat Insights", href: "/admin/insights", icon: MessageCircleQuestion },
     ],
   },
   {
@@ -50,6 +52,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { name: "Train Chatbot", href: "/admin/chatbot", icon: Bot },
       { name: "Push Alerts", href: "/admin/notifications", icon: BellRing },
+      { name: "Security", href: "/admin/security", icon: ShieldCheck },
     ],
   },
 ];

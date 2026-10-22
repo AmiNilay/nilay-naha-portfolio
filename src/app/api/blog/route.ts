@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { audit } from "@/lib/audit";
 import Post from "@/models/Post";
 import { uploadToGithub } from "@/lib/githubUpload";
 import { driveImageUrl } from "@/lib/driveMedia";
+import { includeDrafts, PUBLISHED_POST } from "@/lib/visibility";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -17,17 +19,19 @@ export async function GET(req: Request  ) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const slug = searchParams.get("slug");
+    // Drafts only for admin screens (?all=1 + admin cookie).
+    const scope = (await includeDrafts(req)) ? {} : PUBLISHED_POST;
 
     if (id) {
-      const post = await Post.findById(id);
+      const post = /^[0-9a-fA-F]{24}$/.test(id) ? await Post.findOne({ _id: id, ...scope }) : null;
       return post ? NextResponse.json({ post }) : NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     if (slug) {
-      const post = await Post.findOne({ slug });
+      const post = await Post.findOne({ slug, ...scope });
       return post ? NextResponse.json({ post }) : NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const posts = await Post.find().sort({ publishDate: -1, createdAt: -1 });
+    const posts = await Post.find(scope).sort({ publishDate: -1, createdAt: -1 });
     return NextResponse.json({ posts: posts || [] });
   } catch (error: any) {
     return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
@@ -67,6 +71,7 @@ export async function POST(req: Request) {
     });
 
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "post.create" });
     return NextResponse.json({ post: newPost }, { status: 201 });
   } catch (error: any) {
     if (error.code === 11000) return NextResponse.json({ error: "Slug already exists." }, { status: 400 });
@@ -106,6 +111,7 @@ export async function PUT(req: Request) {
 
     await post.save();
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "post.update" });
     return NextResponse.json({ post }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -122,6 +128,7 @@ export async function DELETE(req: Request) {
     await Post.findByIdAndDelete(id);
 
     revalidatePublicPages();
+    await audit(req, { actor: "admin", action: "post.delete" });
     return NextResponse.json({ message: "Deleted successfully" }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });

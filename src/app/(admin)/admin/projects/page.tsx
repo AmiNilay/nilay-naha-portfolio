@@ -59,7 +59,7 @@ export default function AdminProjects() {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch("/api/projects");
+      const res = await fetch("/api/projects?all=1");
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setProjects(data.projects || []);

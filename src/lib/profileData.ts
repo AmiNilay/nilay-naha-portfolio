@@ -4,6 +4,7 @@ import About from "@/models/About";
 import Project from "@/models/Project";
 import Post from "@/models/Post";
 import { getHeroData } from "@/lib/publicData";
+import { PUBLISHED_POST, PUBLISHED_PROJECT } from "@/lib/visibility";
 
 export const SITE_URL = "https://nilay-naha-portfolio.vercel.app";
 
@@ -24,9 +25,9 @@ export const getProfile = cache(async () => {
     const [hero, about, projects, posts]: any[] = await Promise.all([
       getHeroData(),
       About.findOne({}).lean(),
-      Project.find({}, { title: 1, slug: 1, description: 1, tags: 1, githubLink: 1, liveLink: 1 })
+      Project.find(PUBLISHED_PROJECT, { title: 1, slug: 1, description: 1, tags: 1, githubLink: 1, liveLink: 1 })
         .sort({ featured: -1, publishDate: -1 }).lean(),
-      Post.find({}, { title: 1, slug: 1, excerpt: 1 }).sort({ publishDate: -1, createdAt: -1 }).lean(),
+      Post.find(PUBLISHED_POST, { title: 1, slug: 1, excerpt: 1 }).sort({ publishDate: -1, createdAt: -1 }).lean(),
     ]);
     const experience: any[] = about?.experience || [];
     return {

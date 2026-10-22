@@ -1,21 +1,44 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
+// Places where visitors legitimately type, paste or copy: form fields, the chat
+// window (answers, emails, links) and anything explicitly opted in.
+const INTERACTIVE = 'input, textarea, select, [contenteditable="true"], [role="dialog"], [data-allow-select]';
+
+const isInteractive = (target: EventTarget | null) =>
+  target instanceof Element && Boolean(target.closest(INTERACTIVE));
+
+/**
+ * Anti-theft guard for public pages: blocks right-click, copy/cut/save/view-source
+ * shortcuts, F12, image dragging and text selection. Form fields and the chat
+ * dialog stay fully usable. Disabled on /admin and on the résumé pages, which
+ * need Ctrl+P / print-to-PDF.
+ */
 export default function ContentProtection() {
+  const pathname = usePathname() || "";
+  const enabled = !pathname.startsWith("/admin") && !pathname.startsWith("/resume");
+
   useEffect(() => {
-    // 1. Disable Right Click
+    if (!enabled) return;
+
+    // 1. Disable Right Click (except in fields, so right-click → Paste works)
     const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
+      if (!isInteractive(e.target)) e.preventDefault();
     };
 
-    // 2. Disable Keyboard Shortcuts (Ctrl+C, Ctrl+U, F12, etc.)
+    // 2. Disable Keyboard Shortcuts (Ctrl+C, Ctrl+U, F12, etc.) outside fields
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Block Ctrl+C (Copy), Ctrl+X (Cut), Ctrl+U (View Source), Ctrl+S (Save), Ctrl+P (Print)
-      if (
-        (e.ctrlKey && (e.key === "c" || e.key === "C" || e.key === "x" || e.key === "u" || e.key === "s" || e.key === "p")) ||
-        e.key === "F12" // Block Developer Tools (F12)
-      ) {
+      const key = e.key.toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+      // Ctrl+U (view source), Ctrl+S (save) and F12 are blocked everywhere;
+      // copy/cut/print only outside fields and the chat dialog.
+      if ((mod && (key === "u" || key === "s")) || e.key === "F12") {
+        e.preventDefault();
+        return;
+      }
+      if (mod && (key === "c" || key === "x" || key === "p") && !isInteractive(e.target)) {
         e.preventDefault();
       }
     };
@@ -60,7 +83,9 @@ export default function ContentProtection() {
       window.removeEventListener("error", handleExtensionErrors, true);
       window.removeEventListener("unhandledrejection", handleExtensionRejections, true);
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <style jsx global>{`
@@ -72,15 +97,21 @@ export default function ContentProtection() {
         -ms-user-select: none; /* IE/Edge */
       }
 
-      /* Allow selection inside Inputs/Textareas so contact form works */
-      input, textarea {
+      /* Allow selection in fields and the chat dialog so they stay usable */
+      input,
+      textarea,
+      select,
+      [contenteditable="true"],
+      [role="dialog"],
+      [role="dialog"] *,
+      [data-allow-select],
+      [data-allow-select] * {
         user-select: text;
         -webkit-user-select: text;
       }
 
-      /* 5. CSS: prevent clicking/dragging images specifically */
+      /* 5. CSS: prevent dragging images (clicks still reach wrapping links) */
       img {
-        pointer-events: none; /* Makes image 'invisible' to clicks/drags */
         -webkit-user-drag: none;
       }
     `}</style>

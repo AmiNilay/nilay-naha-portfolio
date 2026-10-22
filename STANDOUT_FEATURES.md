@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 10:11 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 10:34 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -311,7 +311,81 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 
 ---
 
-## 🧰 Setup Checklist — Things YOU Need to Do
+## 31. Claude-Style Chat + Real 3D Avatar
+
+| | |
+| :--- | :--- |
+| **What** | The chat window is redesigned in a Claude-like style: a warm ivory/stone palette, a serif header, plain-text answers and pill-shaped user bubbles. Settings live in a ⋯ menu, and the message box grows as you type. The avatar is a **real three.js 3D head**: lit skin, glossy eyes that follow the cursor, blinking, 9 emotions and idle breathing, on a transparent background with no backdrop. |
+| **Why it stands out** | The 3D head is built in code, so there is no model download. It loads after the page becomes idle, so first paint isn't slowed, and the SVG shows instantly until it's ready. It pauses when off-screen. |
+| **How to use** | Click the launcher. The ⋯ menu has language, read-aloud, sounds and new chat. Enter sends; Shift+Enter adds a new line. |
+
+## 32. Security Hardening
+
+| | |
+| :--- | :--- |
+| **What** | Signed, expiring admin sessions (HMAC) instead of a raw secret in the cookie, and login brute-force throttling. Every public endpoint is rate-limited, and cookie writes must come from your own site. There are CSP, HSTS and other security headers, MongoDB injection filtering, a contact-form honeypot, and an **audit log** of every admin and AI-agent change. Several real leaks are closed: the contact messages API and the push subscriber count were public. |
+| **Why it stands out** | Portfolios now expose AI agents with write access (MCP), so guardrails and an audit trail are a senior-engineering signal. |
+| **How to use** | Log in again after this deploy, because old cookies are rejected. Make ADMIN_SECRET at least 16 characters. Review activity at **Admin → Security**. |
+
+## 33. Drafts Hidden Everywhere + Content Protection On
+
+| | |
+| :--- | :--- |
+| **What** | Unpublished posts and projects never appear publicly: lists, pages (404), the chatbot, the sitemap, llms.txt and the MCP servers. The admin panel still sees them. Anti-copy protection is now active on public pages, while inputs and the chat still allow copy and paste. |
+| **How to use** | Untick *Published* (blog) or set status *Draft* (project) to hide an item. |
+
+## 34. Chat Insights Dashboard
+
+| | |
+| :--- | :--- |
+| **What** | **Admin → Chat Insights**: question volume, top questions and topics, and **unanswered questions**, which are your content gaps. Logs are anonymous (hashed IPs) and auto-delete after 180 days. |
+| **Why it stands out** | Your portfolio tells you what recruiters actually want to know. |
+| **How to use** | Check it weekly, and turn the unanswered questions into content or chatbot rules. |
+
+## 35. Live GitHub Activity
+
+| | |
+| :--- | :--- |
+| **What** | A *Currently Building* section on About with recent pushes, PRs and releases, plus your three most recently pushed repos. It's cached for an hour. |
+| **How to use** | Automatic, using your GitHub link from Admin → Home. |
+
+## 36. Book a Call
+
+| | |
+| :--- | :--- |
+| **What** | A prominent *Book a call* card on the Contact page. |
+| **How to use** | Create a free Cal.com or Calendly link and paste it into **Admin → Home → Booking URL**. The card appears once it's set. |
+
+## 37. Interactive Project Demos
+
+| | |
+| :--- | :--- |
+| **What** | *Try the live demo* on project pages. It embeds StackBlitz, CodeSandbox, CodePen, Hugging Face Spaces, Replit, YouTube or your deployed app, loaded only when clicked and sandboxed. |
+| **How to use** | Admin → Projects → edit → *Interactive Demo Embed URL*. |
+
+---
+
+## 🧭 Honest Assessment — How This Portfolio Compares in the 2026 AI Era
+
+**Short version:** it's in the **top tier technically**. Most 2026 portfolios are a template, a paid-API chatbot and a project grid. This one is a full product: its own CMS, two MCP servers, AI-engine discoverability, a free explainable chatbot with voice and languages, recruiter tools (job match, tailored résumé), on-device semantic search, analytics, an audit trail and real security.
+
+**What makes it stand out**
+- **AI-native, not AI-decorated:** MCP servers, llms.txt, on-device ML, and an assistant that acts (navigates) instead of only chatting.
+- **₹0 running cost**, with no paid LLM keys. That's a design decision you can explain in interviews.
+- **Engineering depth:** security, rate limiting, audit logs, caching and PWA. These are things hiring managers rarely see in portfolios.
+
+**Where it can still lose to others (be honest)**
+1. **Content beats features.** Recruiters spend 30–90 seconds on a portfolio. Two or three **excellent case studies** with real metrics, demo GIFs and evaluations will matter more than any new feature. Fill them in.
+2. **Proof of impact:** real users, stars, deployments, internship results. Add numbers wherever you truthfully can.
+3. **Feature overload risk:** keep the home page simple. The advanced features should feel discoverable, not noisy.
+4. **Freshness:** a blog post or project update every 2–4 weeks keeps GitHub activity, the sitemap and AI engines current.
+
+## 💡 More Standout Ideas (beyond the roadmap)
+
+| Idea | Why | Effort |
+| :--- | :--- | :-: |
+| **Architecture diagrams** on project pages (Mermaid rendered in content) | Shows system-design thinking | Small |
+| **\ — Things YOU Need to Do
 
 All of these are **free**. Do each one once.
 
@@ -322,7 +396,7 @@ Add each one to **Production**, **Preview** and **Development**, then **redeploy
 | :--- | :--- | :--- |
 | `MONGODB_URI` | Database connection | MongoDB Atlas → Database → Connect → Drivers → copy the URI. Under Network Access, allow `0.0.0.0/0`, because Vercel's IP addresses change. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin login | Choose them yourself. Use a strong password. |
-| `ADMIN_SECRET` | Admin cookie value **and** the admin MCP bearer token | Generate a long random value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never share it. |
+| `ADMIN_SECRET` | Signs admin sessions **and** is the admin MCP bearer token (must be 16+ characters; after changing it, log in again) | Generate a long random value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never share it. |
 | `GITHUB_TOKEN` | Uploads images to the assets repo | GitHub → Settings → Developer settings → **Fine-grained token** → Repository access: `my-portfolio-assets` only → Permissions: **Contents: Read and write**. Set a reminder before it expires. |
 | `GITHUB_USERNAME` / `GITHUB_REPO` | Asset repo location | `AmiNilay` / `my-portfolio-assets` |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push public key | See step 2 |
@@ -407,11 +481,11 @@ Features that would make a software engineer's portfolio stand out in the AI era
 
 | Priority | Feature | Why now | Effort |
 | :-: | :--- | :--- | :-: |
-| 1 | **Chat transcript insights** (#13) | You already get chatbot traffic; seeing the top questions tells you exactly what content recruiters want. | Small |
-| 2 | **Hide drafts site-wide** | Draft posts/projects are currently visible on public list pages and to the chatbot; only the public MCP and job match exclude them. | Small |
-| 3 | **Live GitHub activity** (#6) | A "currently building" feed proves you ship every week. | Small |
-| 4 | **Book-a-call** (#12, Cal.com free) | Turns a good job match straight into an interview slot. | Small |
-| 5 | **Security hardening** (#15): MCP/admin audit log + login rate limit | AI agents now have write access; log every change. | Medium |
+| ✅ 1 | **Chat transcript insights** (#13) | You already get chatbot traffic; seeing the top questions tells you exactly what content recruiters want. | Small |
+| ✅ 2 | **Hide drafts site-wide** | Draft posts/projects are currently visible on public list pages and to the chatbot; only the public MCP and job match exclude them. | Small |
+| ✅ 3 | **Live GitHub activity** (#6) | A "currently building" feed proves you ship every week. | Small |
+| ✅ 4 | **Book-a-call** (#12, Cal.com free) | Turns a good job match straight into an interview slot. | Small |
+| ✅ 5 | **Security hardening** (#15): MCP/admin audit log + login rate limit | AI agents now have write access; log every change. | Medium |
 | 6 | **Lighthouse CI badge** (#14) | Free GitHub Action; visible proof of performance and accessibility. | Small |
-| 7 | **Interactive demos** (#8): embed StackBlitz/CodeSandbox/Hugging Face Spaces in project pages | Try-before-you-hire. The new content embeds make this easy. | Medium |
-| 8 | **Enable Content Protection** | `ContentProtection.tsx` exists but is not mounted anywhere yet. | Tiny |
+| ✅ 7 | **Interactive demos** (#8): embed StackBlitz/CodeSandbox/Hugging Face Spaces in project pages | Try-before-you-hire. The new content embeds make this easy. | Medium |
+| ✅ 8 | **Enable Content Protection** | `ContentProtection.tsx` exists but is not mounted anywhere yet. | Tiny |

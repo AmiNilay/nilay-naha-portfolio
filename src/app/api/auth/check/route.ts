@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAuthenticated } from '@/lib/auth';
+import { isAdminRequest } from '@/lib/adminAuth';
 
+// Reports whether the caller holds a valid signed admin session cookie.
 export async function GET(req: NextRequest) {
-    // Uses the helper from @/lib/auth to validate the "x-admin-secret" header
-    const isAuth = await isAuthenticated(req);
-    
-    if (isAuth) {
+    if (await isAdminRequest(req)) {
         return NextResponse.json({ authenticated: true });
     }
-    
     return NextResponse.json({ authenticated: false }, { status: 401 });
 }

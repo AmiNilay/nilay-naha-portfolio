@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
 import {
+  CalendarClock,
+  ArrowUpRight,
   Mail,
   Linkedin,
   Github,
@@ -40,9 +42,14 @@ export default function ContactClient() {
     location: "Siliguri, India",
     timezone: "IST (UTC+5:30)",
   });
+  // Cal.com / Calendly link from Admin → Home; the "Book a call" card only renders when set.
+  const [bookingUrl, setBookingUrl] = useState("");
 
   // Form State
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  // Spam guards checked by /api/contact: hidden honeypot + time since the form appeared.
+  const [honeypot, setHoneypot] = useState("");
+  const [startedAt] = useState(() => Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -58,6 +65,9 @@ export default function ContactClient() {
             github: data.socialGithub || prev.github,
             linkedin: data.socialLinkedin || prev.linkedin,
           }));
+          if (typeof data.bookingUrl === "string" && /^https:\/\//i.test(data.bookingUrl.trim())) {
+            setBookingUrl(data.bookingUrl.trim());
+          }
         }
       })
       .catch(() => {});
@@ -85,7 +95,7 @@ export default function ContactClient() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, website: honeypot, startedAt }),
       });
 
       const json = await res.json().catch(() => ({}));
@@ -299,6 +309,24 @@ export default function ContactClient() {
               </div>
             </div>
 
+            {bookingUrl && (
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 p-3.5 rounded-2xl bg-[#0F766E] dark:bg-[#F59E0B] text-white dark:text-[#0B0F14] shadow-lg shadow-[#0F766E]/20 dark:shadow-[#F59E0B]/20 hover:-translate-y-0.5 transition-transform"
+              >
+                <div className="w-9 h-9 rounded-xl bg-white/15 dark:bg-black/10 flex items-center justify-center shrink-0">
+                  <CalendarClock className="w-4.5 h-4.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold leading-tight">Book a call</p>
+                  <p className="text-[11px] opacity-80 leading-tight">Pick a time that works for you</p>
+                </div>
+                <ArrowUpRight className="w-4 h-4 opacity-80 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
+            )}
+
             {/* Apple Confidentiality Guarantee Capsule */}
             <div className="p-3 rounded-2xl bg-gradient-to-br from-white/60 to-white/30 dark:from-white/[0.03] dark:to-white/[0.01] border border-[#E5E7EB] dark:border-white/[0.06] backdrop-blur-md">
               <div className="flex items-center gap-2.5">
@@ -384,6 +412,16 @@ export default function ContactClient() {
 
               {/* Interactive Form */}
               <form onSubmit={handleFormSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  name="website"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="absolute -left-[9999px] h-0 w-0 opacity-0"
+                />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Name Input */}
                   <div>

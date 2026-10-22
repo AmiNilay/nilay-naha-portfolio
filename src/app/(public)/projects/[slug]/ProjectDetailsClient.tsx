@@ -15,6 +15,7 @@ import Toast from "@/components/ui/Toast";
 import ReadingProgress from "@/components/blog/ReadingProgress";
 import TableOfContents from "@/components/blog/TableOfContents";
 import { motion, AnimatePresence } from "framer-motion";
+import ProjectDemo from "@/components/projects/ProjectDemo";
 import ProjectCaseStudy, {
   type CaseStudyHTML,
   type ProjectEvaluation,
@@ -54,6 +55,7 @@ interface Project {
   publishDate?: string;
   createdAt?: string;
   relatedBlog?: string;
+  demoEmbed?: string;
   tags?: string[];
   metrics?: ProjectMetric[];
   evaluation?: ProjectEvaluation;
@@ -666,6 +668,8 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
                 prose-td:p-3 prose-td:text-zinc-700 dark:prose-td:text-zinc-300 prose-td:border prose-td:border-zinc-200 dark:prose-td:border-zinc-800"
               dangerouslySetInnerHTML={{ __html: processedHTML }}
             />
+
+            <ProjectDemo url={project.demoEmbed} title={project.title} />
 
             {/* Markdown is rendered server-side; only trust it for the server-supplied project */}
             <ProjectCaseStudy

@@ -21,6 +21,7 @@ const HeroSchema = new Schema(
     socialLinkedin: String,
     socialTwitter: String,
     socialInstagram: String,
+    bookingUrl: String, // Cal.com / Calendly link for the Contact page "Book a call" button
     socialEmail: String,
     techStack: String,
     techMarqueeSpeed: { type: Number, default: 40 }, // seconds per full loop of the tech marquee

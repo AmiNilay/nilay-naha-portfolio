@@ -64,7 +64,7 @@ export default function AdminBlogPage() {
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch("/api/blog");
+      const res = await fetch("/api/blog?all=1");
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setPosts(data.posts || []);

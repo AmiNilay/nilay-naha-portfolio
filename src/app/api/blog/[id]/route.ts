@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { audit } from "@/lib/audit";
 import Post from "@/models/Post";
 import { uploadToGithub, deleteFromGithub } from "@/lib/githubUpload";
+import { includeDrafts, isPublicPost } from "@/lib/visibility";
 
 // 1. GET Single Blog Post
 export async function GET(
@@ -13,7 +15,7 @@ export async function GET(
     await connectToDB();
     const post = await Post.findById(params.id);
 
-    if (!post) {
+    if (!post || (!isPublicPost(post) && !(await includeDrafts(request)))) {
       return NextResponse.json({ error: "Blog post not found" }, { status: 404 });
     }
 
@@ -68,6 +70,7 @@ export async function PUT(
     );
 
     revalidatePublicPages();
+    await audit(request, { actor: "admin", action: "post.update" });
     return NextResponse.json({ message: "Blog post updated", post: updatedPost });
 
   } catch (error) {
@@ -100,6 +103,7 @@ export async function DELETE(
     await Post.findByIdAndDelete(params.id);
 
     revalidatePublicPages();
+    await audit(request, { actor: "admin", action: "post.delete" });
     return NextResponse.json({ message: "Blog post and image deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("DELETE Blog Error:", error);

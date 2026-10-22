@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import Subscription from "@/models/Subscription";
 import webpush from "web-push";
+import { isAdminRequest } from "@/lib/adminAuth";
+import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,10 @@ if (publicVapidKey && privateVapidKey) {
 }
 
 // GET: Fetch total subscriber count for the admin dashboard
-export async function GET() {
+export async function GET(req: Request) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: "Unauthorized Access" }, { status: 401 });
+  }
   try {
     await connectToDB();
     const count = await Subscription.countDocuments();
@@ -29,7 +34,11 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await connectToDB();
-    const { title, body, url } = await req.json();
+    const input = await req.json();
+    const title = typeof input?.title === "string" ? input.title.slice(0, 120) : "";
+    const body = typeof input?.body === "string" ? input.body.slice(0, 400) : "";
+    // Notifications may only link within this site.
+    const url = typeof input?.url === "string" && input.url.startsWith("/") && !input.url.startsWith("//") ? input.url : "/";
 
     if (!title || !body) {
       return NextResponse.json({ error: "Title and body are required" }, { status: 400 });
@@ -43,8 +52,9 @@ export async function POST(req: Request) {
     const payload = JSON.stringify({ 
       title, 
       body, 
-      url: url || "/" 
+      url
     });
+    await audit(req, { actor: "admin", action: "push.broadcast", target: title });
 
     let successCount = 0;
     let failCount = 0;
@@ -74,6 +84,6 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Broadcast Error:", error);
-    return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

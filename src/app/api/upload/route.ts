@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { uploadToGithub } from "@/lib/githubUpload";
+import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
     }
     const url = await uploadToGithub(file);
     if (!url) return NextResponse.json({ error: "Upload failed" }, { status: 502 });
+    await audit(req, { actor: "admin", action: "upload", target: url });
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Upload error:", error);

@@ -45,7 +45,7 @@ export default function EditBlogPostPage() {
   const [readTime, setReadTime] = useState(0);
 
   useEffect(() => {
-    fetch("/api/projects")
+    fetch("/api/projects?all=1")
       .then(res => res.json())
       .then(data => {
         if (data.projects) setAvailableProjects(data.projects);
@@ -60,7 +60,7 @@ export default function EditBlogPostPage() {
     if (!id) return;
     const fetchPost = async () => {
       try {
-        const res = await fetch(`/api/blog?id=${id}`);
+        const res = await fetch(`/api/blog?id=${id}&all=1`);
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         if (data.post) {
@@ -442,7 +442,7 @@ export default function EditBlogPostPage() {
                     isFullscreen ? 'h-[75vh]' : 'h-[500px]'
                   }`} 
                   placeholder="<h1>Deep Dive</h1>&#10;<p>Share architectural reasoning, insights, code snippets and analysis...</p>" 
-                />
+                />
                 <ContentSyntaxHint />
               </>
               ) : (

@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 10:21 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-22 10:34 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -233,6 +233,20 @@ my-portfolio/
 * **Separate Home vs About media:** About renders `About.gDriveProfilePic` → `About.image` → falls back to Hero media only when empty.
 * **Admin always light:** inline pre-paint script in `(admin)/layout.tsx` + `AdminLayoutClient` MutationObserver strip `dark` on `/admin`; visitor theme restored on exit.
 * **Last updated:** `next.config.js` → `NEXT_PUBLIC_LAST_DEPLOYED` (latest commit time via `git log -1`, fallback build time) via [`lastDeployed.ts`](file:///e:/my-portfolio/src/lib/lastDeployed.ts); shown in Hero (IST) and Admin → Home.
+
+### 19. Security, Drafts, Insights & Claude-style Chat — added 2026-10-22
+* **Admin session:** [`adminAuth.ts`](file:///e:/my-portfolio/src/lib/adminAuth.ts) — HMAC-SHA256 signed `admin_token` (7-day expiry, httpOnly, secure, sameSite=strict), edge-safe. Login: constant-time compare, 5 tries/IP/15 min + 30/instance, randomised failure delay. `/api/auth/check` uses the session.
+* **Middleware:** verifies the session for `/admin` and all mutating APIs, guards `/api/admin/**` + `?all=1` reads, enforces same-origin for cookie writes, 25 MB body cap. Public routes: contact, auth/login, auth/logout, push/subscribe, views, analytics/track, chat, mcp (bearer), mcp/public, match.
+* **Rate limits:** [`rateLimit.ts`](file:///e:/my-portfolio/src/lib/rateLimit.ts) sliding window per route+IP (per serverless instance). Contact 3/h, views 60/h (+1 view per post/IP/30 min), analytics 300/h, push 10/h, chat 60/h, match 30/h, public MCP 120/h, admin MCP 300/h (10 bad tokens/15 min lockout), admin writes 120/min.
+* **Validation & audit:** [`audit.ts`](file:///e:/my-portfolio/src/lib/audit.ts) (`sanitizeMongo`, `pickFields`, `isObjectId`, audit logger) + `AuditLog` model (180-day TTL, hashed IP). Viewable at `/admin/security` / `GET /api/admin/audit`. Contact form: honeypot + 2.5 s minimum fill time; `GET /api/contact` is admin-only. Push subscriber count is admin-only.
+* **Headers:** HSTS preload, nosniff, X-Frame-Options SAMEORIGIN, Referrer-Policy, Permissions-Policy (microphone=self), COOP, CSP (self + jsDelivr/Hugging Face for smart search, GitHub API, whitelisted embed frames). Admin pages: `no-store` + noindex.
+* **Drafts:** [`visibility.ts`](file:///e:/my-portfolio/src/lib/visibility.ts) — public APIs, pages (404), chatbot, sitemap, llms.txt and JSON-LD show published content only; admin fetches use `?all=1`. Sitemap bug fixed (blog posts were never listed).
+* **ContentProtection** is mounted for public pages (off on `/admin` and `/resume`); inputs, chat and `[data-allow-select]` keep copy/paste.
+* **Chat insights:** `ChatLog` model (180-day TTL, hashed IP) written fire-and-forget by `/api/chat`; `GET /api/admin/chat-insights?days=` → `/admin/insights` (totals, top questions/topics, unanswered = content gaps, daily volume).
+* **GitHub activity:** `GET /api/github` (1 h cache, optional `GITHUB_TOKEN`) → `GitHubActivity.tsx` *Currently Building* on About.
+* **Book a call:** Hero `bookingUrl` → Contact page card. **Interactive demos:** Project `demoEmbed` → click-to-load sandboxed iframe ([`ProjectDemo.tsx`](file:///e:/my-portfolio/src/components/projects/ProjectDemo.tsx)).
+* **Chat UI:** Claude-style warm palette, settings `⋯` menu (language, read-aloud, sounds, new chat), auto-grow composer. **3D avatar:** [`Avatar.tsx`](file:///e:/my-portfolio/src/components/chatbot/Avatar.tsx) shows the SVG instantly, then idle-loads [`Avatar3D.tsx`](file:///e:/my-portfolio/src/components/chatbot/Avatar3D.tsx) (procedural three.js head, ~150–180 KB gz, paused offscreen); message avatars use a captured snapshot.
+* **Removed (verified unused):** `lib/db.ts`, `lib/models/*`, `lib/auth.ts`, `components/theme-provider.tsx`, admin `AboutEditor`/`HomeEditor`/`BlogForm`/`AdminNav`, sections `FeaturedProjects`/`ProjectsSection`/`AboutPreview`/`Skills`/`ContactCTA`.
 
 ### 17. Hero Tech Marquee & Education Media — added 2026-10-22
 * Hero tech chips auto-scroll continuously; list (chip editor, reorder) and `techMarqueeSpeed` (seconds per loop, default 40) edited in Admin → Home. Inline animation so Windows reduced-motion halves speed instead of freezing. Hero no longer clips at md widths/short heights (removed `h-full md:overflow-hidden`; avatar `clamp(132px, min(26vw, 42dvh), 380px)`).
@@ -477,6 +491,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-22 10:34 | Security hardening (signed sessions, login throttle, rate limits everywhere, CSRF same-origin, CSP + headers, Mongo sanitising, audit log), drafts hidden site-wide, content protection on, chat insights, GitHub activity, book-a-call, interactive demos, Claude-style chat UI with procedural 3D avatar, 15 duplicate/unused files removed. |
 | 2026-10-22 10:21 | Rich HTML/CSS content + Drive image/GIF/video embeds everywhere (AI_CONTENT_PROMPT.md), admin always light, separate Home/About media with GIF/video, Drive URL fixes (incl. blog API), automatic deploy-time "Last updated", setup checklist in STANDOUT_FEATURES.md. |
 | 2026-10-22 10:11 | Public read-only MCP, job match, tailored résumé, on-device smart search, /ai page, chatbot voice + 9 languages, realistic 3D avatar, project case studies & evals, education photo/location/LinkedIn, 172-skill catalog, auto-scrolling hero tech marquee with admin speed, hero responsive fix. |
 | 2026-10-22 09:50 | Admin MCP server (`/api/mcp`); AI-crawler rules in robots.txt; Instagram social link; 3D-style chatbot avatar; chatbot auto-navigation and non-repeating follow-ups; home slider keeps section/scroll on reload; ghost cursor moved behind content (z-index -1); urgent-contact copy (email/LinkedIn) replaces the 24 h reply promise; admin pages network-only in the service worker; client cache 60 s expiry. |

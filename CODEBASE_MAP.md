@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 10.21 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-22 10:21 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -477,8 +477,8 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
-| 2026-10-22 10.21 | Rich HTML/CSS content + Drive image/GIF/video embeds everywhere (AI_CONTENT_PROMPT.md), admin always light, separate Home/About media with GIF/video, Drive URL fixes (incl. blog API), automatic deploy-time "Last updated", setup checklist in STANDOUT_FEATURES.md. |
-| 2026-10-22 10.11 | Public read-only MCP, job match, tailored résumé, on-device smart search, /ai page, chatbot voice + 9 languages, realistic 3D avatar, project case studies & evals, education photo/location/LinkedIn, 172-skill catalog, auto-scrolling hero tech marquee with admin speed, hero responsive fix. |
+| 2026-10-22 10:21 | Rich HTML/CSS content + Drive image/GIF/video embeds everywhere (AI_CONTENT_PROMPT.md), admin always light, separate Home/About media with GIF/video, Drive URL fixes (incl. blog API), automatic deploy-time "Last updated", setup checklist in STANDOUT_FEATURES.md. |
+| 2026-10-22 10:11 | Public read-only MCP, job match, tailored résumé, on-device smart search, /ai page, chatbot voice + 9 languages, realistic 3D avatar, project case studies & evals, education photo/location/LinkedIn, 172-skill catalog, auto-scrolling hero tech marquee with admin speed, hero responsive fix. |
 | 2026-10-22 09:50 | Admin MCP server (`/api/mcp`); AI-crawler rules in robots.txt; Instagram social link; 3D-style chatbot avatar; chatbot auto-navigation and non-repeating follow-ups; home slider keeps section/scroll on reload; ghost cursor moved behind content (z-index -1); urgent-contact copy (email/LinkedIn) replaces the 24 h reply promise; admin pages network-only in the service worker; client cache 60 s expiry. |
 | 2026-10-22 03:27 | Social preview image fix, Person JSON-LD, `/llms.txt`. |
 | 2026-10-22 03:21 | Human avatar assistant with emotions, sounds and Claude-style chat UI. |

@@ -143,8 +143,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
-- **2026-10-22 10.21 IST** — Rich HTML/CSS content with Google Drive image/GIF/video embeds (see `AI_CONTENT_PROMPT.md`), admin panel always light, separate Home/About media (GIF/video), Drive link fixes, automatic deploy-time "Last updated". Setup checklist (env vars, VAPID keys) in `STANDOUT_FEATURES.md`.
-- **2026-10-22 10.11 IST** — Recruiter tools: public read-only MCP server (`/api/mcp/public`), job-description matcher (`/match`), tailored résumé PDF (`/resume/tailored`), on-device AI smart search (Ctrl+K), `/ai` workflow page; chatbot voice input, read-aloud and 9 languages; realistic 3D avatar; project case studies & evaluation benchmarks; college photo/location/LinkedIn; 172-skill catalog; auto-scrolling hero tech marquee (speed editable).
+- **2026-10-22 10:21 IST** — Rich HTML/CSS content with Google Drive image/GIF/video embeds (see `AI_CONTENT_PROMPT.md`), admin panel always light, separate Home/About media (GIF/video), Drive link fixes, automatic deploy-time "Last updated". Setup checklist (env vars, VAPID keys) in `STANDOUT_FEATURES.md`.
+- **2026-10-22 10:11 IST** — Recruiter tools: public read-only MCP server (`/api/mcp/public`), job-description matcher (`/match`), tailored résumé PDF (`/resume/tailored`), on-device AI smart search (Ctrl+K), `/ai` workflow page; chatbot voice input, read-aloud and 9 languages; realistic 3D avatar; project case studies & evaluation benchmarks; college photo/location/LinkedIn; 172-skill catalog; auto-scrolling hero tech marquee (speed editable).
 - **2026-10-22 09:50 IST** — Admin MCP server, AI-crawler robots rules, Instagram link, 3D avatar, chatbot auto-navigation & smarter follow-ups, reload keeps section, cursor effect behind content, urgent-contact copy. Full history in [CODEBASE_MAP.md](CODEBASE_MAP.md#change-log).
 
 ---

@@ -131,6 +131,8 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
    - Before executing `git push`, **ALWAYS** run `git pull --rebase origin main` to ensure local is in sync with remote commits without conflict.
 3. **Google Drive Fallback:**
    - Google Drive URLs must be parsed through regex to generate working thumbnail URLs (`thumbnail?id=...` or `lh3.googleusercontent.com`) or embed URLs (`preview`). Do not use deprecated `uc?export=view` URLs.
+   - **Always use [`@/lib/driveMedia`](file:///e:/my-portfolio/src/lib/driveMedia.ts)** (`driveImageUrl`, `driveGifUrl`, `drivePreviewUrl`, `mediaKindFromUrl`) and render media with [`MediaFrame`](file:///e:/my-portfolio/src/components/ui/MediaFrame.tsx). Drive links may carry `#gif` / `#video` hints — store links as pasted.
+4. **Free media only:** in-content images/GIFs/videos are Google Drive links (no uploads) — the owner has no paid storage.
 
 ### D. Navigation & Gestures
 1. **Swipe Sensitivity Thresholds:**
@@ -145,10 +147,17 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
    - Never make the assistant claim something the portfolio content doesn't support; unknown topics get an honest "not on the portfolio" reply.
    - Any modification must preserve the instant résumé trigger (`resume`, `cv`, `résumé`) in [`Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx), which uses the live résumé from `/api/hero`.
 
+### G. Admin Theme
+1. The admin panel is **always light**: `(admin)/layout.tsx` + `AdminLayoutClient.tsx` strip the `dark` class while on `/admin` and restore the visitor's theme on exit. Never write the next-themes preference from admin.
+
+### H. "Last Updated" Timestamp
+1. `NEXT_PUBLIC_LAST_DEPLOYED` is set in `next.config.js` from `git log -1` at build (fallback: build time) and shown in the Hero + Admin → Home. Every push/deploy updates it automatically — don't hand-edit dates.
+
 ### F. Markdown & KaTeX Rendering
 1. **Sanitization & IDs:**
    - Markdown articles and project details use Unified / Remark / Rehype pipeline in [`src/lib/markdownProcessor.ts`](file:///e:/my-portfolio/src/lib/markdownProcessor.ts).
    - Headings must receive auto-generated slug IDs to maintain sticky Table of Contents functionality.
+2. **Rich HTML/CSS + media:** the processor accepts sanitised HTML, inline styles, scoped `<style>` blocks (prefixed with `.rich-content`), design classes from the "Rich content" section of `globals.css`, and media lines `::image|gif|video|embed[Caption](url)` or bare Drive/YouTube links. Scripts, forms, event handlers and non-whitelisted iframes are stripped. Keep [`AI_CONTENT_PROMPT.md`](file:///e:/my-portfolio/AI_CONTENT_PROMPT.md) in sync with any change to what is supported.
 
 ---
 

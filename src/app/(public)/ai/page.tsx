@@ -63,7 +63,7 @@ export default async function AiPage() {
           </div>
         </div>
         <article
-          className="rounded-3xl p-6 sm:p-10 bg-white dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm prose prose-sm sm:prose-base dark:prose-invert max-w-none prose-headings:tracking-tight prose-headings:font-bold prose-a:text-cyan-600 dark:prose-a:text-cyan-400"
+          className="rounded-3xl p-6 sm:p-10 bg-white dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm rich-content prose prose-sm sm:prose-base dark:prose-invert max-w-none prose-headings:tracking-tight prose-headings:font-bold prose-a:text-cyan-600 dark:prose-a:text-cyan-400"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>

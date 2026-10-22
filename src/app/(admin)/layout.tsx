@@ -15,5 +15,15 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminLayoutClient>{children}</AdminLayoutClient>;
+  return (
+    <>
+      {/* Runs before paint so a dark public theme never flashes in the admin panel. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `document.documentElement.classList.remove("dark");document.documentElement.style.colorScheme="light";`,
+        }}
+      />
+      <AdminLayoutClient>{children}</AdminLayoutClient>
+    </>
+  );
 }

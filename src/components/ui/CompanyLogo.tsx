@@ -1,4 +1,5 @@
 "use client";
+import { driveImageUrl } from "@/lib/driveMedia";
 
 import { useState } from "react";
 
@@ -6,11 +7,7 @@ import { useState } from "react";
 export function resolveLogoUrl(url?: string) {
   const value = url?.trim();
   if (!value) return "";
-  if (value.includes("drive.google.com")) {
-    const id = value.match(/[-\w]{25,}/)?.[0];
-    if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
-  }
-  return value;
+  return driveImageUrl(value, 600);
 }
 
 const SIZES = {

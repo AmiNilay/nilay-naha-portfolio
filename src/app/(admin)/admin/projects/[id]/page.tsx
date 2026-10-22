@@ -12,6 +12,7 @@ import Link from "next/link";
 import Cropper from "react-easy-crop";
 import Toast from "@/components/ui/Toast";
 import CaseStudyEditor, { EMPTY_CASE_STUDY, appendCaseStudy, caseStudyFrom, type CaseStudy } from "../CaseStudyEditor";
+import RichPreview, { ContentSyntaxHint } from "@/components/admin/RichPreview";
 import { motion, AnimatePresence } from "framer-motion";
 
 const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<File> => {
@@ -933,17 +934,19 @@ export default function ProjectEditorPage() {
 
           {/* Editor Body */}
           <div className="p-6">
-            {editorTab === "write" ? (
+            {editorTab === "write" ? (<>
               <textarea 
                 value={formData.description} 
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
                 className="w-full h-[440px] p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-950 text-zinc-100 font-mono text-xs leading-relaxed outline-none focus:ring-2 focus:ring-blue-500/20 resize-y" 
                 placeholder="<h2>Architectural Blueprint</h2>&#10;<p>Describe system design, trade-offs, benchmarks and interactive capabilities here...</p>" 
-              />
+              />
+              <ContentSyntaxHint />
+            </>
             ) : (
-              <div 
+              <RichPreview 
                 className="w-full min-h-[440px] p-6 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-950 prose prose-zinc dark:prose-invert max-w-none text-zinc-800 dark:text-zinc-200 overflow-y-auto"
-                dangerouslySetInnerHTML={{ __html: formData.description || "<p class='text-zinc-400 italic'>Nothing to preview yet. Switch back to Write Source to start typing.</p>" }}
+                content={formData.description} empty="Nothing to preview yet. Switch back to Write Source to start typing."
               />
             )}
           </div>

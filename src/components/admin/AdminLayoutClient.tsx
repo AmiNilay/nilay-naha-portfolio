@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import AdminSidebar from "./AdminSidebar";
 import { Menu, ExternalLink, Sparkles } from "lucide-react";
 
@@ -12,6 +13,28 @@ export default function AdminLayoutClient({
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
+
+  // The admin panel is always light. Strip `dark` from <html> while mounted
+  // (and whenever next-themes re-adds it) without touching the visitor's
+  // saved public theme; restore it on the way back to the public site.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const forceLight = () => {
+      if (root.classList.contains("dark")) root.classList.remove("dark");
+      if (root.style.colorScheme !== "light") root.style.colorScheme = "light";
+    };
+    forceLight();
+    const observer = new MutationObserver(forceLight);
+    observer.observe(root, { attributes: true, attributeFilter: ["class", "style"] });
+    return () => {
+      observer.disconnect();
+      if (resolvedTheme === "dark") {
+        root.classList.add("dark");
+        root.style.colorScheme = "dark";
+      }
+    };
+  }, [resolvedTheme]);
 
   // Derive section name from pathname
   const sectionName = (() => {

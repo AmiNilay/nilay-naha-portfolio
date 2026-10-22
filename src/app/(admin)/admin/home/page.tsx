@@ -28,6 +28,8 @@ import {
   Plus,
 } from "lucide-react";
 import Image from "next/image";
+import MediaFrame from "@/components/ui/MediaFrame";
+import { formatDeployTime, relativeDeployTime } from "@/lib/lastDeployed";
 import Toast from "@/components/ui/Toast";
 import Cropper, { Point, Area } from "react-easy-crop";
 import { motion, AnimatePresence } from "framer-motion";
@@ -159,8 +161,7 @@ export default function AdminHome() {
           if (data.profilePic) {
             setPreviewUrl(data.profilePic);
           } else if (data.gDriveProfilePic) {
-            const id = extractGDriveId(data.gDriveProfilePic);
-            if (id) setPreviewUrl(`https://drive.google.com/thumbnail?id=${id}&sz=w800`);
+            setPreviewUrl(data.gDriveProfilePic);
           }
         }
         setLoading(false);
@@ -226,8 +227,7 @@ export default function AdminHome() {
   const handleExtractProfilePic = () => {
     const id = extractGDriveId(formData.gDriveProfilePic);
     if (id) {
-      const thumbUrl = `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
-      setPreviewUrl(thumbUrl);
+      setPreviewUrl(formData.gDriveProfilePic.trim());
       setToast({ message: "Profile picture extracted successfully!", type: "success" });
     } else {
       setToast({ message: "Invalid Google Drive Image URL", type: "error" });
@@ -460,7 +460,7 @@ export default function AdminHome() {
 
             <div className="relative w-44 h-44 rounded-full overflow-hidden border-4 border-zinc-100 dark:border-zinc-800 shadow-md bg-zinc-50 dark:bg-zinc-800 mb-6 group">
               {previewUrl ? (
-                <Image src={previewUrl} alt="Preview" fill className="object-cover" unoptimized />
+                <MediaFrame src={previewUrl} alt="Preview" width={600} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-zinc-400">
                   <Upload className="w-8 h-8" />
@@ -473,7 +473,7 @@ export default function AdminHome() {
               ref={imageInputRef}
               onChange={handleImageChange}
               className="hidden"
-              accept="image/jpeg, image/png, image/webp"
+              accept="image/jpeg, image/png, image/webp, image/gif, video/mp4, video/webm"
             />
 
             <div className="flex gap-2 w-full">
@@ -493,13 +493,14 @@ export default function AdminHome() {
                 </button>
               )}
             </div>
-            <p className="text-[10px] text-zinc-400 mt-2">JPG, PNG, WebP up to 5MB</p>
+            <p className="text-[10px] text-zinc-400 mt-2">Image, GIF or MP4/WebM video. Shown on the Home page only.</p>
 
             {/* G-Drive Fallback */}
             <div className="mt-5 w-full text-left border-t border-zinc-100 dark:border-zinc-800/80 pt-4">
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                Google Drive Image Fallback URL
+                Google Drive Link (image, GIF or video)
               </label>
+              <p className="text-[10px] text-zinc-400 mb-1.5">Share as &quot;Anyone with the link&quot;. Add <code>#gif</code> for an animated GIF or <code>#video</code> for a video at the end of the link.</p>
               <div className="flex gap-1.5">
                 <input
                   value={formData.gDriveProfilePic}
@@ -915,6 +916,10 @@ export default function AdminHome() {
                 className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 font-medium"
                 placeholder="e.g. Actively Seeking Python / Backend Engineering Roles"
               />
+              <p className="text-[11px] text-zinc-500 mt-1.5">
+                &quot;Last updated&quot; is automatic: <strong>{formatDeployTime() || "set on next deploy"}</strong>
+                {relativeDeployTime() && <> ({relativeDeployTime()})</>} — the time of the latest push to GitHub. Text here is shown next to it; a typed &quot;Last updated…&quot; is ignored.
+              </p>
             </div>
           </div>
         </div>

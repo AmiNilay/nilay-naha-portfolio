@@ -3,15 +3,13 @@ import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import Post from "@/models/Post";
 import { uploadToGithub } from "@/lib/githubUpload";
+import { driveImageUrl } from "@/lib/driveMedia";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const formatGDriveUrl = (url: string | null) => {
-  if (!url) return "";
-  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
-};
+// Drive share links → lh3 image URLs (deprecated uc?export=view no longer renders).
+const formatGDriveUrl = (url: string | null) => (url ? driveImageUrl(url) : "");
 
 export async function GET(req: Request  ) {
   try {

@@ -38,8 +38,8 @@ const getProjectWithContext = cache(async (slug: string) => {
 
     // Process markdown on server
     const rawContent = currentProject.description || currentProject.content || "";
-    const isRawHtml = /^\s*<style|^\s*<div|^\s*<h[1-6]|^\s*<p|^\s*<table/i.test(rawContent);
-    const processedHTML = isRawHtml ? rawContent : await processContent(rawContent);
+    // Handles Markdown, raw HTML/CSS and Drive media lines (see markdownProcessor).
+    const processedHTML = await processContent(rawContent);
 
     // Case-study / evaluation markdown, rendered server-side like the description.
     const md = async (s?: string) => (s && s.trim() ? processContent(s) : "");

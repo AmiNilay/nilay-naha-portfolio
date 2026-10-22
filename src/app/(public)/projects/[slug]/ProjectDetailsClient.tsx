@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { driveImageUrl } from "@/lib/driveMedia";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -32,11 +33,7 @@ export const getCleanImageUrl = (image?: string, gDriveImage?: string) => {
   if (image && image.trim()) return image.trim();
   if (!gDriveImage || !gDriveImage.trim()) return "";
   if (gDriveImage.includes("<iframe")) return gDriveImage;
-  const match = gDriveImage.match(/[-\w]{25,}/);
-  if (match) {
-    return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w1000`;
-  }
-  return gDriveImage;
+  return driveImageUrl(gDriveImage, 1600);
 };
 
 interface Project {
@@ -656,7 +653,7 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
           {/* ARTICLE PROSE CONTENT */}
           <article className="w-full min-w-0">
             <div
-              className="project-content prose prose-zinc dark:prose-invert max-w-none w-full
+              className="project-content rich-content prose prose-zinc dark:prose-invert max-w-none w-full
                 prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-zinc-900 dark:prose-headings:text-zinc-100
                 prose-h2:text-2xl sm:prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-4 prose-h2:border-b prose-h2:border-zinc-200/80 dark:prose-h2:border-zinc-800/80 prose-h2:pb-2
                 prose-h3:text-xl sm:prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-3

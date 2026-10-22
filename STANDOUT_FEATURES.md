@@ -207,6 +207,160 @@ Then ask your agent things like *"Create a draft blog post about my sign-languag
 
 ---
 
+## 🆕 Features added on 2026-10-22 (second and third rounds)
+
+Same format: **What · Why I added it · Why it stands out · How to use.**
+
+## 19. Public Read-Only MCP Server (for recruiters' AI agents)
+
+| | |
+| :--- | :--- |
+| **What** | `POST /api/mcp/public`: an MCP server anyone's AI agent can connect to with no login. Tools: `get_profile`, `list_projects`, `get_project`, `list_posts`, `get_post`, `search_portfolio`, `match_job_description`. It returns published content only and is rate-limited to 120 requests per IP per hour. |
+| **Why I added it** | Recruiters in 2026 screen candidates with AI agents. My portfolio can answer those agents directly and accurately. |
+| **Why it stands out** | Almost no personal portfolio exposes itself as an MCP tool. It shows I build *for* the agent ecosystem, not just with it. |
+| **How to use** | `claude mcp add --transport http nilay-portfolio https://nilay-naha-portfolio.vercel.app/api/mcp/public`, then ask *"Is Nilay a fit for this job description: …?"* It is also advertised in `/llms.txt`. |
+
+## 20. Job-Description Matcher
+
+| | |
+| :--- | :--- |
+| **What** | `/match`: a recruiter pastes a job description and gets a 0–100 score, the skills I match with evidence, the missing skills (listed honestly), and my most relevant projects and experience. |
+| **Why I added it** | It answers a recruiter's first question, "Is he a fit?", in 5 seconds. |
+| **Why it stands out** | Deterministic and explainable: every claim links to real portfolio content. It handles synonyms (JS→JavaScript, k8s→Kubernetes) and needs no LLM bill. |
+| **How to use** | Visit `/match`, or press Ctrl+K → *Job Match*. The chatbot also links to it from its "is he available?" answers. |
+
+## 21. Tailored Résumé Generator
+
+| | |
+| :--- | :--- |
+| **What** | `/resume/tailored`: a one-page A4 résumé that puts the skills and projects matching the job description first, built only from CMS data. |
+| **Why it stands out** | A personalised résumé per job, generated instantly and free. |
+| **How to use** | From a `/match` result, click *Tailored résumé* → **Download PDF**. This opens the browser's print dialog; choose *Save as PDF*. |
+
+## 22. On-Device AI Smart Search
+
+| | |
+| :--- | :--- |
+| **What** | A Ctrl+K → *Smart search* toggle that ranks results by meaning (Transformers.js + MiniLM embeddings running in the browser). |
+| **Why it stands out** | Semantic search with zero server cost and zero data leaving the visitor's device. It adds nothing to page load until it's switched on. |
+| **How to use** | Press Ctrl+K and switch on *Smart search*. The first use downloads a model of about 25 MB, which the browser then caches. |
+
+## 23. Chatbot Voice Mode
+
+| | |
+| :--- | :--- |
+| **What** | A mic button (speech → text) and a "read answers aloud" speaker toggle, using the browser's Web Speech API. |
+| **Why I added it** | It makes the site hands-free and accessible, and memorable in a demo. |
+| **Why it stands out** | Free, with no audio API. The avatar shows a "listening" expression. |
+| **How to use** | Open the chat: tap 🎤 to speak, and use the speaker icon in the header to hear replies. The mic is hidden in browsers that don't support speech input. |
+
+## 24. Multilingual Chatbot (9 languages)
+
+| | |
+| :--- | :--- |
+| **What** | English, हिन्दी, বাংলা, தமிழ், తెలుగు, मराठी, Español, Français and Deutsch. Hindi, Bengali, Tamil and Telugu are auto-detected from the script. |
+| **Why it stands out** | Uses Chrome's **on-device** Translator API: free, private, and no API key. |
+| **How to use** | Pick a language in the chat header, or just type in Hindi or Bengali. Translation needs Chrome or Edge 138+; other browsers get English with a note. |
+
+## 25. Realistic 3D Avatar
+
+| | |
+| :--- | :--- |
+| **What** | A rebuilt avatar with a real jawline, key light and cyan rim light, ambient occlusion, realistic eyes and lips, and a CSS-3D head turn. It looks around on its own when idle. |
+| **Why it stands out** | It looks 3D but is pure SVG, so there is no 3D model download and it stays fast on mobile. |
+| **How to use** | Automatic. After a deploy, reload once so the browser picks up the new version. |
+
+## 26. Project Case Studies & Evaluation Benchmarks
+
+| | |
+| :--- | :--- |
+| **What** | Optional Problem → Approach → Results sections, metric tiles (e.g. "Latency 120 ms"), and an Evaluation block (dataset, method, benchmark bars of score vs baseline). |
+| **Why I added it** | Recruiters hire for impact and rigour, not a list of technologies. |
+| **Why it stands out** | Evals are the #1 senior-AI-engineer signal in 2026, and few portfolios show them. |
+| **How to use** | Admin → Projects → edit a project → *Case Study & Impact* and *Evaluation (ML / LLM)* cards. AI agents can also set these through the admin MCP server. |
+
+## 27. "How I Use AI" Page
+
+| | |
+| :--- | :--- |
+| **What** | `/ai`: my AI-assisted engineering workflow, written in Markdown. |
+| **How to use** | Admin → About → *How I Use AI*. If it's empty, the page honestly lists the AI tools I've selected. |
+
+## 28. Education Media, 172-Skill Catalog, Auto-Scrolling Tech Marquee
+
+| | |
+| :--- | :--- |
+| **What** | Each college gets a large photo banner, a location and its LinkedIn page. The skill catalog grows to 172 entries (mobile, automation and scraping, Bitbucket and dev tools, cloud and DevOps, testing, AI/ML). The hero's tech chips scroll continuously, and the hero no longer clips at mid-size or short windows. |
+| **How to use** | Admin → About → *Academic Journey* and *Skills*. Admin → Home → *Stats Counters & Tech Stack* has the chip list and a speed slider (seconds per loop; default 40). |
+
+## 29. Rich HTML/CSS Content + Google Drive Media Embeds
+
+| | |
+| :--- | :--- |
+| **What** | Blog posts, project write-ups and the About bio accept safe HTML and CSS plus ready-made design classes (callouts, cards, grids, badges, gradient text…). You can drop **images, GIFs and videos from Google Drive links** anywhere in the text. |
+| **Why I added it** | Demos belong *inside* the write-up ("here's the demo ↓"), and AI-written content often uses HTML. |
+| **Why it stands out** | Free media hosting through Google Drive, with no storage bill and no uploads. It's sanitised, so it is safe even when AI writes the HTML. |
+| **How to use** | See **[AI_CONTENT_PROMPT.md](AI_CONTENT_PROMPT.md)**: paste that prompt plus your notes into any AI, then paste the result into Admin → Blog or Projects. Set every Drive file to *Anyone with the link → Viewer*. |
+
+## 30. Admin Always Light · Separate Home/About Photos · Auto "Last Updated"
+
+| | |
+| :--- | :--- |
+| **What** | The admin panel always stays light, whatever theme the public site uses. Home and About have **separate** profile media, each accepting an image, an animated GIF or a video (upload or Drive link). The admin dashboard's "Last updated" time comes from the latest deployed git commit, so it updates on every push. |
+| **How to use** | Admin → Home → profile media; Admin → About → its own image box. "Last updated" needs no action. |
+
+---
+
+## 🧰 Setup Checklist — Things YOU Need to Do
+
+All of these are **free**. Do each one once.
+
+### 1. Environment variables (Vercel → Project → Settings → Environment Variables)
+Add each one to **Production**, **Preview** and **Development**, then **redeploy** (Deployments → ⋯ → Redeploy). Changes apply only after a redeploy.
+
+| Variable | What it is | How to get it |
+| :--- | :--- | :--- |
+| `MONGODB_URI` | Database connection | MongoDB Atlas → Database → Connect → Drivers → copy the URI. Under Network Access, allow `0.0.0.0/0`, because Vercel's IP addresses change. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin login | Choose them yourself. Use a strong password. |
+| `ADMIN_SECRET` | Admin cookie value **and** the admin MCP bearer token | Generate a long random value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never share it. |
+| `GITHUB_TOKEN` | Uploads images to the assets repo | GitHub → Settings → Developer settings → **Fine-grained token** → Repository access: `my-portfolio-assets` only → Permissions: **Contents: Read and write**. Set a reminder before it expires. |
+| `GITHUB_USERNAME` / `GITHUB_REPO` | Asset repo location | `AmiNilay` / `my-portfolio-assets` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push public key | See step 2 |
+| `VAPID_PRIVATE_KEY` | Web Push private key (secret) | See step 2 |
+| `VAPID_SUBJECT` | Contact for push services | `mailto:niloynaha2003@gmail.com` |
+
+### 2. Generate VAPID keys (Web Push notifications)
+```bash
+npx web-push generate-vapid-keys
+```
+It prints a **Public Key** and a **Private Key**.
+1. Put the Public Key in `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and the Private Key in `VAPID_PRIVATE_KEY`, both in Vercel and in your local `.env.local`.
+2. Redeploy. `NEXT_PUBLIC_*` values are baked in at build time, so a redeploy is required.
+3. Generate the keys **once only**. New keys invalidate every existing subscriber, so visitors would need to subscribe again.
+4. Test it: open the site, click the bell to subscribe, then go to Admin → Notifications → send a test.
+
+### 3. Google Drive media (images, GIFs, videos)
+1. Upload the file to Google Drive.
+2. Right-click → **Share** → General access: **Anyone with the link** → **Viewer**.
+3. Copy the link (`https://drive.google.com/file/d/<ID>/view?usp=sharing`) and paste it into any image field or into content, as shown in `AI_CONTENT_PROMPT.md`.
+4. Videos play in Drive's player. Large videos can take a few minutes after upload before they will play.
+
+### 4. Connect AI agents
+- **Admin (write access):** `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <ADMIN_SECRET>"`
+- **Public (read-only):** `claude mcp add --transport http nilay-portfolio https://nilay-naha-portfolio.vercel.app/api/mcp/public`
+
+### 5. Content to fill in (Admin panel)
+- [ ] Home: Instagram link, the tech marquee list and speed, and the home profile media
+- [ ] About: its own profile media, college photos, locations and LinkedIn pages, and *How I Use AI*
+- [ ] Projects: case study, metrics and evaluation for your top 2–3 projects, plus demo GIFs or videos inside the descriptions
+- [ ] Chatbot: curated answers for soft questions (strengths, teamwork…)
+
+### 6. After every deploy
+- Hard refresh the admin panel once (Ctrl + Shift + R) so the installed PWA picks up new admin screens.
+- AI search engines re-read `/llms.txt` on their own schedule, which can take days to weeks.
+
+---
+
 ## 🔮 AI-Era Roadmap — What to Add Next (2026)
 
 Features that would make a software engineer's portfolio stand out in the AI era. ✅ = already done.
@@ -236,6 +390,7 @@ Features that would make a software engineer's portfolio stand out in the AI era
 **Shipped 2026-10-22:** 1, 2, 3, 4, 5, 7, 9, 10, 11 — see below. **Next suggested:** 13 → 6 → 12 → 15.
 
 ### How to use the new recruiter & AI features
+
 | Feature | How to use |
 | :--- | :--- |
 | Public MCP | Anyone's AI agent: `claude mcp add --transport http nilay-portfolio https://nilay-naha-portfolio.vercel.app/api/mcp/public` then ask *"Is Nilay a fit for this JD?"* |
@@ -246,4 +401,17 @@ Features that would make a software engineer's portfolio stand out in the AI era
 | How I use AI | Admin → About → *How I Use AI* (markdown) → shown at `/ai`. |
 | Smart search | Ctrl+K → toggle *Smart search* (one-time ~25 MB model download, cached by the browser). |
 | Hero tech marquee | Admin → Home → *Stats Counters & Tech Stack*: chips + speed slider. |
-| College details | Admin → About → *Academic Journey*: photo, location, college LinkedIn. | The first two reuse code that already exists. Items 9 and 7 are content that speaks directly to 2026 hiring managers.
+| College details | Admin → About → *Academic Journey*: photo, location, college LinkedIn. |
+
+### 🔜 What's good to add next (recommended order)
+
+| Priority | Feature | Why now | Effort |
+| :-: | :--- | :--- | :-: |
+| 1 | **Chat transcript insights** (#13) | You already get chatbot traffic; seeing the top questions tells you exactly what content recruiters want. | Small |
+| 2 | **Hide drafts site-wide** | Draft posts/projects are currently visible on public list pages and to the chatbot; only the public MCP and job match exclude them. | Small |
+| 3 | **Live GitHub activity** (#6) | A "currently building" feed proves you ship every week. | Small |
+| 4 | **Book-a-call** (#12, Cal.com free) | Turns a good job match straight into an interview slot. | Small |
+| 5 | **Security hardening** (#15): MCP/admin audit log + login rate limit | AI agents now have write access; log every change. | Medium |
+| 6 | **Lighthouse CI badge** (#14) | Free GitHub Action; visible proof of performance and accessibility. | Small |
+| 7 | **Interactive demos** (#8): embed StackBlitz/CodeSandbox/Hugging Face Spaces in project pages | Try-before-you-hire. The new content embeds make this easy. | Medium |
+| 8 | **Enable Content Protection** | `ContentProtection.tsx` exists but is not mounted anywhere yet. | Tiny |

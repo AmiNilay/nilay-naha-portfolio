@@ -1,5 +1,6 @@
 "use client";
 
+import { driveImageUrl } from "@/lib/driveMedia";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Quote, Linkedin, MessageSquareQuote } from "lucide-react";
@@ -31,7 +32,7 @@ function Avatar({ name, src }: { name: string; src?: string }) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- admin-entered URLs can be any host
       <img
-        src={src}
+        src={driveImageUrl(src, 300)}
         alt=""
         width={44}
         height={44}

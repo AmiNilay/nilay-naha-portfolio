@@ -14,6 +14,9 @@ import {
   MotionValue,
 } from "framer-motion";
 import { fetchWithSessionCache } from "@/lib/clientCache";
+import { driveImageUrl, mediaKindFromUrl } from "@/lib/driveMedia";
+import MediaFrame from "@/components/ui/MediaFrame";
+import { formatDeployTime } from "@/lib/lastDeployed";
 import { SKILL_CATEGORIES, readableIconColors } from "@/lib/skillData";
 
 const normalizeTech = (s: string) => s.toLowerCase().replace(/[^a-z0-9+#]/g, "");
@@ -204,15 +207,18 @@ function TiltCard({
           dark:shadow-[0_8px_40px_-8px_rgba(245,158,11,0.25),0_0_0_1px_rgba(245,158,11,0.12)]
           bg-[#F3F4F6] dark:bg-[#111827]
         ">
-          {profileSrc ? (
+          {profileSrc && (profileSrc.includes("<iframe") || mediaKindFromUrl(profileSrc) !== "image") ? (
+            // GIF / video / embed: rendered as-is so animation and playback survive.
+            <MediaFrame src={profileSrc} alt="Profile" className="pointer-events-none" onError={onImgError} />
+          ) : profileSrc ? (
             <Image
-              src={profileSrc}
+              src={driveImageUrl(profileSrc, 1000)}
               alt="Profile"
               fill
               sizes="(max-width: 540px) 140px, (max-width: 1460px) 26vw, 380px"
               className="object-cover object-center pointer-events-none"
               priority
-              unoptimized={!canOptimizeImage(profileSrc)}
+              unoptimized={!canOptimizeImage(driveImageUrl(profileSrc, 1000))}
               draggable={false}
               onContextMenu={(e) => e.preventDefault()}
               onError={onImgError}
@@ -506,14 +512,18 @@ export default function Hero({ initialData = null }: { initialData?: Record<stri
             </motion.div>
           )}
 
-          {/* Last updated */}
-          {data.portfolioLastUpdated && (
+          {/* Last updated: deploy time (auto, every push) + optional CMS status text.
+              A hand-typed "Last updated: <date>" status is replaced by the automatic time. */}
+          {(formatDeployTime() || data.portfolioLastUpdated) && (
             <motion.p
               {...fadeUp(0.52)}
-              className="inline-flex items-center gap-1.5 mt-5 md:mt-6 text-[11px] font-medium text-[#6B7280]"
+              className="inline-flex flex-wrap items-center gap-1.5 mt-5 md:mt-6 text-[11px] font-medium text-[#6B7280]"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-              {data.portfolioLastUpdated}
+              {formatDeployTime() ? `Last updated: ${formatDeployTime()}` : data.portfolioLastUpdated}
+              {formatDeployTime() && data.portfolioLastUpdated && !/^\s*last\s*updated/i.test(data.portfolioLastUpdated) && (
+                <span>· {data.portfolioLastUpdated}</span>
+              )}
             </motion.p>
           )}
         </div>

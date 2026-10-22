@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { driveImageUrl } from "@/lib/driveMedia";
 import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
 import { 
@@ -41,11 +42,7 @@ export const getCleanImageUrl = (image?: string, gDriveImage?: string) => {
   if (image && image.trim()) return image.trim();
   if (!gDriveImage || !gDriveImage.trim()) return "";
   if (gDriveImage.includes("<iframe")) return gDriveImage;
-  const match = gDriveImage.match(/[-\w]{25,}/);
-  if (match) {
-    return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w1000`;
-  }
-  return gDriveImage;
+  return driveImageUrl(gDriveImage, 1600);
 };
 
 export default function ProjectsClient() {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
 import Testimonials from "@/components/sections/Testimonials";
 import CompanyLogo, { resolveLogoUrl } from "@/components/ui/CompanyLogo";
+import MediaFrame from "@/components/ui/MediaFrame";
 import { Linkedin } from "lucide-react";
 import {
   motion,
@@ -69,6 +70,10 @@ interface Certification {
 
 interface AboutData {
   bio: string;
+  bioHtml?: string;
+  gDriveProfilePic?: string; // About page's own image/GIF/video (Drive link or URL)
+  image?: string; // legacy
+
   location?: string;
   availability?: string;
   skills: string[];
@@ -189,8 +194,8 @@ export default function AboutClient() {
     );
   }
 
-  // Strictly preserve home page avatar fallback logic (Google Drive & GitHub)
-  const rawImage = heroData?.profilePic || heroData?.gDriveProfilePic;
+  // About has its own image; the Home avatar is only a fallback when it's empty.
+  const rawImage = data.gDriveProfilePic || data.image || heroData?.profilePic || heroData?.gDriveProfilePic;
   const displayResume = heroData?.resumeUrl || heroData?.gDriveResume;
 
   // Active navigation tabs
@@ -313,26 +318,12 @@ export default function AboutClient() {
               <div className="relative rounded-[32px] overflow-hidden bg-gradient-to-b from-zinc-100 via-zinc-100 to-zinc-200 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 border border-zinc-200/80 dark:border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.6)] aspect-square p-2 group">
                 <div className="w-full h-full rounded-[26px] overflow-hidden bg-zinc-200 dark:bg-zinc-800 relative">
                   {rawImage ? (
-                    rawImage.includes("<iframe") ? (
-                      <div
-                        className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full pointer-events-none"
-                        dangerouslySetInnerHTML={{ __html: rawImage }}
-                      />
-                    ) : (
-                      <img
-                        src={
-                          rawImage.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
-                            ? `https://drive.google.com/thumbnail?id=${
-                                rawImage.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1]
-                              }&sz=w800`
-                            : rawImage
-                        }
-                        alt="Nilay Naha"
-                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                        onContextMenu={(e) => e.preventDefault()}
-                        draggable={false}
-                      />
-                    )
+                    <MediaFrame
+                      src={rawImage}
+                      alt="Nilay Naha"
+                      width={1000}
+                      className="transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-zinc-400 gap-2">
                       <User className="w-10 h-10" />
@@ -401,9 +392,9 @@ export default function AboutClient() {
                 </div>
 
                 <div
-                  className="prose prose-base sm:prose-lg dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-300 leading-relaxed prose-headings:font-bold prose-headings:tracking-tight prose-a:text-cyan-600 dark:prose-a:text-cyan-400 prose-a:font-semibold hover:prose-a:underline prose-strong:text-zinc-900 dark:prose-strong:text-white"
+                  className="rich-content prose prose-base sm:prose-lg dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-300 leading-relaxed prose-headings:font-bold prose-headings:tracking-tight prose-a:text-cyan-600 dark:prose-a:text-cyan-400 prose-a:font-semibold hover:prose-a:underline prose-strong:text-zinc-900 dark:prose-strong:text-white"
                   dangerouslySetInnerHTML={{
-                    __html: data.bio || "<p>Software developer dedicated to reliable software design.</p>",
+                    __html: data.bioHtml || data.bio || "<p>Software developer dedicated to reliable software design.</p>",
                   }}
                 />
               </div>

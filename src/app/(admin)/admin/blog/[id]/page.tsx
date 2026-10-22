@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Toast from "@/components/ui/Toast";
+import RichPreview, { ContentSyntaxHint } from "@/components/admin/RichPreview";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function EditBlogPostPage() {
@@ -433,7 +434,7 @@ export default function EditBlogPostPage() {
 
             {/* Editor Workspace */}
             <div className="p-6 flex-1">
-              {editorTab === "write" ? (
+              {editorTab === "write" ? (<>
                 <textarea 
                   value={formData.content} 
                   onChange={e => setFormData({...formData, content: e.target.value})} 
@@ -441,13 +442,15 @@ export default function EditBlogPostPage() {
                     isFullscreen ? 'h-[75vh]' : 'h-[500px]'
                   }`} 
                   placeholder="<h1>Deep Dive</h1>&#10;<p>Share architectural reasoning, insights, code snippets and analysis...</p>" 
-                />
+                />
+                <ContentSyntaxHint />
+              </>
               ) : (
-                <div 
+                <RichPreview 
                   className={`w-full p-6 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-950/50 prose prose-zinc dark:prose-invert max-w-none text-zinc-800 dark:text-zinc-200 overflow-y-auto ${
                     isFullscreen ? 'h-[75vh]' : 'h-[500px]'
                   }`}
-                  dangerouslySetInnerHTML={{ __html: formData.content || "<p class='text-zinc-400 italic'>Nothing to render yet...</p>" }}
+                  content={formData.content} empty="Nothing to render yet..."
                 />
               )}
             </div>

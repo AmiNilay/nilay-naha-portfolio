@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { driveImageUrl } from "@/lib/driveMedia";
 import { cache } from "react";
 import BlogPostClient from "./BlogPostClient";
 import { connectToDB } from "@/lib/connectToDB";
 import { getHeroData } from "@/lib/publicData";
 import Post from "@/models/Post";
+import { processContent } from "@/lib/markdownProcessor";
 
 // Cached and regenerated at most once a minute; CMS saves purge it immediately
 // via revalidatePublicPages().
@@ -62,7 +64,7 @@ export async function generateMetadata({
       ? post.content.replace(/<[^>]+>/g, "").slice(0, 155)
       : "Read this technical publication by Nilay Naha.");
 
-  const coverUrl = post.coverImage || post.gDriveImage || "/og-image.png";
+  const coverUrl = driveImageUrl(post.coverImage || post.gDriveImage, 1200) || "/og-image.png";
 
   return {
     title: `${post.title} | Nilay Naha`,
@@ -97,5 +99,8 @@ export default async function Page({ params }: { params: { slug: string } }) {
     getHeroAuthor(),
   ]);
 
-  return <BlogPostClient initialPost={initialPost} initialHeroAuthor={initialHero} />;
+  // Markdown/HTML → sanitized HTML with Drive media embeds, rendered on the server.
+  const post = initialPost ? { ...initialPost, content: await processContent(initialPost.content || "") } : null;
+
+  return <BlogPostClient initialPost={post} initialHeroAuthor={initialHero} />;
 }

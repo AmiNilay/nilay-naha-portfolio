@@ -24,6 +24,7 @@ export interface CaseStudyHTML {
 }
 
 const PROSE =
+  "rich-content " +
   "prose prose-zinc dark:prose-invert max-w-none prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:text-zinc-700 dark:prose-p:text-zinc-300 prose-li:text-sm sm:prose-li:text-base prose-a:text-blue-600 dark:prose-a:text-blue-400";
 
 const STEPS = [

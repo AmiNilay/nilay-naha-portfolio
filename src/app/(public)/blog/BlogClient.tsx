@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { driveImageUrl } from "@/lib/driveMedia";
 import Link from "next/link";
 import { fetchWithSessionCache, clearMemoryCache } from "@/lib/clientCache";
 import { motion, AnimatePresence } from "framer-motion";
@@ -417,7 +418,7 @@ export default function BlogClient() {
                   <div className="relative lg:w-1/2 min-h-[260px] lg:min-h-full overflow-hidden bg-black/[0.03] dark:bg-white/[0.03]">
                     {featuredPost.coverImage || featuredPost.gDriveImage ? (
                       <img
-                        src={featuredPost.coverImage || featuredPost.gDriveImage}
+                        src={driveImageUrl(featuredPost.coverImage || featuredPost.gDriveImage, 1600)}
                         alt={featuredPost.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out select-none"
                         onContextMenu={(e) => e.preventDefault()}
@@ -462,7 +463,7 @@ export default function BlogClient() {
                         <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/[0.03] dark:bg-white/[0.03] border-b border-black/[0.05] dark:border-white/[0.06]">
                           {post.coverImage || post.gDriveImage ? (
                             <img
-                              src={post.coverImage || post.gDriveImage}
+                              src={driveImageUrl(post.coverImage || post.gDriveImage, 1000)}
                               alt={post.title}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out select-none"
                               onContextMenu={(e) => e.preventDefault()}

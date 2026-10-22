@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 10.11 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-22 10.21 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -226,6 +226,13 @@ my-portfolio/
 
 ### 16. Project Case Studies & Evals — added 2026-10-22
 * `Project` gains `problem`, `approach`, `results` (markdown), `metrics[{label,value,hint}]`, `evaluation{dataset,method,results,benchmarks[{name,score,baseline}]}`. Edited in [`CaseStudyEditor.tsx`](file:///e:/my-portfolio/src/app/(admin)/admin/projects/CaseStudyEditor.tsx); rendered by [`ProjectCaseStudy.tsx`](file:///e:/my-portfolio/src/components/projects/ProjectCaseStudy.tsx) (hidden when empty). Also settable via MCP `PROJECT_FIELDS`.
+
+### 18. Rich Content, Drive Media, Admin Theme & Deploy Timestamp — added 2026-10-22
+* **Rich content:** [`markdownProcessor.ts`](file:///e:/my-portfolio/src/lib/markdownProcessor.ts) (exports `processContent`, `mediaFigure`, `scopeCss`) renders blog, project description/case study, About `bioHtml` (from `GET /api/about`) and `/ai`. HTML-first content skips Markdown parsing. Media lines `::image|gif|video|embed[Caption](url)` and bare Drive/YouTube links → `<figure class="media-frame">`. Sanitiser allows design HTML, safe inline styles, scoped `<style>`, iframes only from Drive/Docs/YouTube/Vimeo/CodePen/CodeSandbox/StackBlitz. Design classes live in the *Rich content* section of `globals.css`. Admin editors preview via `POST /api/admin/preview` + [`RichPreview.tsx`](file:///e:/my-portfolio/src/components/admin/RichPreview.tsx). Authoring guide: [`AI_CONTENT_PROMPT.md`](file:///e:/my-portfolio/AI_CONTENT_PROMPT.md).
+* **Drive media:** [`driveMedia.ts`](file:///e:/my-portfolio/src/lib/driveMedia.ts) + [`MediaFrame.tsx`](file:///e:/my-portfolio/src/components/ui/MediaFrame.tsx) (image / animated GIF / Drive video preview / mp4 / YouTube). Used for covers, logos, college images, testimonials, Home and About media. `#gif` / `#video` suffix hints on Drive links.
+* **Separate Home vs About media:** About renders `About.gDriveProfilePic` → `About.image` → falls back to Hero media only when empty.
+* **Admin always light:** inline pre-paint script in `(admin)/layout.tsx` + `AdminLayoutClient` MutationObserver strip `dark` on `/admin`; visitor theme restored on exit.
+* **Last updated:** `next.config.js` → `NEXT_PUBLIC_LAST_DEPLOYED` (latest commit time via `git log -1`, fallback build time) via [`lastDeployed.ts`](file:///e:/my-portfolio/src/lib/lastDeployed.ts); shown in Hero (IST) and Admin → Home.
 
 ### 17. Hero Tech Marquee & Education Media — added 2026-10-22
 * Hero tech chips auto-scroll continuously; list (chip editor, reorder) and `techMarqueeSpeed` (seconds per loop, default 40) edited in Admin → Home. Inline animation so Windows reduced-motion halves speed instead of freezing. Hero no longer clips at md widths/short heights (removed `h-full md:overflow-hidden`; avatar `clamp(132px, min(26vw, 42dvh), 380px)`).
@@ -470,6 +477,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-22 10.21 | Rich HTML/CSS content + Drive image/GIF/video embeds everywhere (AI_CONTENT_PROMPT.md), admin always light, separate Home/About media with GIF/video, Drive URL fixes (incl. blog API), automatic deploy-time "Last updated", setup checklist in STANDOUT_FEATURES.md. |
 | 2026-10-22 10.11 | Public read-only MCP, job match, tailored résumé, on-device smart search, /ai page, chatbot voice + 9 languages, realistic 3D avatar, project case studies & evals, education photo/location/LinkedIn, 172-skill catalog, auto-scrolling hero tech marquee with admin speed, hero responsive fix. |
 | 2026-10-22 09:50 | Admin MCP server (`/api/mcp`); AI-crawler rules in robots.txt; Instagram social link; 3D-style chatbot avatar; chatbot auto-navigation and non-repeating follow-ups; home slider keeps section/scroll on reload; ghost cursor moved behind content (z-index -1); urgent-contact copy (email/LinkedIn) replaces the 24 h reply promise; admin pages network-only in the service worker; client cache 60 s expiry. |
 | 2026-10-22 03:27 | Social preview image fix, Person JSON-LD, `/llms.txt`. |

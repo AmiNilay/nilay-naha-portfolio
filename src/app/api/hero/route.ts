@@ -60,8 +60,9 @@ export async function PUT(req: Request) {
 
     const gDriveProfilePic = formData.get("gDriveProfilePic") as string;
     if (gDriveProfilePic !== null) {
-      const match = gDriveProfilePic.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-      updateData.gDriveProfilePic = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : gDriveProfilePic;
+      // Stored as pasted (incl. #gif / #video hints); the client converts Drive
+      // links via @/lib/driveMedia so GIFs stay animated and videos play.
+      updateData.gDriveProfilePic = gDriveProfilePic.trim();
     }
 
     const gDriveResume = formData.get("gDriveResume" ) as string;

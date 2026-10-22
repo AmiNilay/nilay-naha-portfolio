@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { driveImageUrl } from "@/lib/driveMedia";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -459,14 +460,14 @@ export default function BlogPostClient({ initialPost = null, initialHeroAuthor =
           <div className="mb-8">
             <div className="relative h-52 sm:h-64 md:h-72 w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.1] border-t-white/80 dark:border-t-white/20 shadow-md">
               <img
-                src={post.coverImage || post.gDriveImage}
+                src={driveImageUrl(post.coverImage || post.gDriveImage, 1600)}
                 alt={post.title}
                 className="w-full h-full object-cover select-none"
                 onContextMenu={(e) => e.preventDefault()}
                 draggable={false}
                 onError={(e) => {
-                  if (post.gDriveImage && e.currentTarget.src !== post.gDriveImage) {
-                    e.currentTarget.src = post.gDriveImage;
+                  if (post.gDriveImage && e.currentTarget.src !== driveImageUrl(post.gDriveImage, 1600)) {
+                    e.currentTarget.src = driveImageUrl(post.gDriveImage, 1600);
                   } else {
                     e.currentTarget.style.display = "none";
                   }
@@ -486,7 +487,7 @@ export default function BlogPostClient({ initialPost = null, initialHeroAuthor =
             
             {/* The Markdown Content Container */}
             <div
-              className="blog-content prose prose-base sm:prose-lg dark:prose-invert max-w-none prose-headings:scroll-mt-28 prose-headings:tracking-tight prose-headings:font-bold prose-h2:text-2xl prose-h2:sm:text-3xl prose-h3:text-xl prose-h3:sm:text-2xl prose-p:leading-[1.8] prose-p:text-gray-800 dark:prose-p:text-gray-200 prose-a:text-primary prose-a:font-semibold prose-a:no-underline hover:prose-a:underline prose-code:font-mono prose-code:text-primary dark:prose-code:text-primary prose-code:bg-black/[0.04] dark:prose-code:bg-white/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-blockquote:border-l-4 prose-blockquote:border-primary/80 prose-blockquote:bg-black/[0.02] dark:prose-blockquote:bg-white/[0.03] prose-blockquote:rounded-r-2xl prose-blockquote:py-2 prose-blockquote:px-5 prose-blockquote:italic"
+              className="blog-content rich-content prose prose-base sm:prose-lg dark:prose-invert max-w-none prose-headings:scroll-mt-28 prose-headings:tracking-tight prose-headings:font-bold prose-h2:text-2xl prose-h2:sm:text-3xl prose-h3:text-xl prose-h3:sm:text-2xl prose-p:leading-[1.8] prose-p:text-gray-800 dark:prose-p:text-gray-200 prose-a:text-primary prose-a:font-semibold prose-a:no-underline hover:prose-a:underline prose-code:font-mono prose-code:text-primary dark:prose-code:text-primary prose-code:bg-black/[0.04] dark:prose-code:bg-white/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-blockquote:border-l-4 prose-blockquote:border-primary/80 prose-blockquote:bg-black/[0.02] dark:prose-blockquote:bg-white/[0.03] prose-blockquote:rounded-r-2xl prose-blockquote:py-2 prose-blockquote:px-5 prose-blockquote:italic"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 

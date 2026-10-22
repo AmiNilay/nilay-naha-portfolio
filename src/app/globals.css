@@ -323,3 +323,143 @@ html.dark .admin-root .ql-editor.ql-blank::before {
   }
 }
 
+
+/* ==========================================================================
+   Rich content — blog posts, project write-ups, About bio, /ai page.
+   Ready-made classes authors (or AI) can use in Markdown/HTML content.
+   Documented in AI_CONTENT_PROMPT.md. Scoped to .rich-content; light + dark.
+   ========================================================================== */
+.rich-content {
+  --rc-accent: #0891b2;
+  --rc-accent-2: #6366f1;
+  --rc-border: rgba(0, 0, 0, 0.08);
+  --rc-surface: rgba(0, 0, 0, 0.025);
+  --rc-muted: #52525b;
+}
+.dark .rich-content {
+  --rc-accent: #22d3ee;
+  --rc-accent-2: #818cf8;
+  --rc-border: rgba(255, 255, 255, 0.1);
+  --rc-surface: rgba(255, 255, 255, 0.04);
+  --rc-muted: #a1a1aa;
+}
+
+/* Media */
+.rich-content .media-frame { margin: 2rem 0; }
+.rich-content .media-frame img,
+.rich-content .media-frame video {
+  display: block; width: 100%; height: auto; margin: 0 auto;
+  border-radius: 1rem; border: 1px solid var(--rc-border);
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.25);
+}
+.rich-content .media-embed,
+.rich-content iframe.media-iframe {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  border-radius: 1rem; border: 1px solid var(--rc-border); background: #000;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.3);
+}
+.rich-content .media-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.rich-content .media-frame figcaption,
+.rich-content figure > figcaption {
+  margin-top: 0.6rem; text-align: center; font-size: 0.85rem; color: var(--rc-muted);
+}
+.rich-content img { max-width: 100%; height: auto; }
+.rich-content iframe { max-width: 100%; }
+.rich-content .media-embed.vertical { aspect-ratio: 9 / 16; max-width: 360px; margin: 0 auto; }
+
+/* Callouts: <div class="callout info|tip|success|warn|danger"> */
+.rich-content .callout {
+  margin: 1.5rem 0; padding: 1rem 1.25rem; border-radius: 0.9rem;
+  border: 1px solid var(--rc-border); border-left: 4px solid var(--rc-accent);
+  background: var(--rc-surface);
+}
+.rich-content .callout > :first-child { margin-top: 0; }
+.rich-content .callout > :last-child { margin-bottom: 0; }
+.rich-content .callout.info { border-left-color: #3b82f6; background: rgba(59, 130, 246, 0.07); }
+.rich-content .callout.tip { border-left-color: #8b5cf6; background: rgba(139, 92, 246, 0.07); }
+.rich-content .callout.success { border-left-color: #10b981; background: rgba(16, 185, 129, 0.07); }
+.rich-content .callout.warn { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+.rich-content .callout.danger { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.07); }
+.rich-content .callout .callout-title { display: block; font-weight: 700; margin-bottom: 0.35rem; }
+
+/* Cards & layout */
+.rich-content .card {
+  padding: 1.25rem 1.4rem; border-radius: 1rem; border: 1px solid var(--rc-border);
+  background: var(--rc-surface); box-shadow: 0 4px 18px -10px rgba(0, 0, 0, 0.2);
+}
+.rich-content .card > :first-child { margin-top: 0; }
+.rich-content .card > :last-child { margin-bottom: 0; }
+.rich-content .grid-2, .rich-content .grid-3, .rich-content .two-col {
+  display: grid; gap: 1rem; margin: 1.5rem 0; grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .rich-content .grid-2, .rich-content .two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rich-content .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.rich-content .grid-2 .media-frame, .rich-content .grid-3 .media-frame { margin: 0; }
+.rich-content .center { text-align: center; }
+
+/* Stats: <div class="stat"><strong>94%</strong><span>Accuracy</span></div> */
+.rich-content .stat {
+  padding: 1rem; border-radius: 1rem; border: 1px solid var(--rc-border);
+  background: var(--rc-surface); text-align: center;
+}
+.rich-content .stat strong {
+  display: block; font-size: 1.75rem; line-height: 1.1; font-weight: 800;
+  background: linear-gradient(90deg, var(--rc-accent), var(--rc-accent-2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.rich-content .stat span { font-size: 0.8rem; color: var(--rc-muted); }
+
+/* Inline accents */
+.rich-content .badge {
+  display: inline-block; padding: 0.15rem 0.6rem; margin: 0 0.15rem; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 700; line-height: 1.6;
+  color: var(--rc-accent); background: color-mix(in srgb, var(--rc-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rc-accent) 30%, transparent);
+}
+.rich-content .gradient-text {
+  background: linear-gradient(90deg, var(--rc-accent), var(--rc-accent-2));
+  -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800;
+}
+.rich-content .highlight, .rich-content mark {
+  padding: 0 0.25rem; border-radius: 0.3rem; color: inherit;
+  background: color-mix(in srgb, #facc15 35%, transparent);
+}
+.rich-content .muted { color: var(--rc-muted); }
+.rich-content a.btn-link {
+  display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem;
+  border-radius: 999px; font-weight: 700; text-decoration: none !important; color: #fff !important;
+  background: linear-gradient(90deg, var(--rc-accent), var(--rc-accent-2));
+  box-shadow: 0 6px 18px -8px var(--rc-accent);
+}
+.rich-content kbd {
+  padding: 0.1rem 0.45rem; border-radius: 0.35rem; font-size: 0.8em;
+  border: 1px solid var(--rc-border); border-bottom-width: 2px; background: var(--rc-surface);
+}
+
+/* Quote: <blockquote class="quote">…<cite>Name</cite></blockquote> */
+.rich-content .quote {
+  margin: 2rem 0; padding: 1.25rem 1.5rem; border: 0; border-radius: 1rem;
+  font-size: 1.15em; font-style: italic; background: var(--rc-surface); position: relative;
+}
+.rich-content .quote cite { display: block; margin-top: 0.6rem; font-size: 0.85rem; font-style: normal; color: var(--rc-muted); }
+
+/* Timeline: <ol class="timeline"><li><strong>Step</strong> details</li></ol> */
+.rich-content .timeline { list-style: none; padding-left: 1.25rem; border-left: 2px solid var(--rc-border); margin: 1.5rem 0; }
+.rich-content .timeline > li { position: relative; padding-left: 0.75rem; margin: 0 0 1.1rem; }
+.rich-content .timeline > li::before {
+  content: ""; position: absolute; left: -1.72rem; top: 0.45rem; width: 0.75rem; height: 0.75rem;
+  border-radius: 999px; background: var(--rc-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--rc-accent) 20%, transparent);
+}
+
+/* Collapsible: <details><summary>Title</summary>…</details> */
+.rich-content details {
+  margin: 1rem 0; padding: 0.75rem 1rem; border-radius: 0.9rem;
+  border: 1px solid var(--rc-border); background: var(--rc-surface);
+}
+.rich-content details > summary { cursor: pointer; font-weight: 700; }
+.rich-content details[open] > summary { margin-bottom: 0.5rem; }
+
+/* Tables scroll on small screens */
+.rich-content table { display: block; overflow-x: auto; max-width: 100%; }

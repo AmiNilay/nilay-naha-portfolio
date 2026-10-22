@@ -25,6 +25,7 @@ import {
 import { Upload } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 import CompanyLogo, { resolveLogoUrl } from "@/components/ui/CompanyLogo";
+import MediaFrame from "@/components/ui/MediaFrame";
 import { SKILL_CATEGORIES, readableIconColors } from "@/lib/skillData";
 import { motion } from "framer-motion";
 
@@ -84,13 +85,7 @@ export default function AdminAbout() {
           setAvailability(data.availability || "");
           setGDriveProfilePic(data.gDriveProfilePic || "");
 
-          if (data.gDriveProfilePic) {
-            const match =
-              data.gDriveProfilePic.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
-              data.gDriveProfilePic.match(/id=([a-zA-Z0-9_-]+)/);
-            if (match) setPreviewImage(`https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`);
-            else setPreviewImage(data.gDriveProfilePic);
-          }
+          if (data.gDriveProfilePic) setPreviewImage(data.gDriveProfilePic);
 
           if (Array.isArray(data.skills)) setSelectedSkills(data.skills);
           else if (typeof data.skills === "string")
@@ -113,15 +108,26 @@ export default function AdminAbout() {
       setToast({ message: "Please paste a link first.", type: "error" });
       return;
     }
-    const match =
-      gDriveProfilePic.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
-      gDriveProfilePic.match(/id=([a-zA-Z0-9_-]+)/);
-    if (match) {
-      setPreviewImage(`https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`);
-      setToast({ message: "Image extracted successfully!", type: "success" });
-    } else {
-      setPreviewImage(gDriveProfilePic);
-      setToast({ message: "Link applied (no ID extracted).", type: "success" });
+    setPreviewImage(gDriveProfilePic.trim());
+    setToast({ message: "Media applied. Click Save to publish.", type: "success" });
+  };
+
+  const [uploadingAboutImage, setUploadingAboutImage] = useState(false);
+  const uploadAboutImage = async (file: File) => {
+    setUploadingAboutImage(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setGDriveProfilePic(data.url);
+      setPreviewImage(data.url);
+      setToast({ message: "Image uploaded. Click Save to publish.", type: "success" });
+    } catch (err: any) {
+      setToast({ message: err.message || "Upload failed", type: "error" });
+    } finally {
+      setUploadingAboutImage(false);
     }
   };
 
@@ -337,21 +343,38 @@ export default function AdminAbout() {
             {/* Dedicated G-Drive Image */}
             <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60 space-y-3">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-cyan-500" /> Dedicated About Image (Optional G-Drive Link)
+                <ImageIcon className="w-3.5 h-3.5 text-cyan-500" /> About Page Image (separate from the Home avatar)
               </label>
+              <p className="text-[11px] text-zinc-500">Upload an image/GIF, or paste a Google Drive link (image, GIF or video; add <code>#gif</code> or <code>#video</code> at the end). Empty = uses the Home avatar.</p>
 
               {previewImage && (
-                <div className="relative w-28 h-28 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                <div className="relative w-40 h-40 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                  <MediaFrame src={previewImage} alt="Preview" width={600} />
                 </div>
               )}
+
+              <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-600 cursor-pointer">
+                {uploadingAboutImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                {uploadingAboutImage ? "Uploading…" : "Upload image / GIF"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  disabled={uploadingAboutImage}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadAboutImage(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
 
               <div className="flex gap-2">
                 <input
                   value={gDriveProfilePic}
                   onChange={(e) => setGDriveProfilePic(e.target.value)}
                   className="flex-1 p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-cyan-500/20"
-                  placeholder="Paste Google Drive image link..."
+                  placeholder="Paste Google Drive link or image URL..."
                 />
                 <button
                   onClick={handleExtractImage}

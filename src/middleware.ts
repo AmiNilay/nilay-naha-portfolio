@@ -24,7 +24,8 @@ export function middleware(request: NextRequest) {
     '/api/push/subscribe',
     '/api/views',
     '/api/analytics/track',
-    '/api/chat'
+    '/api/chat',
+    '/api/mcp' // Bearer-token auth handled in the route itself
   ];
 
   if (path.startsWith('/api/') && !publicApiRoutes.includes(path)) {

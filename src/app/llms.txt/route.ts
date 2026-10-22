@@ -50,6 +50,8 @@ export async function GET() {
     ...(h.socialEmail ? [`- Email: ${h.socialEmail}`] : []),
     ...(h.socialLinkedin ? [`- LinkedIn: ${h.socialLinkedin}`] : []),
     ...(h.socialGithub ? [`- GitHub: ${h.socialGithub}`] : []),
+    ...(h.socialInstagram ? [`- Instagram: ${h.socialInstagram}`] : []),
+    ...(h.socialTwitter ? [`- X / Twitter: ${h.socialTwitter}`] : []),
     ""
   );
 

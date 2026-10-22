@@ -37,7 +37,7 @@ export async function PUT(req: Request) {
       "siteTitle", "siteSubtitle",
       "badgeText", "showAvailability", 
       "line1Bold", "line1Accent", "line2Bold", "line2Accent",
-      "socialGithub", "socialLinkedin", "socialTwitter", "socialEmail",
+      "socialGithub", "socialLinkedin", "socialTwitter", "socialInstagram", "socialEmail",
       "techStack", 
       "stat1Value", "stat1Label", 
       "stat2Value", "stat2Label", 

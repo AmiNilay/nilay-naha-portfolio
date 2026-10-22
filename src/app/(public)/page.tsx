@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
 async function personJsonLd() {
   const p = await getProfile();
   if (!p) return null;
-  const sameAs = [p.hero.socialGithub, p.hero.socialLinkedin, p.hero.socialTwitter].filter(Boolean);
+  const sameAs = [p.hero.socialGithub, p.hero.socialLinkedin, p.hero.socialTwitter, p.hero.socialInstagram].filter(Boolean);
   return {
     "@context": "https://schema.org",
     "@type": "Person",

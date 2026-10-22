@@ -20,6 +20,7 @@ const HeroSchema = new Schema(
     socialGithub: String,
     socialLinkedin: String,
     socialTwitter: String,
+    socialInstagram: String,
     socialEmail: String,
     techStack: String,
     stat1Value: String,

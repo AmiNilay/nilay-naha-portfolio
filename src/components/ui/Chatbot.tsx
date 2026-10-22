@@ -478,7 +478,7 @@ export default function Chatbot() {
           whileTap={reduceMotion ? undefined : { scale: 0.94 }}
           aria-label={isOpen ? "Close chat assistant" : "Open chat assistant"}
           aria-expanded={isOpen}
-          className="relative block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D97757] drop-shadow-[0_10px_18px_rgba(0,0,0,0.28)]"
+          className="relative block bg-transparent rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D97757]"
         >
           <ChatbotMascot icon expression={listening ? "listening" : waiting ? "thinking" : emotion} size={76} />
           {!isOpen && (

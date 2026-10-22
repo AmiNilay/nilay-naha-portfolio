@@ -134,3 +134,15 @@ Or render them from the finished GLB in Blender (a transparent background, a hea
 | Small-size readability (28–76 px) | ✅ Uses the cropped busts and app icons |
 | Front, side and back previews | ⏳ Available on the reference sheet; renderable from the GLB in Blender |
 | Lip-sync | ❌ Not implemented. `mouthOpen` is static per state and isn't driven by audio timing |
+
+## Regenerating the transparent 2D avatars (updated 2026-10-22)
+
+The images in `public/mascot/` are **transparent cut-outs**: no backdrop, disc or glow, just the figure. They were made with [rembg](https://github.com/danielgatis/rembg) (free, local, model `isnet-general-use`):
+
+```bash
+python -m venv rbenv && rbenv/Scripts/python -m pip install "rembg[cpu]" pillow
+# crop each tile from the reference sheet, then:
+rbenv/Scripts/python -c "from rembg import remove,new_session;from PIL import Image;s=new_session('isnet-general-use');remove(Image.open('tile.png'),session=s,post_process_mask=True).save('cut.png')"
+```
+
+Trim to the alpha bounding box, pad to a square with the shoulders on the bottom edge, and export `<name>-256.webp` and `<name>-128.webp` (quality 88). The main avatar (`avatar-light` / `avatar-dark`) uses the same cut-out in both themes; dark mode only adds a faint cool rim via CSS.

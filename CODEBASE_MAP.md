@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 11:17 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-22 11:23 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -499,6 +499,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-22 11:23 | STANDOUT_FEATURES.md: portfolio rating (8.5/10 with breakdown), 15 round-2 feature ideas, restored the corrupted ideas table and Setup Checklist heading. |
 | 2026-10-22 11:17 | Mascot re-cut as transparent figures (no blue tile, disc or glow); launcher backdrop removed; regeneration steps in MASCOT_PIPELINE.md. |
 | 2026-10-22 10:54 | Chatbot mascot from the owner's reference sheet (dark/light icons + 5 expressions), GLB-ready ChatbotMascot component, MASCOT_PIPELINE.md for creating the real 3D model for free; procedural head removed. |
 | 2026-10-22 10:42 | OpenAPI 3.1 spec + themed Swagger UI at /api-docs; Home tech marquee uses the shared logo SkillPicker; skill catalog researched and expanded 172 → 286. |

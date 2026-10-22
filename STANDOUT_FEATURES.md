@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 11:17 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 11:23 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -427,7 +427,62 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 | Idea | Why | Effort |
 | :--- | :--- | :-: |
 | **Architecture diagrams** on project pages (Mermaid rendered in content) | Shows system-design thinking | Small |
-| **\ — Things YOU Need to Do
+| **"Ask about this project"** button that opens the chatbot pre-scoped to the project | Contextual AI help | Small |
+| **Changelog / Now page** (`/now`) built automatically from commits and posts | Shows momentum | Small |
+| **Generated Open Graph image per project/post** | Better link previews on LinkedIn/X | Small |
+| **Uptime and performance badges** for live demos (free status page) | Production mindset | Small |
+| **Certifications with verify links** and an Open Badges view | Trust | Small |
+| **Recruiter mode:** one-click PDF pack (résumé + top 3 case studies) | Easy to forward internally | Medium |
+| **Accessibility audit (WCAG 2.2 AA)** and a statement page | Rare and valued | Medium |
+| **Passkey (WebAuthn) login for admin** | Modern, phishing-proof admin | Medium |
+
+## ⭐ Portfolio Rating — 2026-10-22
+
+**Overall: 8.5 / 10.** Engineering and features: **9.5 / 10**. Content and proof: **6.5 / 10**, and this is the gap.
+
+| Area | Score | Why |
+| :--- | :-: | :--- |
+| AI-native features | 10 | Two MCP servers, `llms.txt` + AI crawler rules, on-device semantic search, an assistant that acts, voice + 9 languages, and job match. Very few portfolios have even one of these. |
+| Engineering depth | 9.5 | Custom CMS, signed sessions, rate limits, CSP, audit log, OpenAPI/Swagger, PWA + push, ISR caching. This reads as a product, not a template. |
+| Cost & ownership | 10 | ₹0 running cost and no paid LLM keys, with everything self-owned. A strong interview story. |
+| Recruiter UX | 8.5 | Job match, tailored résumé, book-a-call and fast navigation. Risk: so many features can feel busy, so keep the home page focused. |
+| Visual design & brand | 8 | Clean Apple-style UI and a branded mascot. A real 3D mascot (GLB) and per-project OG images would push this to 9+. |
+| Content & proof of impact | 6.5 | Case studies, metrics, evals and demo GIFs are still mostly empty. **This decides interviews more than features.** |
+| Freshness | 7 | Live GitHub activity helps; regular posts or updates every 2–4 weeks are needed. |
+
+**Why it beats most 2026 portfolios:** most are a template, a paid-API chatbot and a project grid. Yours is **built for AI agents and recruiters at the same time**. AI search engines can quote it, recruiters' agents can query it through MCP, and a recruiter can paste a job description and get evidence-backed fit in seconds. It is also secure, documented (Swagger) and costs nothing to run. Those are senior-level signals.
+
+**How to reach 9.5–10:**
+1. Fill in 3 flagship case studies: problem → approach → results with real numbers, a demo GIF/video, and evals for the ML project.
+2. Add the real 3D mascot GLB (see `MASCOT_PIPELINE.md`).
+3. Publish 1 post per month, for example how you built the MCP server or the free chatbot engine. These double as proof.
+4. Trim the home page to one clear call to action ("View work" plus "Check job fit").
+
+## 🚀 New Feature Ideas — Round 2 (2026)
+
+| # | Feature | Why it stands out in 2026 | Effort | Cost |
+| :-: | :--- | :--- | :-: | :-: |
+| N1 | **AI mock-interview mode**: the chatbot asks the visitor (or you) technical questions about your own projects and scores the answers against the case study | Turns the portfolio into an interactive interview; memorable for recruiters | Medium | Free |
+| N2 | **`/resume.json` (JSON Resume schema) + `/.well-known/` agent card** for A2A/agent discovery | Lets AI hiring agents parse you perfectly; A2A is the emerging agent standard | Small | Free |
+| N3 | **WebMCP tools in the browser**: expose "search projects" and "match job" to browser AI assistants via the emerging WebMCP proposal | Very early adopter signal; few sites have it | Medium | Free |
+| N4 | **Personalised recruiter landing**: `/?for=Company&role=Backend` highlights matching projects and skills | Feels made for each company; great in cold outreach | Small | Free |
+| N5 | **TL;DR + "Explain like I'm a recruiter" toggle on blog posts** (extractive summary, no LLM) | Respects a 30-second attention span | Small | Free |
+| N6 | **RSS/Atom feed + email updates** (Buttondown free tier or push) | Followers return; AI engines pick up fresh content | Small | Free |
+| N7 | **Terminal mode**: `npx nilay` CLI card and a `/terminal` page you can type commands into | Developer-native personality; goes viral on LinkedIn | Small | Free |
+| N8 | **Proof-of-work metrics**: verified GitHub stats (commits, PRs merged, languages) and WakaTime coding hours | Hard numbers instead of claims | Small | Free |
+| N9 | **Open-source contributions page** (PRs to other repos via the GitHub API) | Shows you collaborate beyond your own projects | Small | Free |
+| N10 | **Project "build log" timelines**: dated milestones and screenshots per project | Shows process and iteration, not just the final result | Small | Free |
+| N11 | **Live system status page** (`/status`) for your APIs and demos, using free uptime checks | Production ownership mindset | Small | Free |
+| N12 | **Visitor-facing "How this site works" page**: architecture diagram, stack, cost (₹0), security and Swagger links | Turns the portfolio itself into your best case study | Small | Free |
+| N13 | **Full-site i18n (Hindi/Bengali)**, not just the chatbot | Reach and accessibility | Medium | Free |
+| N14 | **Guestbook / endorsements with GitHub login** (moderated) | Social proof from real developers | Medium | Free |
+| N15 | **Lighthouse CI + a public score badge** (from the roadmap) | Visible quality bar | Small | Free |
+
+**Recommended next 5:** N12 → N2 → N4 → N8 → N1.
+
+---
+
+## 🧰 Setup Checklist — Things YOU Need to Do
 
 All of these are **free**. Do each one once.
 

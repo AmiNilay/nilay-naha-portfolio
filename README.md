@@ -31,7 +31,10 @@
 - 💬 **Recommendations:** Testimonials managed from the CMS and shown on the About page.
 - 🏢 **Rich Experience Timeline:** Company logos (uploaded or linked, never cropped) and LinkedIn links per role.
 - 🧠 **AI Tools Stack:** 20+ AI tools (Claude, Claude Code, Cursor, Copilot, Gemini, DeepSeek, Qwen…) selectable in the CMS, with theme-aware icon contrast.
-- 🔎 **Discoverable:** schema.org Person JSON-LD, a generated social preview image, and `/llms.txt` so AI assistants get accurate, current facts.
+- 🔎 **Discoverable:** schema.org Person JSON-LD, a generated social preview image, and `/llms.txt` so AI assistants get accurate, current facts; robots.txt explicitly welcomes AI crawlers (GPTBot, ClaudeBot, PerplexityBot…).
+- 🔌 **Admin MCP Server:** `/api/mcp` lets AI agents (Claude, Cursor…) list, create, update, publish and delete projects and blog posts and edit About/Hero on your behalf — free, token-protected, no SDK. Connect with `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <ADMIN_SECRET>"`.
+- 🧑‍🚀 **3D Assistant Avatar & Auto-Navigation:** the chatbot's 3D-shaded avatar turns toward your cursor; ask about a project or article and it opens that page for you, then suggests fresh follow-up questions.
+- 🔄 **Reload-Safe Sections:** refreshing keeps you on the same home section and scroll position (`/#about`, `/#projects`…).
 
 ---
 
@@ -135,6 +138,12 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+---
+
+## 📝 Changelog
+
+- **2026-10-22 09:50 IST** — Admin MCP server, AI-crawler robots rules, Instagram link, 3D avatar, chatbot auto-navigation & smarter follow-ups, reload keeps section, cursor effect behind content, urgent-contact copy. Full history in [CODEBASE_MAP.md](CODEBASE_MAP.md#change-log).
 
 ---
 

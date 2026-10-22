@@ -1,5 +1,7 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
+> **Last updated:** 2026-10-22 09:50 IST — see [Change Log](#change-log).
+>
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
 ---
@@ -28,6 +30,7 @@
    - [Data Models (`src/models/` & `src/lib/models/`)](#data-models-srcmodels--srclibmodels)
    - [TypeScript Definitions (`src/types/`)](#typescript-definitions-srctypes)
 5. [Technical Pitfalls & Agent Gotchas](#technical-pitfalls--agent-gotchas)
+6. [Change Log](#change-log)
 
 ---
 
@@ -130,9 +133,12 @@ my-portfolio/
 * **Smart answers (free, no API key):** `POST /api/chat` (public, 60 questions/IP/hour) runs [`src/lib/chatEngine.ts`](file:///e:/my-portfolio/src/lib/chatEngine.ts), which indexes Hero, About (bio, experience, education, skills, certifications), Projects, Posts, published Testimonials and the curated `Chatbot` rules (rebuilt every 2 min). Answer order: small talk → follow-ups on the previous topic (`context`) → a project/post/company named in the question → "does he know X?" (honest when X isn't listed) → live intents (projects, experience, current role, education, skills, AI tools, contact, location, availability, certifications, blog, testimonials) unless a curated rule matches its full phrase and contains a word live intents don't cover → curated rules → BM25 full-text search → honest fallback. Returns `{ reply, links, quickReplies, context, emotion }`. No LLM; the Anthropic SDK was removed because it breaks the Next 14 build and needed a paid key.
 * **Admin:** `/admin/chatbot` shows which topics are answered live, a bank of recruiter questions, and a "Test the assistant" box returning the exact visitor answer ([`ChatbotGuide.tsx`](file:///e:/my-portfolio/src/components/admin/ChatbotGuide.tsx)). Resume/cv/download stays a local, instant trigger in the widget.
 * **Logic:**
-  - **Human avatar assistant:** [`src/components/chatbot/HumanAvatar.tsx`](file:///e:/my-portfolio/src/components/chatbot/HumanAvatar.tsx) is an SVG character (headset) whose pupils follow the pointer, blinks naturally, and has 9 expressions: neutral, happy, excited, thinking, confused, sad, surprised, sleepy (45 s idle), annoyed (5 rapid clicks). The widget maps each reply's `emotion` to an expression; "not on the portfolio" answers show *sad*.
+  - **Human avatar assistant:** [`src/components/chatbot/HumanAvatar.tsx`](file:///e:/my-portfolio/src/components/chatbot/HumanAvatar.tsx) is a 3D-rendered style SVG character (gradient-shaded skin/hair/clothing, ambient occlusion, glossy irises, specular sphere gloss; redesigned 2026-10-22) whose pupils follow the pointer and whose head turns in CSS 3D perspective toward it, blinks naturally, and has 9 expressions: neutral, happy, excited, thinking, confused, sad, surprised, sleepy (45 s idle), annoyed (5 rapid clicks). The widget maps each reply's `emotion` to an expression; "not on the portfolio" answers show *sad*.
   - **Widget:** [`src/components/ui/Chatbot.tsx`](file:///e:/my-portfolio/src/components/ui/Chatbot.tsx) — draggable launcher with rotating teaser, Claude-style chat window (markdown-lite rendering + typewriter reveal via [`MessageContent.tsx`](file:///e:/my-portfolio/src/components/chatbot/MessageContent.tsx)), link chips, follow-up chips, starter questions, Escape to close, full-height sheet on mobile, hidden on `/admin`. Falls back to local keyword matching against `/api/chatbot` rules if `/api/chat` is unreachable.
   - **Sounds:** [`sounds.ts`](file:///e:/my-portfolio/src/components/chatbot/sounds.ts) synthesizes soft tones with the Web Audio API (no audio files). Off by default; the header speaker toggle persists the choice in `localStorage` (`chatbot_sound_enabled`).
+  - **Auto-navigation (2026-10-22):** replies about one specific project or article carry `navigate` (`/projects/<slug>` or `/blog/<slug>`); the widget appends "Opening it for you…" and `router.push`es there after 1.2 s (skipped when already on that page).
+  - **Smarter follow-ups (2026-10-22):** suggestion chips exclude questions the visitor already asked this session and top up from `FOLLOW_UP_POOL`, so suggestions keep moving the conversation forward.
+  - **Fresh knowledge (2026-10-22):** `revalidatePublicPages()` and chatbot-rule CRUD call `invalidateKnowledge()`, so CMS edits reach answers immediately (60 s TTL otherwise).
   - **Special Triggers:** `resume` / `cv` / `résumé` is answered locally and instantly with a download button linked to the live résumé from `/api/hero` (`resumeUrl`, or the Google Drive `gDriveResume` as a view link).
 
 ### 5. App-Like Page Navigation & Touch Thresholding
@@ -144,6 +150,7 @@ my-portfolio/
     1. Duration threshold: Swipes taking $> 600\text{ ms}$ are discarded (distinguishes taps/drags).
     2. Distance threshold: $|\Delta X| > 100\text{ px}$.
     3. Directional dominance: Horizontal delta must exceed vertical delta by a 2:1 ratio ($|\Delta X| > 2 \cdot |\Delta Y|$).
+  - **Reload persistence (2026-10-22):** the home slider writes the active slide to the URL hash (`/#projects`, `/#blog`, `/#about`, `/#contact`) via `history.replaceState` and saves the slide's scroll offset in `sessionStorage` (`home_slide_scroll`); on load both are restored, so a refresh stays on the same section.
 
 ### 6. Web Push Notification Lifecycle
 * **Location:** [`public/push-sw.js`](file:///e:/my-portfolio/public/push-sw.js), [`src/components/ui/PushNotificationButton.tsx`](file:///e:/my-portfolio/src/components/ui/PushNotificationButton.tsx), [`src/app/api/push/`](file:///e:/my-portfolio/src/app/api/push/)
@@ -197,7 +204,14 @@ my-portfolio/
 
 ### 12. Discoverability (SEO & AI assistants)
 * **Location:** [`src/app/og-image.png/route.tsx`](file:///e:/my-portfolio/src/app/og-image.png/route.tsx), [`src/app/llms.txt/route.ts`](file:///e:/my-portfolio/src/app/llms.txt/route.ts), [`src/lib/profileData.ts`](file:///e:/my-portfolio/src/lib/profileData.ts), [`src/app/(public)/page.tsx`](file:///e:/my-portfolio/src/app/(public)/page.tsx)
-* **Logic:** `/og-image.png` is generated by `ImageResponse` on the **Edge runtime** (Next 14.1's Node renderer breaks on Windows font paths) and cached for a day; every `og-image.png` metadata reference resolves to it. `getProfile()` feeds both the home page's schema.org `Person` JSON-LD (escaped with `<`) and `/llms.txt` (markdown summary for AI assistants, revalidated hourly).
+* **Logic:** `/og-image.png` is generated by `ImageResponse` on the **Edge runtime** (Next 14.1's Node renderer breaks on Windows font paths) and cached for a day; every `og-image.png` metadata reference resolves to it. `getProfile()` feeds both the home page's schema.org `Person` JSON-LD (escaped with `<`) and `/llms.txt` (markdown summary for AI assistants, revalidated hourly). Since 2026-10-22, [`robots.ts`](file:///e:/my-portfolio/src/app/robots.ts) explicitly allows AI crawlers (GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-User, Claude-SearchBot, PerplexityBot, Google-Extended, Applebot-Extended, CCBot), and Hero's `socialInstagram` joins GitHub/LinkedIn/X in JSON-LD `sameAs` and `/llms.txt`.
+
+### 13. Admin MCP Server (AI agents manage the CMS) — added 2026-10-22
+* **Location:** [`src/app/api/mcp/route.ts`](file:///e:/my-portfolio/src/app/api/mcp/route.ts), [`src/lib/mcpTools.ts`](file:///e:/my-portfolio/src/lib/mcpTools.ts)
+* **Protocol:** Model Context Protocol over Streamable HTTP, stateless JSON responses (`initialize`, `ping`, `tools/list`, `tools/call`; notifications get `202`; `GET` is `405`). No SDK dependency, no cost.
+* **Auth:** `Authorization: Bearer <ADMIN_SECRET>`, compared with `timingSafeEqual`; refused when `ADMIN_SECRET` is unset. `/api/mcp` is in `publicApiRoutes` only because agents can't hold the `admin_token` cookie — the route enforces auth itself.
+* **Tools:** `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`, `list_posts`, `get_post`, `create_post`, `update_post`, `delete_post`, `get_about`, `update_about`, `get_hero`, `update_hero`. Ids accept a Mongo `_id` or slug; images are URLs / Google Drive links (Drive links converted to thumbnail URLs). Every write calls `revalidatePublicPages()`.
+* **Connect (Claude Code):** `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <ADMIN_SECRET>"`.
 
 ## Exhaustive File-by-File Dictionary
 
@@ -318,6 +332,7 @@ my-portfolio/
 | [`testimonials/route.ts`](file:///e:/my-portfolio/src/app/api/testimonials/route.ts) | `GET`, `POST`, `PUT`, `DELETE` | Testimonial CRUD. Public GET = published only; `?all=1` + admin cookie includes drafts. |
 | [`analytics/track/route.ts`](file:///e:/my-portfolio/src/app/api/analytics/track/route.ts) | `POST` (public) | Records a `PageVisit` (session id, path, previous path). |
 | [`admin/analytics/flow/route.ts`](file:///e:/my-portfolio/src/app/api/admin/analytics/flow/route.ts) | `GET` | Aggregated user-flow stats for `/admin/analytics` (`?days=` 7, 30, or 90). |
+| [`mcp/route.ts`](file:///e:/my-portfolio/src/app/api/mcp/route.ts) | `POST` (bearer token) | Admin MCP server for AI agents (see subsystem 13). |
 | [`views/route.ts`](file:///e:/my-portfolio/src/app/api/views/route.ts) | `POST` | Atomic counter route. Uses MongoDB `$inc: { views: 1 }` on `Post` models identified by slug. |
 
 ---
@@ -431,3 +446,17 @@ my-portfolio/
 5. **DOMPurify / ESM Crash:**
    - Do not reintroduce `isomorphic-dompurify` directly in client components; it causes server-side rendering crashes in Vercel Node 18/20 environments. Use the unified pipeline or lightweight regex sanitizers.
 
+---
+
+## Change Log
+
+| Date & time (IST) | Change |
+| :--- | :--- |
+| 2026-10-22 09:50 | Admin MCP server (`/api/mcp`); AI-crawler rules in robots.txt; Instagram social link; 3D-style chatbot avatar; chatbot auto-navigation and non-repeating follow-ups; home slider keeps section/scroll on reload; ghost cursor moved behind content (z-index -1); urgent-contact copy (email/LinkedIn) replaces the 24 h reply promise; admin pages network-only in the service worker; client cache 60 s expiry. |
+| 2026-10-22 03:27 | Social preview image fix, Person JSON-LD, `/llms.txt`. |
+| 2026-10-22 03:21 | Human avatar assistant with emotions, sounds and Claude-style chat UI. |
+| 2026-10-22 03:11 | Free chat engine answering from live portfolio content. |
+| 2026-10-22 03:00 | Company logos and LinkedIn links for work experience. |
+| 2026-10-22 02:53 | AI Tools & LLMs skill stack; icon contrast fixes. |
+| 2026-10-22 02:46 | Push notification fixes, testimonials CMS, user-flow analytics, performance overhaul. |
+| 2026-10-20 01:18 | In-memory routing, loading screens, responsive home layout. |

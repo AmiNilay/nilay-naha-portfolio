@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 10:42 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-22 10:54 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -398,6 +398,14 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 13. **Bun + Hono**: a fast, edge-ready TypeScript backend.
 14. **OpenTelemetry**: one observability standard for apps and LLMs.
 15. **Docker Compose + Cloudflare Workers**: reproducible development and free edge deploys.
+
+## 40. Branded Chatbot Mascot (3D-ready)
+
+| | |
+| :--- | :--- |
+| **What** | The chatbot uses my own mascot (a young engineer with glasses, a black hoodie and a cyan `</>` logo), with dark and light icons and neutral, happy, thinking, explaining and coding expressions that crossfade as the bot reacts. The component automatically switches to a **real 3D model** once `public/models/chatbot-mascot.glb` is added, with lighting, framing, expressions and animations mapped by name. |
+| **Why it stands out** | A consistent personal brand character rather than a generic bot icon. It loads only 74 KB of images, and the 3D model is lazy-loaded. |
+| **How to use / upgrade** | Follow **[MASCOT_PIPELINE.md](MASCOT_PIPELINE.md)** to make the GLB for free (image → 3D → Blender cleanup → rig → compress), then drop it into `public/models/` and push. No code changes are needed. |
 
 ## 🧭 Honest Assessment — How This Portfolio Compares in the 2026 AI Era
 

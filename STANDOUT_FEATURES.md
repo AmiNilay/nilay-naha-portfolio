@@ -403,8 +403,8 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 
 | | |
 | :--- | :--- |
-| **What** | The chatbot uses my own mascot (a young engineer with glasses, a black hoodie and a cyan `</>` logo), with dark and light icons and neutral, happy, thinking, explaining and coding expressions that crossfade as the bot reacts. The component automatically switches to a **real 3D model** once `public/models/chatbot-mascot.glb` is added, with lighting, framing, expressions and animations mapped by name. |
-| **Why it stands out** | A consistent personal brand character rather than a generic bot icon. It loads only 74 KB of images, and the 3D model is lazy-loaded. |
+| **What** | The chatbot uses my own mascot (a young engineer with glasses, a black hoodie and a cyan `</>` logo) as a **transparent cut-out figure**: no background, disc or glow, just the character with a soft shadow, and a faint cool rim in dark mode. It has neutral, happy, thinking, explaining and coding expressions that crossfade as the bot reacts. The component automatically switches to a **real 3D model** once `public/models/chatbot-mascot.glb` is added, with lighting, framing, expressions and animations mapped by name. |
+| **Why it stands out** | A consistent personal brand character rather than a generic bot icon. The same figure is used in light and dark mode, the backgrounds were removed locally with free rembg, it loads only ~140 KB of images, and the 3D model is lazy-loaded. |
 | **How to use / upgrade** | Follow **[MASCOT_PIPELINE.md](MASCOT_PIPELINE.md)** to make the GLB for free (image → 3D → Blender cleanup → rig → compress), then drop it into `public/models/` and push. No code changes are needed. |
 
 ## 🧭 Honest Assessment — How This Portfolio Compares in the 2026 AI Era

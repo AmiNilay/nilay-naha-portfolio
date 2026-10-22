@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-22 11:17 IST** — Chatbot mascot is now a transparent cut-out figure (no background disc), same in light and dark mode.
 - **2026-10-22 10:54 IST** — New chatbot mascot based on the reference design (theme-aware icon + expressions); automatically upgrades to a real 3D model when `public/models/chatbot-mascot.glb` is added (see `MASCOT_PIPELINE.md`).
 - **2026-10-22 10:42 IST** — Swagger/OpenAPI API docs at `/api-docs`, click-to-select logo picker for the Home tech marquee, tech catalog expanded to 286 (2026 AI agents, frameworks, LLMOps, inference, modern web).
 - **2026-10-22 10:34 IST** — Security hardening (signed admin sessions, login throttling, rate limits, CSP/HSTS headers, audit log), drafts hidden from the public, chat insights dashboard, live GitHub activity, book-a-call, interactive project demos, Claude-style chatbot with a real 3D avatar, duplicate files removed.

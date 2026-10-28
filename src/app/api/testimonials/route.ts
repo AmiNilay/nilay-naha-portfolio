@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { cachedPublic } from "@/lib/publicCache";
 import Testimonial from "@/models/Testimonial";
 import { isAdminRequest } from "@/lib/adminAuth";
 import { audit, isObjectId, sanitizeMongo } from "@/lib/audit";
@@ -24,10 +25,16 @@ function pickFields(raw: Record<string, unknown>) {
 
 // Public visitors get published entries only; the CMS (admin cookie) gets drafts too.
 // GET isn't guarded by middleware, so the draft check lives here.
+const getPublicTestimonials = cachedPublic("testimonials", async () => {
+  await connectToDB();
+  return Testimonial.find({ published: true }).sort({ order: 1, createdAt: -1 }).lean();
+});
+
 export async function GET(req: NextRequest) {
   try {
-    await connectToDB();
     const includeDrafts = req.nextUrl.searchParams.get("all") === "1" && (await isAdminRequest(req));
+    if (!includeDrafts) return NextResponse.json({ testimonials: await getPublicTestimonials() });
+    await connectToDB();
     const filter = includeDrafts ? {} : { published: true };
     const testimonials = await Testimonial.find(filter).sort({ order: 1, createdAt: -1 }).lean();
     return NextResponse.json({ testimonials });

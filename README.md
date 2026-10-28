@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-28 17:24 IST** — Faster loading: public APIs served from a server cache instead of hitting the database on every visit, lighter blog list, and 3D effects load after the page is ready.
 - **2026-10-22 11:44 IST** — Security upgrade to Next.js 14.2.35 (fixes the CVE-2025-29927 middleware bypass and other known issues).
 - **2026-10-22 11:38 IST** — Fixed the 3D mascot showing grey: its colours now load in light and dark mode.
 - **2026-10-22 11:33 IST** — Real 3D chatbot mascot model (generated from the reference with TRELLIS, 266 KB) and a "Check job fit" button on the home page.

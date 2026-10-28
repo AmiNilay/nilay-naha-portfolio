@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useReducedMotion } from "framer-motion";
 import { useTheme } from "next-themes";
 import MascotFallback from "./MascotFallback";
+import { useIdleReady } from "@/lib/useIdleReady";
 import {
   isExpression,
   MASCOT_GLB_URL,
@@ -79,14 +80,17 @@ export default function ChatbotMascot({
   const safeExpr: MascotExpression = isExpression(expression) ? expression : "neutral";
   const mode: "light" | "dark" = theme === "auto" ? (resolvedTheme === "dark" ? "dark" : "light") : theme === "dark" ? "dark" : "light";
   const animate = animation === "idle" && !reduceMotion;
+  // The 2D render shows first; the 3D model (three.js + GLB) loads only once the page is idle.
+  const idle = useIdleReady();
 
   useEffect(() => {
+    if (!idle) return;
     let alive = true;
     hasGlb().then((ok) => alive && ok && supportsWebGL() && setUse3D(true));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [idle]);
 
   return (
     <div

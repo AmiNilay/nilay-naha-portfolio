@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { cachedPublic } from "@/lib/publicCache";
 import Hero from "@/models/Hero";
 import { audit } from "@/lib/audit";
 import { uploadToGithub, deleteFromGithub } from "@/lib/githubUpload";
@@ -15,10 +16,15 @@ const formatGDriveUrl = (url: string | null) => {
   return match ? `https://drive.google.com/file/d/${match[1]}/preview` : url;
 };
 
-export async function GET( ) {
+// Served from the data cache; purged on every CMS write, so the admin still sees fresh data.
+const getPublicHero = cachedPublic("hero", async () => {
   await connectToDB();
-  const hero = await Hero.findOne();
-  return NextResponse.json(hero || {}, {
+  return (await Hero.findOne().lean()) || {};
+});
+
+export async function GET( ) {
+  const hero = await getPublicHero();
+  return NextResponse.json(hero, {
     headers: { "Cache-Control": "no-store, no-cache" }
   });
 }

@@ -103,6 +103,7 @@ export function buildOpenApiSpec(): Json {
       "/api/blog": {
         get: {
           tags: ["Public"], summary: "List posts or get one",
+          description: "The public list (no `slug`/`id`/`all`) is cached and omits `content`; fetch a single post for its body.",
           parameters: [qp("slug", "One post by slug"), qp("id", "One post by id"), qp("all", "`1` includes drafts (admin session only)", { type: "string", enum: ["1"] })],
           responses: { 200: ok("Posts", { oneOf: [{ type: "array", items: schemaRef("Post") }, schemaRef("Post")] }), 404: ref("NotFound") },
         },

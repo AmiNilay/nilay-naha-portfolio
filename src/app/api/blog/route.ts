@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { cachedPublic } from "@/lib/publicCache";
 import { audit } from "@/lib/audit";
 import Post from "@/models/Post";
 import { uploadToGithub } from "@/lib/githubUpload";
@@ -13,14 +14,24 @@ export const revalidate = 0;
 // Drive share links → lh3 image URLs (deprecated uc?export=view no longer renders).
 const formatGDriveUrl = (url: string | null) => (url ? driveImageUrl(url) : "");
 
+// Public post list, served from the data cache. Omits the full article body —
+// list views only need the card fields (fetch ?slug= / ?id= for content).
+const getPublicPosts = cachedPublic("posts", async () => {
+  await connectToDB();
+  return Post.find(PUBLISHED_POST).select("-content").sort({ publishDate: -1, createdAt: -1 }).lean();
+});
+
 export async function GET(req: Request  ) {
   try {
-    await connectToDB();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const slug = searchParams.get("slug");
     // Drafts only for admin screens (?all=1 + admin cookie).
-    const scope = (await includeDrafts(req)) ? {} : PUBLISHED_POST;
+    const drafts = await includeDrafts(req);
+    if (!id && !slug && !drafts) return NextResponse.json({ posts: await getPublicPosts() });
+
+    await connectToDB();
+    const scope = drafts ? {} : PUBLISHED_POST;
 
     if (id) {
       const post = /^[0-9a-fA-F]{24}$/.test(id) ? await Post.findOne({ _id: id, ...scope }) : null;

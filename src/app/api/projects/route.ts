@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { cachedPublic } from "@/lib/publicCache";
 import { audit } from "@/lib/audit";
 import { includeDrafts, PUBLISHED_PROJECT } from "@/lib/visibility";
 import Project from "@/models/Project";
@@ -63,14 +64,23 @@ function caseStudyFields(formData: FormData) {
   return out;
 }
 
+// Public catalog (no drafts), served from the data cache.
+const getPublicProjects = cachedPublic("projects", async () => {
+  await connectToDB();
+  return Project.find(PUBLISHED_PROJECT).sort({ publishDate: -1, createdAt: -1 }).lean();
+});
+
 export async function GET(req: Request  ) {
   try {
-    await connectToDB();
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get("slug");
     const id = searchParams.get("id");
     // Drafts only for admin screens (?all=1 + admin cookie).
-    const scope = (await includeDrafts(req)) ? {} : PUBLISHED_PROJECT;
+    const drafts = await includeDrafts(req);
+    if (!slug && !id && !drafts) return NextResponse.json({ projects: await getPublicProjects() });
+
+    await connectToDB();
+    const scope = drafts ? {} : PUBLISHED_PROJECT;
 
     if (slug) {
       const project = await Project.findOne({ slug, ...scope });

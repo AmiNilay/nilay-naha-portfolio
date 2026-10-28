@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-22 11:44 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-28 17:24 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -187,7 +187,9 @@ my-portfolio/
 * **Location:** [`src/lib/publicData.ts`](file:///e:/my-portfolio/src/lib/publicData.ts), [`src/lib/revalidate.ts`](file:///e:/my-portfolio/src/lib/revalidate.ts), [`src/lib/clientCache.ts`](file:///e:/my-portfolio/src/lib/clientCache.ts), [`src/components/providers/CacheWarmer.tsx`](file:///e:/my-portfolio/src/components/providers/CacheWarmer.tsx)
 * **Logic:**
   - Home, `/projects/[slug]`, and `/blog/[slug]` use `revalidate = 60`; the detail routes define `generateStaticParams` so every existing slug is pre-rendered at build (new slugs render on first visit, then cache).
-  - Every CMS mutation handler calls `revalidatePublicPages()` (`revalidatePath("/", "layout")`) so edits go live immediately.
+  - Every CMS mutation handler calls `revalidatePublicPages()` (`revalidatePath("/", "layout")` + `revalidateTag("public-data")`) so edits go live immediately.
+  - Public API GETs (`/api/hero`, `/api/about` incl. rendered `bioHtml`, `/api/projects` list, `/api/blog` list, `/api/testimonials`) are served from the Next data cache via `cachedPublic()` in [`src/lib/publicCache.ts`](file:///e:/my-portfolio/src/lib/publicCache.ts) (tag `public-data`, 300 s safety net) — no MongoDB round trip per visitor. Admin/draft (`?all=1`), `?slug=` and `?id=` reads stay uncached. The public `/api/blog` list omits `content` (fetch a post by slug/id for the body).
+  - three.js/WebGL (GhostCursor, 3D mascot) loads only after page load + idle via `useIdleReady()` ([`src/lib/useIdleReady.ts`](file:///e:/my-portfolio/src/lib/useIdleReady.ts)); GhostCursor is skipped on touch-only devices (`pointer: fine`).
   - `getHeroData()` (React `cache`) is shared by Home's `generateMetadata` and page; the Hero is server-rendered from it, and `HomeClient` primes the `hero_data` client-cache key during its first render.
   - `clientCache` dedupes in-flight requests per key; `primeCache` is browser-only (the module is a server-wide singleton during SSR).
   - `CacheWarmer` (root layout, skipped on `/admin`) prefetches `hero_data`, `about_data`, `projects_catalog`, `blog_posts`, and `testimonials` at idle time, so later navigation needs no API calls.
@@ -439,7 +441,9 @@ my-portfolio/
 | [`auth.ts`](file:///e:/my-portfolio/src/lib/auth.ts) | Helper function `isAuthenticated(req)` checking the `x-admin-secret` header against `process.env.ADMIN_SECRET`. |
 | [`clientCache.ts`](file:///e:/my-portfolio/src/lib/clientCache.ts) | In-memory and session storage cache providing instant 0ms data access across in-tab page transitions without redundant network roundtrips. Resets automatically on new tabs or tab close. |
 | [`publicData.ts`](file:///e:/my-portfolio/src/lib/publicData.ts) | Server-only `getHeroData()` (React `cache`) returning the same JSON shape as `/api/hero`. |
-| [`revalidate.ts`](file:///e:/my-portfolio/src/lib/revalidate.ts) | `revalidatePublicPages()` — purges ISR-cached public pages after CMS edits. |
+| [`revalidate.ts`](file:///e:/my-portfolio/src/lib/revalidate.ts) | `revalidatePublicPages()` — purges ISR-cached public pages and the `public-data` cache tag after CMS edits. |
+| [`publicCache.ts`](file:///e:/my-portfolio/src/lib/publicCache.ts) | `cachedPublic(key, fn)` — `unstable_cache` wrapper for draft-free public DB reads (tag `public-data`). |
+| [`useIdleReady.ts`](file:///e:/my-portfolio/src/lib/useIdleReady.ts) | `useIdleReady()` — true once the page has loaded and the browser is idle; gates heavy WebGL effects. |
 | [`connectToDB.ts`](file:///e:/my-portfolio/src/lib/connectToDB.ts) | **Active Mongoose connector.** Configures Google/Cloudflare DNS servers, manages cached connection pool, and connects to the `portfolio` database. |
 | [`db.ts`](file:///e:/my-portfolio/src/lib/db.ts) | Legacy database connection utility (kept for backward compatibility; prefer `connectToDB.ts`). |
 | [`githubUpload.ts`](file:///e:/my-portfolio/src/lib/githubUpload.ts) | GitHub REST API integration for uploading binary files (`uploadToGithub`) and deleting files (`deleteFromGithub`). |
@@ -499,6 +503,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-28 17:24 | Performance: public API reads cached in the Next data cache (`publicCache.ts`, tag purged by `revalidatePublicPages`), blog list drops article bodies, three.js effects deferred to idle (`useIdleReady.ts`), cursor trail off on touch devices. Verified: `tsc`, `next build`. |
 | 2026-10-22 11:44 | Security upgrade: Next.js 14.1.0 → 14.2.35 (+ eslint-config-next), closing CVE-2025-29927 middleware bypass and other 14.1 advisories. Verified: build, all routes 200, bypass header still redirects, unauthenticated writes 401. |
 | 2026-10-22 11:38 | Fix grey 3D mascot: CSP connect-src now allows blob:/data: (GLTFLoader fetches embedded textures via blob URLs); MascotScene forces sRGB map, matte material and subtle emissive from the texture. **Rule: any new client-side loader using blob:/data: URLs needs the CSP updated.** |
 | 2026-10-22 11:33 | Real 3D mascot GLB (TRELLIS image-to-3D, rotated to face +Z, JPEG texture + meshopt, 266 KB) in public/models; MascotScene frames busts whole, turns unrigged models toward the pointer with breathing/expression gestures, forces matte materials; home hero "Check job fit" button → /match. |

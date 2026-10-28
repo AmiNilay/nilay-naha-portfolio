@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
+import { useIdleReady } from "@/lib/useIdleReady";
 
 const GhostCursor = dynamic(() => import("./GhostCursor").then((m) => m.GhostCursor), {
   ssr: false,
@@ -32,16 +33,20 @@ const GhostCursor = dynamic(() => import("./GhostCursor").then((m) => m.GhostCur
  * explicitly requested background effect, and many Windows setups report
  * reduced-motion simply because "Show animations" is off system-wide, which
  * would silently hide the whole effect with no way to tell why.
+ *
+ * Performance: three.js is only loaded once the page is idle, and never on
+ * touch-only devices (there is no cursor to trail).
  */
 export default function CursorTrail() {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const [hasCursor, setHasCursor] = useState(false);
+  const idle = useIdleReady();
 
   useEffect(() => {
-    setMounted(true);
+    setHasCursor(window.matchMedia("(pointer: fine)").matches);
   }, []);
 
-  if (!mounted) return null;
+  if (!hasCursor || !idle) return null;
 
   const isDark = resolvedTheme === "dark";
 

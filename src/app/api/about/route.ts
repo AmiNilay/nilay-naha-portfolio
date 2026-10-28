@@ -1,17 +1,23 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/connectToDB";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { cachedPublic } from "@/lib/publicCache";
 import About from "@/models/About";
 import { audit, pickFields } from "@/lib/audit";
 import { processContent } from "@/lib/markdownProcessor";
 
+// Cached (incl. the rendered bio) so visitors skip the DB query and Markdown pipeline.
+const getPublicAbout = cachedPublic("about", async () => {
+  await connectToDB();
+  const about: any = await About.findOne({}).lean();
+  if (!about) return {};
+  // bioHtml: the bio rendered like blog content (Markdown/HTML, Drive media, sanitized).
+  return { ...about, bioHtml: await processContent(about.bio || "") };
+});
+
 export async function GET() {
   try {
-    await connectToDB();
-    const about: any = await About.findOne({}).lean();
-    if (!about) return NextResponse.json({});
-    // bioHtml: the bio rendered like blog content (Markdown/HTML, Drive media, sanitized).
-    return NextResponse.json({ ...about, bioHtml: await processContent(about.bio || "") });
+    return NextResponse.json(await getPublicAbout());
   } catch (error) {
     console.error("GET About Error:", error);
     return NextResponse.json({ error: "Failed to fetch about data" }, { status: 500 });

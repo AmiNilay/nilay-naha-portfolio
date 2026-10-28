@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-22 11:44 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-28 17:24 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -202,7 +202,7 @@ Then ask your agent things like *"Create a draft blog post about my sign-languag
 
 | | |
 | :--- | :--- |
-| **What** | ISR caching, server data primed into the client cache, idle-time prefetch of other pages, a 60 s client cache expiry, and instant page purges on CMS edits. |
+| **What** | ISR caching, server data primed into the client cache, idle-time prefetch of other pages, a 60 s client cache expiry, and instant page purges on CMS edits. Public APIs are served from a server data cache (no database trip per visitor), the blog list skips article bodies, and the 3D effects (cursor trail, mascot) load only after the page is ready — never on touch devices for the cursor trail. *(Added 2026-10-28 17:24 IST)* |
 | **Why it stands out** | Navigation between sections is near-instant, and edits still go live immediately. |
 
 ---

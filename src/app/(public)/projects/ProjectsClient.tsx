@@ -5,6 +5,7 @@ import { driveImageUrl } from "@/lib/driveMedia";
 import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
 import { topicCounts } from "@/lib/topics";
+import ScrollRow from "@/components/ui/ScrollRow";
 import { 
   Loader2, ArrowRight, ArrowUpRight, Github, ExternalLink, 
   Search, X, Layers, Sparkles, Monitor, Calendar, Laptop
@@ -185,12 +186,17 @@ export default function ProjectsClient() {
 
         {/* SEGMENTED FILTER PILLS (Apple Recessed Segmented Track) */}
         {filterTabs.length > 1 && (
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-100 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/80 overflow-x-auto no-scrollbar w-fit max-w-full">
+          <ScrollRow
+            className="w-fit max-w-full rounded-2xl bg-zinc-100 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/80"
+            innerClassName="gap-1.5 p-1"
+            activeKey={activeFilter}
+          >
             {filterTabs.map((tab) => {
               const isActive = activeFilter.toLowerCase() === tab.toLowerCase();
               return (
                 <button
                   key={tab}
+                  data-active={isActive}
                   type="button"
                   onClick={() => setActiveFilter(tab)}
                   className={`relative px-4 py-2 rounded-xl text-xs select-none transition-all duration-200 whitespace-nowrap active:scale-95 ${
@@ -212,7 +218,7 @@ export default function ProjectsClient() {
                 </button>
               );
             })}
-          </div>
+          </ScrollRow>
         )}
       </div>
 

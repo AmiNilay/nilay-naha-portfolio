@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-28 23:59 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-29 00:05 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -505,6 +505,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-29 00:05 | Topic filter bars scroll: new [`ScrollRow`](file:///e:/my-portfolio/src/components/ui/ScrollRow.tsx) (left/right arrow buttons + edge fades only when overflowing, wheel→horizontal, active pill kept in view via `data-active`) used on Blog and Projects; blog bar was clipped after "Backend & APIs" because the flex child couldn't shrink. Verified: `tsc`. |
 | 2026-10-28 23:59 | Topic filters: shared taxonomy [`src/lib/topics.ts`](file:///e:/my-portfolio/src/lib/topics.ts) (`TOPICS`, `topicsOf`, `topicCounts`, `hasTopic`) — 7 topics stored as leading tags. Blog/Projects filter tabs now list only topics in use, with counts (was: first 6 raw tags, each matching one item). Admin blog + project editors get one-click `TopicChips`. All posts/projects tagged with 1–3 topics. Verified: `tsc`. |
 | 2026-10-28 23:54 | Reading layout: blog article container `max-w-4xl` → `lg:max-w-[1120px]` (reading column was ~470px beside the TOC; now ~680–720px), title/excerpt capped; project article column capped at 760px (`lg:grid-cols-[minmax(0,760px)_320px]`), 16px body text on mobile; `.blog-content` lists no longer double-indented (removed `ml-6`). Verified: `tsc`. |
 | 2026-10-28 23:51 | Content (CMS data, no code): rewrote 6 older blog posts and 5 project write-ups into native format — removed per-article `<style>` blocks/`portfolio-post` wrappers that broke dark mode, Markdown `##` headings (TOC works), design classes; filled empty project case-study fields (problem/approach/results/metrics) from existing text only; PyPass placeholder `#` links → real GitHub/release URLs. Facts unchanged; pre-rewrite JSON backup kept locally. |

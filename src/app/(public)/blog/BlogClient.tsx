@@ -5,6 +5,7 @@ import { driveImageUrl } from "@/lib/driveMedia";
 import Link from "next/link";
 import { fetchWithSessionCache, clearMemoryCache } from "@/lib/clientCache";
 import { topicCounts } from "@/lib/topics";
+import ScrollRow from "@/components/ui/ScrollRow";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -216,12 +217,13 @@ export default function BlogClient() {
               </div>
 
               {/* Segmented Filter Pills (macOS / iOS segmented control) */}
-              <div className="flex items-center gap-1 overflow-x-auto w-full py-1 px-0.5 no-scrollbar">
+              <ScrollRow className="w-full md:flex-1" innerClassName="gap-1 py-1 px-0.5" activeKey={activeFilter}>
                 {filterTabs.map((tab) => {
                   const isActive = activeFilter === tab;
                   return (
                     <button
                       key={tab}
+                      data-active={isActive}
                       onClick={() => setActiveFilter(tab)}
                       className={`relative px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-semibold tracking-tight whitespace-nowrap transition-colors duration-200 select-none active:scale-[0.96] ${
                         isActive
@@ -242,7 +244,7 @@ export default function BlogClient() {
                     </button>
                   );
                 })}
-              </div>
+              </ScrollRow>
             </div>
           </div>
         </motion.div>

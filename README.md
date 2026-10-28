@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-28 23:44 IST** — New blog post: "How I Built My Portfolio". Fixed new posts having no publish date (they sorted last), and pages left open during a deploy now reload themselves instead of erroring.
 - **2026-10-28 23:37 IST** — Fixed: publishing a blog post from the admin panel now actually makes it public (tags save too).
 - **2026-10-28 23:31 IST** — Chatbot mascot is now one simple image (3D model and animations removed) so the site loads faster in every browser.
 - **2026-10-28 23:20 IST** — Chatbot shows Claude-style playful loading words ("Pondering…", "Connecting the dots…") while preparing an answer.

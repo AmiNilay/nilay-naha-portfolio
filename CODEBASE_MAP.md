@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-28 23:37 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-28 23:44 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -192,6 +192,7 @@ my-portfolio/
   - three.js/WebGL (GhostCursor) loads only after page load + idle via `useIdleReady()` ([`src/lib/useIdleReady.ts`](file:///e:/my-portfolio/src/lib/useIdleReady.ts)); GhostCursor is skipped on touch-only devices (`pointer: fine`).
   - `getHeroData()` (React `cache`) is shared by Home's `generateMetadata` and page; the Hero is server-rendered from it, and `HomeClient` primes the `hero_data` client-cache key during its first render.
   - `clientCache` dedupes in-flight requests per key; `primeCache` is browser-only (the module is a server-wide singleton during SSR).
+  - `ChunkErrorReload` ([`src/components/providers/ChunkErrorReload.tsx`](file:///e:/my-portfolio/src/components/providers/ChunkErrorReload.tsx), root layout) reloads once on `ChunkLoadError` after a deploy (stale HTML asking for removed chunks).
   - `CacheWarmer` (root layout, skipped on `/admin`) prefetches `hero_data`, `about_data`, `projects_catalog`, `blog_posts`, and `testimonials` at idle time, so later navigation needs no API calls.
   - **Never import `@/lib/markdownProcessor` in a client component** — it pulls unified/remark/rehype/KaTeX/highlight.js (~225 KB) into the browser bundle. Process markdown on the server.
   - The Hero profile photo uses Next image optimization for allow-listed hosts (`canOptimizeImage`), turning the ~465 KB upload into a 19–54 KB WebP.
@@ -503,6 +504,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-28 23:44 | Fix: `Post` schema lacked `publishDate`, so Mongoose dropped it on create and new posts sorted last — added (`default: Date.now`). New `ChunkErrorReload` provider (root layout) reloads once on `ChunkLoadError` when a tab/PWA cache holds HTML from a previous deploy (30 s sessionStorage guard; no reload if storage is blocked). Published blog post "How I Built My Portfolio…". Verified: `tsc`. |
 | 2026-10-28 23:37 | Fix: Admin → Blog "Publishing State" never saved — `POST`/`PUT /api/blog` ignored `published` and `tags`, so every admin-created post stayed a draft. Both now persist them (`parseTags`). Verified: `tsc`. |
 | 2026-10-28 23:31 | Chatbot mascot is now a single static image (`MASCOT_IMAGE`); removed the 3D GLB, MascotScene, MascotFallback, expression renders, `preloadMascot`, `public/models/` and `MASCOT_PIPELINE.md` — faster loads in all browsers. Verified: `tsc`. |
 | 2026-10-28 23:20 | Chatbot: Claude-style spinner verbs — `SPINNER_VERBS` + `SpinnerVerb` in `Chatbot.tsx` rotate playful loading words ("Pondering…", "Rummaging through projects…") beside the typing dots while waiting (random start, ~1.4 s rotation, crossfade off under reduced motion). Verified: `tsc`. |

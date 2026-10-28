@@ -10,6 +10,7 @@ import CursorTrail from "@/components/ui/CursorTrail";
 import ContentProtection from "@/components/ui/ContentProtection"; // ✅ Added Ghost Cursor Trail Background
 import PageFlowTracker from "@/components/analytics/PageFlowTracker"; // ✅ Phase 3: user-flow analytics
 import CacheWarmer from "@/components/providers/CacheWarmer"; // ✅ Idle-time prefetch of public page data
+import ChunkErrorReload from "@/components/providers/ChunkErrorReload"; // Recover from stale-deploy chunk 404s
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -99,6 +100,7 @@ export default function RootLayout({
           <CursorTrail /> {/* ✅ Added Ghost Cursor Trail Background */}
           <PageFlowTracker /> {/* ✅ Phase 3: user-flow analytics */}
           <CacheWarmer /> {/* ✅ Idle-time prefetch of public page data */}
+          <ChunkErrorReload /> {/* Reload once if an old page asks for chunks from a previous deploy */}
           <Navbar />
           <PageNavigation />
           <CommandPalette /> {/* ✅ Added Command Palette Component */}

@@ -12,6 +12,7 @@ const PostSchema = new Schema(
     tags: [String],
     published: { type: Boolean, default: false },
     readTime: String,
+    publishDate: { type: Date, default: Date.now }, // Sort key for lists; set from the admin editor
     views: { type: Number, default: 0 },
     relatedProject: { type: String, default: "" }, // ✅ NEW: Link to a Project
   },

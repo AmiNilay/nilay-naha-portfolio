@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X, ArrowUp, RotateCcw, Volume2, VolumeX, Download, ExternalLink, ArrowUpRight, Mic, Square, AudioLines, MoreHorizontal, Languages, Check } from "lucide-react";
-import ChatbotMascot, { preloadMascot, type AvatarEmotion } from "@/components/chatbot/ChatbotMascot";
+import ChatbotMascot, { type AvatarEmotion } from "@/components/chatbot/ChatbotMascot";
 import MessageContent from "@/components/chatbot/MessageContent";
 import { playSound, isSoundEnabled, setSoundEnabled, type SoundName } from "@/components/chatbot/sounds";
 import { fetchWithSessionCache } from "@/lib/clientCache";
@@ -264,7 +264,6 @@ export default function Chatbot() {
   }, [input, isOpen]);
 
   const open = () => {
-    preloadMascot();
     setIsOpen(true);
     setTeaserDismissed(true);
     feel("surprised", 900, "open");
@@ -498,7 +497,7 @@ export default function Chatbot() {
               exit={{ opacity: 0, x: 8, scale: 0.95 }}
               className="absolute right-[calc(100%+6px)] bottom-6 hidden sm:flex items-center gap-2 whitespace-nowrap pl-3.5 pr-2 py-2 rounded-2xl rounded-br-md bg-[#FAF9F5]/95 dark:bg-[#30302E]/95 backdrop-blur-xl border border-[#E8E4DA] dark:border-[#3D3D3A] shadow-lg text-[13px] text-[#1F1E1D] dark:text-[#F5F4EF]"
             >
-              <button onClick={open} onPointerEnter={preloadMascot} className="text-left">
+              <button onClick={open} className="text-left">
                 {TEASERS[teaser]}
               </button>
               <button
@@ -514,7 +513,7 @@ export default function Chatbot() {
 
         <motion.button
           onClick={onLauncherClick}
-          onPointerEnter={preloadMascot}
+         
           onHoverStart={() => !isOpen && emotion !== "thinking" && feel("happy", 1800)}
           whileHover={reduceMotion ? undefined : { scale: 1.06, y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.94 }}
@@ -522,7 +521,7 @@ export default function Chatbot() {
           aria-expanded={isOpen}
           className="relative block bg-transparent rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D97757]"
         >
-          <ChatbotMascot icon expression={listening ? "listening" : waiting ? "thinking" : emotion} size={76} />
+          <ChatbotMascot size={76} />
           {!isOpen && (
             <span className="absolute top-2 right-2 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#262624]" aria-hidden />
           )}
@@ -545,7 +544,7 @@ export default function Chatbot() {
           >
             {/* Header */}
             <header className="relative flex items-center gap-3 pl-4 pr-2.5 py-3 border-b border-[#EDE9DF] dark:border-[#34342F]">
-              <ChatbotMascot expression={listening ? "listening" : waiting ? "thinking" : emotion} size={44} />
+              <ChatbotMascot size={44} />
               <div className="min-w-0 flex-1">
                 <p className="font-serif text-[17px] leading-tight tracking-[-0.01em] whitespace-nowrap">Nilay&apos;s Assistant</p>
                 <p className="mt-0.5 text-xs text-[#6B6860] dark:text-[#A3A097] flex items-center gap-1.5 whitespace-nowrap">
@@ -630,7 +629,7 @@ export default function Chatbot() {
                 ) : (
                   <div key={m.id} className="flex gap-3">
                     <div className="shrink-0 mt-0.5 w-7 h-7 flex items-center justify-center">
-                      <ChatbotMascot icon animation="none" size={28} />
+                      <ChatbotMascot size={28} />
                     </div>
                     <div className="min-w-0 flex-1 text-[15px] leading-[1.7] text-[#2B2A27] dark:text-[#E8E6DF] space-y-3">
                       <MessageContent
@@ -664,7 +663,7 @@ export default function Chatbot() {
               {waiting && (
                 <div className="flex gap-3 items-center">
                   <div className="shrink-0 w-7 h-7 flex items-center justify-center">
-                    <ChatbotMascot icon animation="none" size={28} />
+                    <ChatbotMascot size={28} />
                   </div>
                   <div className="flex gap-1.5 py-2 shrink-0" role="status" aria-label="Assistant is thinking">
                     {[0, 1, 2].map((i) => (

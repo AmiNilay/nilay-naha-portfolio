@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-28 23:20 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-28 23:31 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -401,21 +401,25 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 
 ## 41. Real 3D Mascot Model + "Check job fit" Button (2026-10-22)
 
+> **Removed 2026-10-28 23:31 IST:** the 3D mascot slowed loading in many browsers. The chatbot now shows one static image (see §40). The "Check job fit" button is unchanged.
+
 | | |
 | :--- | :--- |
 | **What** | The chatbot mascot is now a **real 3D model** (`public/models/chatbot-mascot.glb`, 266 KB), generated from my reference portrait with free **TRELLIS** image-to-3D. It has textured hair, glasses, face and the hoodie with the `</>` logo, viewable from any angle. On the site it turns toward the cursor, breathes, nods when happy and tilts when thinking, on a transparent background. The home hero also has a **Check job fit** button next to *View Work* and *Résumé*, so recruiters reach `/match` in one click. |
 | **Why it stands out** | A personal 3D brand character with zero cost. Meshopt geometry plus a JPEG texture keep it to 266 KB, loaded only after the page is idle, and the transparent 2D figure shows instantly until it's ready. |
 | **Fix (2026-10-22 11:38)** | The mascot first rendered grey because the CSP blocked the embedded texture (`connect-src` lacked `blob:`) and the file marked the material 100% metallic. Both are fixed: full colour in light and dark mode, and the baked texture glows slightly so colours stay vivid. |
 | **Limitations** | Generated from one image, so the back of the head is softer than the front. The model has no skeleton or facial shape keys yet, so expressions are head gestures rather than mouth or eye changes. |
-| **How to upgrade** | Optional: open the GLB in Blender, add shape keys (`happy`, `thinking`, `blink`, `mouthOpen`) and a `Head` bone (or rig it with Mixamo), re-export, and replace the file. The component picks these up automatically; see [MASCOT_PIPELINE.md](MASCOT_PIPELINE.md). |
+| **How to upgrade** | Optional: open the GLB in Blender, add shape keys (`happy`, `thinking`, `blink`, `mouthOpen`) and a `Head` bone (or rig it with Mixamo), re-export, and replace the file. The component picks these up automatically; see MASCOT_PIPELINE.md (removed). |
 
-## 40. Branded Chatbot Mascot (3D-ready)
+## 40. Branded Chatbot Mascot
+
+> **Updated 2026-10-28 23:31 IST:** the mascot is now a **single static image** (`MASCOT_IMAGE` in `src/components/chatbot/mascotConfig.ts`) on the launcher, chat header and messages, with no 3D, animation or expression swaps, so it loads instantly everywhere. To change it, add a new image to `public/` and update that one path. The rows below describe the earlier version.
 
 | | |
 | :--- | :--- |
 | **What** | The chatbot uses my own mascot (a young engineer with glasses, a black hoodie and a cyan `</>` logo) as a **transparent cut-out figure**: no background, disc or glow, just the character with a soft shadow, and a faint cool rim in dark mode. It has neutral, happy, thinking, explaining and coding expressions that crossfade as the bot reacts. The component automatically switches to a **real 3D model** once `public/models/chatbot-mascot.glb` is added, with lighting, framing, expressions and animations mapped by name. |
 | **Why it stands out** | A consistent personal brand character rather than a generic bot icon. The same figure is used in light and dark mode, the backgrounds were removed locally with free rembg, it loads only ~140 KB of images, and the 3D model is lazy-loaded. |
-| **How to use / upgrade** | Follow **[MASCOT_PIPELINE.md](MASCOT_PIPELINE.md)** to make the GLB for free (image → 3D → Blender cleanup → rig → compress), then drop it into `public/models/` and push. No code changes are needed. |
+| **How to use / upgrade** | Follow MASCOT_PIPELINE.md (removed) to make the GLB for free (image → 3D → Blender cleanup → rig → compress), then drop it into `public/models/` and push. No code changes are needed. |
 
 ## 42. Framework Security Upgrade (2026-10-22 11:44)
 
@@ -464,7 +468,7 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 | Engineering depth | 9.5 | Custom CMS, signed sessions, rate limits, CSP, audit log, OpenAPI/Swagger, PWA + push, ISR caching. This reads as a product, not a template. |
 | Cost & ownership | 10 | ₹0 running cost and no paid LLM keys, with everything self-owned. A strong interview story. |
 | Recruiter UX | 8.5 | Job match, tailored résumé, book-a-call and fast navigation. Risk: so many features can feel busy, so keep the home page focused. |
-| Visual design & brand | 8 | Clean Apple-style UI and a branded mascot. A real 3D mascot (GLB) and per-project OG images would push this to 9+. |
+| Visual design & brand | 8 | Clean Apple-style UI and a branded mascot. Per-project OG images would push this to 9+. |
 | Content & proof of impact | 6.5 | Case studies, metrics, evals and demo GIFs are still mostly empty. **This decides interviews more than features.** |
 | Freshness | 7 | Live GitHub activity helps; regular posts or updates every 2–4 weeks are needed. |
 
@@ -472,7 +476,7 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 
 **How to reach 9.5–10:**
 1. Fill in 3 flagship case studies: problem → approach → results with real numbers, a demo GIF/video, and evals for the ML project.
-2. ✅ Real 3D mascot GLB added (2026-10-22 11:33); optional: add shape keys and a rig in Blender.
+2. ~~Real 3D mascot GLB~~ removed 2026-10-28 23:31 for load speed; the mascot is a static image.
 3. Publish 1 post per month, for example how you built the MCP server or the free chatbot engine. These double as proof.
 4. ✅ "Check job fit" button added to the home hero (2026-10-22 11:33).
 

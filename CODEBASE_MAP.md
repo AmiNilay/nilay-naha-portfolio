@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-28 23:20 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-28 23:31 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -189,7 +189,7 @@ my-portfolio/
   - Home, `/projects/[slug]`, and `/blog/[slug]` use `revalidate = 60`; the detail routes define `generateStaticParams` so every existing slug is pre-rendered at build (new slugs render on first visit, then cache).
   - Every CMS mutation handler calls `revalidatePublicPages()` (`revalidatePath("/", "layout")` + `revalidateTag("public-data")`) so edits go live immediately.
   - Public API GETs (`/api/hero`, `/api/about` incl. rendered `bioHtml`, `/api/projects` list, `/api/blog` list, `/api/testimonials`) are served from the Next data cache via `cachedPublic()` in [`src/lib/publicCache.ts`](file:///e:/my-portfolio/src/lib/publicCache.ts) (tag `public-data`, 300 s safety net) — no MongoDB round trip per visitor. Admin/draft (`?all=1`), `?slug=` and `?id=` reads stay uncached. The public `/api/blog` list omits `content` (fetch a post by slug/id for the body).
-  - three.js/WebGL (GhostCursor, 3D mascot) loads only after page load + idle via `useIdleReady()` ([`src/lib/useIdleReady.ts`](file:///e:/my-portfolio/src/lib/useIdleReady.ts)); GhostCursor is skipped on touch-only devices (`pointer: fine`).
+  - three.js/WebGL (GhostCursor) loads only after page load + idle via `useIdleReady()` ([`src/lib/useIdleReady.ts`](file:///e:/my-portfolio/src/lib/useIdleReady.ts)); GhostCursor is skipped on touch-only devices (`pointer: fine`).
   - `getHeroData()` (React `cache`) is shared by Home's `generateMetadata` and page; the Hero is server-rendered from it, and `HomeClient` primes the `hero_data` client-cache key during its first render.
   - `clientCache` dedupes in-flight requests per key; `primeCache` is browser-only (the module is a server-wide singleton during SSR).
   - `CacheWarmer` (root layout, skipped on `/admin`) prefetches `hero_data`, `about_data`, `projects_catalog`, `blog_posts`, and `testimonials` at idle time, so later navigation needs no API calls.
@@ -255,8 +255,8 @@ my-portfolio/
 * **Swagger UI:** `/api-docs` (themed, swagger-ui-dist 5.17.14 from jsDelivr, loaded only on that page; CSP style-src allows jsDelivr).
 * **Skill picker:** [`SkillPicker.tsx`](file:///e:/my-portfolio/src/components/admin/SkillPicker.tsx) (+ `SkillIcon`) is shared by Admin → About (skills) and Admin → Home (tech marquee, stored as comma list of catalog names). Catalog [`skillData.ts`](file:///e:/my-portfolio/src/lib/skillData.ts) = 286 entries incl. AI coding agents, agent frameworks, RAG/vector, LLMOps/evals, inference/fine-tuning, modern web, backend SaaS, infra/security, data engineering. Never rename existing names (saved selections depend on them).
 
-### 21. Chatbot Mascot (reference-based, GLB-ready) — added 2026-10-22
-* [`ChatbotMascot.tsx`](file:///e:/my-portfolio/src/components/chatbot/ChatbotMascot.tsx) `<ChatbotMascot theme expression animation size />` replaces the procedural head (`Avatar*`/`HumanAvatar` deleted). Today: **transparent cut-out** figure + expression busts from the owner's reference sheet (`public/mascot/*.webp`, ~140 KB, backgrounds removed with rembg; same image in both themes, CSS shadow / dark-mode rim, no disc) with crossfade and breathing float ([`MascotFallback.tsx`](file:///e:/my-portfolio/src/components/chatbot/MascotFallback.tsx)). When `public/models/chatbot-mascot.glb` exists, [`MascotScene.tsx`](file:///e:/my-portfolio/src/components/chatbot/MascotScene.tsx) lazy-loads three.js + GLTFLoader (Meshopt), 3-point lighting, auto framing, shape keys / clips / Head bone mapped by name ([`mascotConfig.ts`](file:///e:/my-portfolio/src/components/chatbot/mascotConfig.ts)). Pipeline to create the GLB: [`MASCOT_PIPELINE.md`](file:///e:/my-portfolio/MASCOT_PIPELINE.md).
+### 21. Chatbot Mascot (static image) — updated 2026-10-28
+* [`ChatbotMascot.tsx`](file:///e:/my-portfolio/src/components/chatbot/ChatbotMascot.tsx) `<ChatbotMascot size className? />` renders one static `<img>` — `MASCOT_IMAGE` in [`mascotConfig.ts`](file:///e:/my-portfolio/src/components/chatbot/mascotConfig.ts) (currently `public/mascot/avatar-light-256.webp`). No three.js, WebGL, GLB, expression swaps or animation: the 3D model, `MascotScene`, `MascotFallback`, expression renders and `MASCOT_PIPELINE.md` were removed (2026-10-28) because they slowed loading in many browsers. To change the mascot, drop a new image in `public/` and update `MASCOT_IMAGE`. `AvatarEmotion` still drives sounds/copy in `Chatbot.tsx`, not the image.
 
 ### 17. Hero Tech Marquee & Education Media — added 2026-10-22
 * Hero tech chips auto-scroll continuously; list (chip editor, reorder) and `techMarqueeSpeed` (seconds per loop, default 40) edited in Admin → Home. Inline animation so Windows reduced-motion halves speed instead of freezing. Hero no longer clips at md widths/short heights (removed `h-full md:overflow-hidden`; avatar `clamp(132px, min(26vw, 42dvh), 380px)`).
@@ -503,6 +503,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-28 23:31 | Chatbot mascot is now a single static image (`MASCOT_IMAGE`); removed the 3D GLB, MascotScene, MascotFallback, expression renders, `preloadMascot`, `public/models/` and `MASCOT_PIPELINE.md` — faster loads in all browsers. Verified: `tsc`. |
 | 2026-10-28 23:20 | Chatbot: Claude-style spinner verbs — `SPINNER_VERBS` + `SpinnerVerb` in `Chatbot.tsx` rotate playful loading words ("Pondering…", "Rummaging through projects…") beside the typing dots while waiting (random start, ~1.4 s rotation, crossfade off under reduced motion). Verified: `tsc`. |
 | 2026-10-28 23:05 | Chatbot fixes: "tell me about him" / "quick overview" now map to the summary intent; résumé request waits for hero data and falls back to `/resume/tailored` when no PDF is uploaded; mascot 3D only for animated ≥40 px instances + `webglcontextlost` → 2D fallback (fixes broken-image icons on mobile); chat panel is a full-screen sheet on phones/short screens, floating on `float` screens (≥640 px wide and ≥600 px tall), larger on `2xl` and `tv` (≥2400 px) — new Tailwind screens. Verified: `tsc`, `next build`, live answers via `next start`. |
 | 2026-10-28 22:54 | Performance: public API reads cached in the Next data cache (`publicCache.ts`, tag purged by `revalidatePublicPages`), blog list drops article bodies, three.js effects deferred to idle (`useIdleReady.ts`), cursor trail off on touch devices. Verified: `tsc`, `next build`. |

@@ -62,6 +62,42 @@ const TEASERS = [
   "Need Nilay's resume? Just ask 📄",
 ];
 
+// Claude-style playful loading words, rotated while an answer is on its way.
+const SPINNER_VERBS = [
+  "Thinking", "Pondering", "Rummaging through projects", "Consulting the résumé", "Connecting the dots",
+  "Brewing", "Cross-referencing", "Skimming the commits", "Mulling it over", "Untangling",
+  "Compiling thoughts", "Digging through the portfolio", "Noodling", "Percolating", "Fact-checking",
+  "Polishing the answer", "Synthesizing", "Flipping through the blog", "Wrangling details", "Booping the database",
+];
+
+/** Rotating "Pondering…" label: random start, new word every ~1.4 s, crossfades unless reduced motion. */
+function SpinnerVerb({ reduceMotion }: { reduceMotion: boolean }) {
+  const [i, setI] = useState(() => Math.floor(Math.random() * SPINNER_VERBS.length));
+  useEffect(() => {
+    const id = setInterval(
+      () => setI((prev) => (prev + 1 + Math.floor(Math.random() * (SPINNER_VERBS.length - 1))) % SPINNER_VERBS.length),
+      1400
+    );
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <span className="relative inline-flex min-w-0 text-[13.5px] italic text-[#8A877E] dark:text-[#A3A097]" aria-hidden>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={i}
+          initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
+          transition={{ duration: 0.18 }}
+          className="truncate"
+        >
+          {SPINNER_VERBS[i]}…
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 const WELCOME: Message = {
   id: "welcome",
   role: "bot",
@@ -630,7 +666,7 @@ export default function Chatbot() {
                   <div className="shrink-0 w-7 h-7 flex items-center justify-center">
                     <ChatbotMascot icon animation="none" size={28} />
                   </div>
-                  <div className="flex gap-1.5 py-2">
+                  <div className="flex gap-1.5 py-2 shrink-0" role="status" aria-label="Assistant is thinking">
                     {[0, 1, 2].map((i) => (
                       <motion.span
                         key={i}
@@ -640,6 +676,7 @@ export default function Chatbot() {
                       />
                     ))}
                   </div>
+                  <SpinnerVerb reduceMotion={!!reduceMotion} />
                 </div>
               )}
 

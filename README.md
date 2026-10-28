@@ -143,9 +143,9 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
-- **2026-10-28 17:50 IST** — Chatbot shows Claude-style playful loading words ("Pondering…", "Connecting the dots…") while preparing an answer.
+- **2026-10-28 23:20 IST** — Chatbot shows Claude-style playful loading words ("Pondering…", "Connecting the dots…") while preparing an answer.
 - **2026-10-28 23:05 IST** — Chatbot: answers "tell me about him" and "quick overview" correctly, always offers a résumé (generated one-page résumé when no PDF is uploaded), mascot no longer shows a broken image on phones, and the chat window is full-screen on mobile and sized for tablets, desktops and TVs.
-- **2026-10-28 17:24 IST** — Faster loading: public APIs served from a server cache instead of hitting the database on every visit, lighter blog list, and 3D effects load after the page is ready.
+- **2026-10-28 22:54 IST** — Faster loading: public APIs served from a server cache instead of hitting the database on every visit, lighter blog list, and 3D effects load after the page is ready.
 - **2026-10-22 11:44 IST** — Security upgrade to Next.js 14.2.35 (fixes the CVE-2025-29927 middleware bypass and other known issues).
 - **2026-10-22 11:38 IST** — Fixed the 3D mascot showing grey: its colours now load in light and dark mode.
 - **2026-10-22 11:33 IST** — Real 3D chatbot mascot model (generated from the reference with TRELLIS, 266 KB) and a "Check job fit" button on the home page.

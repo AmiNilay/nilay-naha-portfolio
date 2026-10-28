@@ -179,8 +179,10 @@
   text-decoration-color: var(--primary);
 }
 
+/* prose already indents lists; an extra margin double-indented them. */
 .blog-content ul, .blog-content ol {
-  @apply my-6 ml-6 space-y-2 text-gray-700 dark:text-gray-300;
+  @apply my-6 space-y-2 text-gray-700 dark:text-gray-300;
+  padding-left: 1.4em;
 }
 
 .blog-content ul { @apply list-disc; }

@@ -313,7 +313,8 @@ export default function BlogPostClient({ initialPost = null, initialHeroAuthor =
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-3xl rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6">
+      {/* Wider on lg+ so the reading column keeps ~680–720px next to the TOC sidebar. */}
+      <div className="relative z-10 max-w-4xl lg:max-w-[1120px] mx-auto px-4 sm:px-6">
         {/* ========================================================================= */}
         {/* 3. INTEGRATED TOP ACTION BAR (Clean in-flow layout, never overlaps title) */}
         {/* ========================================================================= */}
@@ -395,13 +396,13 @@ export default function BlogPostClient({ initialPost = null, initialHeroAuthor =
           )}
 
           {/* Article Title: Confident, crisp typography with optical tracking */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-foreground leading-[1.18] mb-3 text-balance">
+          <h1 className="max-w-4xl text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-foreground leading-[1.18] mb-3 text-balance">
             {post.title}
           </h1>
 
           {/* Subtitle / Excerpt: Clean single paragraph */}
           {post.excerpt && (
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4">
+            <p className="max-w-3xl text-sm sm:text-base text-muted-foreground leading-relaxed mb-4">
               {post.excerpt}
             </p>
           )}

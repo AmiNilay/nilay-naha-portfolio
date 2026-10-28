@@ -650,7 +650,7 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
         </header>
 
         {/* MAIN 2-COLUMN ARCHITECTURAL BREAKDOWN */}
-        <div className={`mt-14 grid gap-12 transition-all ${focusMode ? "max-w-3xl mx-auto grid-cols-1" : "grid-cols-1 lg:grid-cols-[1fr_320px]"}`}>
+        <div className={`mt-14 grid gap-12 transition-all ${focusMode ? "max-w-3xl mx-auto grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(0,760px)_320px] lg:justify-center"}`}>
           
           {/* ARTICLE PROSE CONTENT */}
           <article className="w-full min-w-0">
@@ -659,9 +659,9 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
                 prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-zinc-900 dark:prose-headings:text-zinc-100
                 prose-h2:text-2xl sm:prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-4 prose-h2:border-b prose-h2:border-zinc-200/80 dark:prose-h2:border-zinc-800/80 prose-h2:pb-2
                 prose-h3:text-xl sm:prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-3
-                prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:text-zinc-700 dark:prose-p:text-zinc-300
+                prose-p:text-base prose-p:leading-[1.8] prose-p:text-zinc-700 dark:prose-p:text-zinc-300
                 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
-                prose-li:text-zinc-700 dark:prose-li:text-zinc-300 prose-li:text-sm sm:prose-li:text-base
+                prose-li:text-zinc-700 dark:prose-li:text-zinc-300 prose-li:text-base
                 prose-img:rounded-3xl prose-img:shadow-xl prose-img:border prose-img:border-zinc-200 dark:prose-img:border-zinc-800
                 prose-table:w-full prose-table:border-collapse prose-table:text-xs sm:prose-table:text-sm
                 prose-th:p-3 prose-th:bg-zinc-100/80 dark:prose-th:bg-zinc-900/80 prose-th:text-zinc-900 dark:prose-th:text-zinc-100 prose-th:border prose-th:border-zinc-200 dark:prose-th:border-zinc-800

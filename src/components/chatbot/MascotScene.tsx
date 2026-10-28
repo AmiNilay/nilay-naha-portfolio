@@ -66,6 +66,9 @@ export default function MascotScene({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     mount.appendChild(renderer.domElement);
+    // A context the browser reclaims (mobile limits) would paint a broken icon: fall back to 2D.
+    const onLost = () => !disposed && onError();
+    renderer.domElement.addEventListener("webglcontextlost", onLost);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
@@ -207,6 +210,7 @@ export default function MascotScene({
       window.removeEventListener("pointermove", onMove);
       mixer?.stopAllAction();
       if (model) scene.remove(model); // geometry/materials are shared with the cached glTF
+      renderer.domElement.removeEventListener("webglcontextlost", onLost);
       renderer.dispose();
       renderer.domElement.remove();
     };

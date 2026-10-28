@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-28 17:24 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-28 23:05 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -54,7 +54,7 @@ Admin panel: `http://localhost:3000/admin`. Log in with `ADMIN_EMAIL` and `ADMIN
 | **Why I added it** | Recruiters skim. A chat box lets them ask "Does he know Docker?" and get an answer in one second instead of hunting through pages. |
 | **Why it stands out** | Most 2026 portfolio bots are a paid LLM API wrapped in a prompt. They cost money per message, can stop working when the key runs out, and can invent facts. This engine costs ₹0 and needs no API key. It ranks content with BM25 full-text search plus intent detection. It never claims anything the portfolio doesn't say: unknown topics get an honest "not listed" answer. |
 | **How it works** | `POST /api/chat` → `src/lib/chatEngine.ts`. Knowledge rebuilds on every CMS save. Rate-limited to 60 questions per IP per hour. |
-| **How to use** | Click the avatar bubble (bottom corner) and ask anything. Type **resume** or **cv** to get an instant résumé download. In the admin panel, **Admin → Chatbot** lets you add curated answers for soft questions and test the bot exactly as visitors see it. |
+| **How to use** | Click the avatar bubble (bottom corner) and ask anything. Type **resume** or **cv** to get an instant résumé download (falls back to the generated one-page résumé when no PDF is uploaded). On phones the chat opens full-screen; on tablets, desktops and TVs it floats. *(Updated 2026-10-28 23:05 IST)* In the admin panel, **Admin → Chatbot** lets you add curated answers for soft questions and test the bot exactly as visitors see it. |
 
 ## 2. Chatbot Auto-Navigation
 

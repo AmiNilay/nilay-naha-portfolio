@@ -266,8 +266,13 @@ function detectIntents(raw: string, tokens: string[]) {
     }
     if (s) scores.set(intent, s);
   });
-  // "Who / overview" only means *him* when the question is about him or the assistant.
-  if (scores.has("summary") && !/\b(he|him|his|nilay|you|your|yourself|candidate|developer|engineer)\b/i.test(lower)) {
+  // "Tell me about him", "quick overview", "introduce yourself": always a request for the summary.
+  const asksOverview =
+    /\b(tell|talk) (me|us) (more )?about (him|nilay|yourself|you|this (guy|person|developer|candidate))\b/.test(lower) ||
+    /\b(overview|summary|introduction|intro|introduce|bio)\b/.test(lower);
+  if (asksOverview) scores.set("summary", Math.max(scores.get("summary") || 0, 2));
+  // Otherwise "who / background" only means *him* when the question is about him or the assistant.
+  else if (scores.has("summary") && !/\b(he|him|his|nilay|you|your|yourself|candidate|developer|engineer)\b/i.test(lower)) {
     scores.delete("summary");
   }
   return Array.from(scores.entries()).sort((a, b) => b[1] - a[1]);

@@ -83,14 +83,18 @@ export default function ChatbotMascot({
   // The 2D render shows first; the 3D model (three.js + GLB) loads only once the page is idle.
   const idle = useIdleReady();
 
+  // Each 3D mascot owns a WebGL context and mobile browsers kill the oldest beyond a
+  // small limit (showing a broken-image icon), so tiny static avatars stay 2D.
+  const want3D = safeSize >= 40 && animation !== "none";
+
   useEffect(() => {
-    if (!idle) return;
+    if (!idle || !want3D) return;
     let alive = true;
     hasGlb().then((ok) => alive && ok && supportsWebGL() && setUse3D(true));
     return () => {
       alive = false;
     };
-  }, [idle]);
+  }, [idle, want3D]);
 
   return (
     <div

@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-28 17:24 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-28 23:05 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -503,6 +503,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-28 23:05 | Chatbot fixes: "tell me about him" / "quick overview" now map to the summary intent; résumé request waits for hero data and falls back to `/resume/tailored` when no PDF is uploaded; mascot 3D only for animated ≥40 px instances + `webglcontextlost` → 2D fallback (fixes broken-image icons on mobile); chat panel is a full-screen sheet on phones/short screens, floating on `float` screens (≥640 px wide and ≥600 px tall), larger on `2xl` and `tv` (≥2400 px) — new Tailwind screens. Verified: `tsc`, `next build`, live answers via `next start`. |
 | 2026-10-28 17:24 | Performance: public API reads cached in the Next data cache (`publicCache.ts`, tag purged by `revalidatePublicPages`), blog list drops article bodies, three.js effects deferred to idle (`useIdleReady.ts`), cursor trail off on touch devices. Verified: `tsc`, `next build`. |
 | 2026-10-22 11:44 | Security upgrade: Next.js 14.1.0 → 14.2.35 (+ eslint-config-next), closing CVE-2025-29927 middleware bypass and other 14.1 advisories. Verified: build, all routes 200, bypass header still redirects, unauthenticated writes 401. |
 | 2026-10-22 11:38 | Fix grey 3D mascot: CSP connect-src now allows blob:/data: (GLTFLoader fetches embedded textures via blob URLs); MascotScene forces sRGB map, matte material and subtle emissive from the texture. **Rule: any new client-side loader using blob:/data: URLs needs the CSP updated.** |

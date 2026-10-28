@@ -293,19 +293,25 @@ export default function Chatbot() {
     if (RESUME_PATTERN.test(text) || RESUME_PATTERN.test(ask)) {
       await minDelay;
       setWaiting(false);
-      if (resumeUrl) {
-        const content = await localize("Here's Nilay's latest résumé — tap below to view or download it.");
-        say(content);
-        addBot({
-          content,
-          resumeUrl,
-          quickReplies: ["How can I contact him?", "What projects has he built?"],
-        });
-        feel("happy", 3500, "happy");
-      } else {
-        addBot({ content: "Nilay hasn't uploaded a résumé yet — please reach out through the contact page.", links: [{ label: "Contact page", url: "/contact" }] });
-        feel("sad", 3500, "sad");
-      }
+      // The hero fetch may still be in flight on slow connections: wait for it instead of guessing.
+      const uploaded =
+        resumeUrl ||
+        (await fetchWithSessionCache<any>("hero_data", "/api/hero")
+          .then((h) => h?.resumeUrl || (h?.gDriveResume ? toDriveView(h.gDriveResume) : ""))
+          .catch(() => ""));
+      // No uploaded PDF → the one-page résumé generated from the live portfolio.
+      const content = await localize(
+        uploaded
+          ? "Here's Nilay's latest résumé — tap below to view or download it."
+          : "Here's Nilay's one-page résumé, generated from his live portfolio — tap below to view or save it as PDF."
+      );
+      say(content);
+      addBot({
+        content,
+        resumeUrl: uploaded || "/resume/tailored",
+        quickReplies: ["How can I contact him?", "What projects has he built?"],
+      });
+      feel("happy", 3500, "happy");
       return;
     }
 
@@ -497,7 +503,9 @@ export default function Chatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 380, damping: 34 }}
-            className="fixed z-[60] inset-x-2 top-16 bottom-28 sm:inset-auto sm:bottom-28 sm:right-5 sm:w-[430px] sm:h-[660px] sm:max-h-[calc(100dvh-9rem)] flex flex-col rounded-[24px] overflow-hidden bg-[#FAF9F5] dark:bg-[#262624] text-[#1F1E1D] dark:text-[#F5F4EF] border border-[#E8E4DA] dark:border-[#3D3D3A] shadow-[0_28px_80px_-16px_rgba(31,30,29,0.35)]"
+            // Phones / short screens: full-screen sheet above the navbar (safe-area aware).
+            // Tablets and up: floating panel above the launcher, larger on 2xl and TVs.
+            className="fixed z-[70] inset-0 h-[100dvh] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] float:z-[60] float:inset-auto float:pt-0 float:pb-0 float:bottom-28 float:right-5 float:w-[430px] float:h-[660px] float:max-h-[calc(100dvh-9rem)] float:rounded-[24px] float:border 2xl:w-[480px] 2xl:h-[740px] tv:w-[600px] tv:h-[920px] tv:text-lg flex flex-col overflow-hidden bg-[#FAF9F5] dark:bg-[#262624] text-[#1F1E1D] dark:text-[#F5F4EF] border-[#E8E4DA] dark:border-[#3D3D3A] float:shadow-[0_28px_80px_-16px_rgba(31,30,29,0.35)]"
           >
             {/* Header */}
             <header className="relative flex items-center gap-3 pl-4 pr-2.5 py-3 border-b border-[#EDE9DF] dark:border-[#34342F]">
@@ -575,7 +583,7 @@ export default function Chatbot() {
             </header>
 
             {/* Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 space-y-6 overscroll-contain" aria-live="polite">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-5 py-5 sm:py-6 space-y-5 sm:space-y-6 overscroll-contain" aria-live="polite">
               {messages.map((m) =>
                 m.role === "user" ? (
                   <div key={m.id} className="flex justify-end">
@@ -687,7 +695,7 @@ export default function Chatbot() {
                   maxLength={500}
                   placeholder={listening ? "Listening…" : "Ask about projects, skills, experience…"}
                   aria-label="Your question"
-                  className="block w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-[15px] leading-relaxed placeholder:text-[#9A968C] focus:outline-none"
+                  className="block w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-base sm:text-[15px] leading-relaxed placeholder:text-[#9A968C] focus:outline-none"
                 />
                 <div className="flex items-center justify-end gap-1.5 px-2.5 pb-2.5">
                   {voiceSupported && (

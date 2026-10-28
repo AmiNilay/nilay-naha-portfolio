@@ -9,6 +9,12 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
+      screens: {
+        // Room for floating panels: wide AND tall enough (excludes landscape phones).
+        float: { raw: "(min-width: 640px) and (min-height: 600px)" },
+        // Large TVs / 4K displays.
+        tv: "2400px",
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

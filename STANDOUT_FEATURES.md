@@ -1,6 +1,6 @@
 # ⭐ Standout Features — Nilay Naha Portfolio
 
-> **Last updated:** 2026-10-28 23:54 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
+> **Last updated:** 2026-10-28 23:59 IST · **Live site:** https://nilay-naha-portfolio.vercel.app
 >
 > What each feature is, why it's here, why it stands out in 2026, how to run it and how to use it. A roadmap of AI-era features to add next is at the end.
 
@@ -145,6 +145,8 @@ Then ask your agent things like *"Create a draft blog post about my sign-languag
 | **Why I added it** | It's a signature visual touch. |
 | **Why it stands out** | It's a real GPU shader rendered *behind* all content (z-index −1), so it never covers text or images. |
 | **How to use** | Move the mouse. |
+
+> **Topic filters (added 2026-10-28 23:59 IST):** blog and project pages filter by a shared set of 7 topics (AI & Machine Learning, Web Development, Backend & APIs, Mobile Apps, Desktop Apps, Security & Privacy, Career & Learning) with item counts; every post and project carries 1–3. Admin editors add them with one click (`src/lib/topics.ts`).
 
 ## 11. Command Palette
 

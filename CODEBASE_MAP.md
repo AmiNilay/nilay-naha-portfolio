@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-28 23:54 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-28 23:59 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -444,6 +444,7 @@ my-portfolio/
 | [`publicData.ts`](file:///e:/my-portfolio/src/lib/publicData.ts) | Server-only `getHeroData()` (React `cache`) returning the same JSON shape as `/api/hero`. |
 | [`revalidate.ts`](file:///e:/my-portfolio/src/lib/revalidate.ts) | `revalidatePublicPages()` — purges ISR-cached public pages and the `public-data` cache tag after CMS edits. |
 | [`publicCache.ts`](file:///e:/my-portfolio/src/lib/publicCache.ts) | `cachedPublic(key, fn)` — `unstable_cache` wrapper for draft-free public DB reads (tag `public-data`). |
+| [`topics.ts`](file:///e:/my-portfolio/src/lib/topics.ts) | Shared blog/project topic taxonomy (`TOPICS`) + helpers; public filter tabs only offer these. Admin picks them via `TopicChips`. |
 | [`useIdleReady.ts`](file:///e:/my-portfolio/src/lib/useIdleReady.ts) | `useIdleReady()` — true once the page has loaded and the browser is idle; gates heavy WebGL effects. |
 | [`connectToDB.ts`](file:///e:/my-portfolio/src/lib/connectToDB.ts) | **Active Mongoose connector.** Configures Google/Cloudflare DNS servers, manages cached connection pool, and connects to the `portfolio` database. |
 | [`db.ts`](file:///e:/my-portfolio/src/lib/db.ts) | Legacy database connection utility (kept for backward compatibility; prefer `connectToDB.ts`). |
@@ -504,6 +505,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-28 23:59 | Topic filters: shared taxonomy [`src/lib/topics.ts`](file:///e:/my-portfolio/src/lib/topics.ts) (`TOPICS`, `topicsOf`, `topicCounts`, `hasTopic`) — 7 topics stored as leading tags. Blog/Projects filter tabs now list only topics in use, with counts (was: first 6 raw tags, each matching one item). Admin blog + project editors get one-click `TopicChips`. All posts/projects tagged with 1–3 topics. Verified: `tsc`. |
 | 2026-10-28 23:54 | Reading layout: blog article container `max-w-4xl` → `lg:max-w-[1120px]` (reading column was ~470px beside the TOC; now ~680–720px), title/excerpt capped; project article column capped at 760px (`lg:grid-cols-[minmax(0,760px)_320px]`), 16px body text on mobile; `.blog-content` lists no longer double-indented (removed `ml-6`). Verified: `tsc`. |
 | 2026-10-28 23:51 | Content (CMS data, no code): rewrote 6 older blog posts and 5 project write-ups into native format — removed per-article `<style>` blocks/`portfolio-post` wrappers that broke dark mode, Markdown `##` headings (TOC works), design classes; filled empty project case-study fields (problem/approach/results/metrics) from existing text only; PyPass placeholder `#` links → real GitHub/release URLs. Facts unchanged; pre-rewrite JSON backup kept locally. |
 | 2026-10-28 23:44 | Fix: `Post` schema lacked `publishDate`, so Mongoose dropped it on create and new posts sorted last — added (`default: Date.now`). New `ChunkErrorReload` provider (root layout) reloads once on `ChunkLoadError` when a tab/PWA cache holds HTML from a previous deploy (30 s sessionStorage guard; no reload if storage is blocked). Published blog post "How I Built My Portfolio…". Verified: `tsc`. |

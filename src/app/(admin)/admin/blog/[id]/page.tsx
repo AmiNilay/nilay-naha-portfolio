@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent } from "react";
+import TopicChips from "@/components/admin/TopicChips";
 import { useRouter, useParams } from "next/navigation";
 import { 
   ArrowLeft, Save, Loader2, Upload, Calendar, Eye, Wand2, 
@@ -635,6 +636,7 @@ export default function EditBlogPostPage() {
                   className="flex-1 min-w-[100px] px-2 py-1 bg-transparent text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none" 
                 />
               </div>
+              <TopicChips tags={tags} onChange={setTags} />
             </div>
 
             {/* Quick Metrics */}

@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-28 23:59 IST** — Blog and project filters now use 7 shared topics with counts, and every post and project has topics. The admin editor adds topics with one click.
 - **2026-10-28 23:54 IST** — Easier reading on blog and project pages: wider text column on laptops/desktops, comfortable line length, larger text on phones, cleaner list indentation.
 - **2026-10-28 23:51 IST** — All blog posts and project pages rewritten in the site's own style: they now work in dark mode, show a table of contents, and every project has a case-study section.
 - **2026-10-28 23:44 IST** — New blog post: "How I Built My Portfolio". Fixed new posts having no publish date (they sorted last), and pages left open during a deploy now reload themselves instead of erroring.

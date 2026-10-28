@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { driveImageUrl } from "@/lib/driveMedia";
 import Link from "next/link";
 import { fetchWithSessionCache } from "@/lib/clientCache";
+import { topicCounts } from "@/lib/topics";
 import { 
   Loader2, ArrowRight, ArrowUpRight, Github, ExternalLink, 
   Search, X, Layers, Sparkles, Monitor, Calendar, Laptop
@@ -85,27 +86,19 @@ export default function ProjectsClient() {
     return text;
   };
 
-  // Extract unique tags and build intelligent filter categories
-  const filterTabs = useMemo(() => {
-    const counts: Record<string, number> = { All: projects.length };
-    
-    projects.forEach((p) => {
-      const tags = p.tags || (typeof p.techStack === "string" ? p.techStack.split(",") : p.techStack) || [];
-      tags.forEach((t) => {
-        const clean = t.trim();
-        if (!clean) return;
-        counts[clean] = (counts[clean] || 0) + 1;
-      });
-    });
-
-    const popularTags = Object.entries(counts)
-      .filter(([k]) => k !== "All")
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([k]) => k);
-
-    return ["All", ...popularTags];
-  }, [projects]);
+  // Filter tabs = shared topic taxonomy (only topics in use), not raw tech tags,
+  // so every tab groups projects instead of matching a single one.
+  const topicTabs = useMemo(
+    () =>
+      topicCounts(
+        projects.map((p) => ({
+          tags: p.tags || (typeof p.techStack === "string" ? p.techStack.split(",") : p.techStack) || [],
+        }))
+      ),
+    [projects]
+  );
+  const filterTabs = useMemo(() => ["All", ...topicTabs.map((t) => t.topic)], [topicTabs]);
+  const tabCount = (tab: string) => (tab === "All" ? projects.length : topicTabs.find((t) => t.topic === tab)?.count ?? 0);
 
   // Filtered list based on search and selected tab
   const filteredProjects = useMemo(() => {
@@ -214,7 +207,7 @@ export default function ProjectsClient() {
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-1.5">
-                    {tab}
+                    {tab} <span className="opacity-60 font-medium">{tabCount(tab)}</span>
                   </span>
                 </button>
               );

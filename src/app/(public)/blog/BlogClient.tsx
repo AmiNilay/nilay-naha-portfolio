@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { driveImageUrl } from "@/lib/driveMedia";
 import Link from "next/link";
 import { fetchWithSessionCache, clearMemoryCache } from "@/lib/clientCache";
+import { topicCounts } from "@/lib/topics";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -80,18 +81,11 @@ export default function BlogClient() {
     fetchPosts();
   }, [fetchPosts]);
 
-  // Extract unique tags and build filter tabs
-  const filterTabs = useMemo(() => {
-    const tags = Array.from(
-      new Set(
-        posts
-          .flatMap((p) => p.tags || [])
-          .map((t) => t.trim())
-          .filter(Boolean)
-      )
-    );
-    return ["All Topics", ...tags.slice(0, 6)];
-  }, [posts]);
+  // Filter tabs = shared topic taxonomy (only topics in use), not raw tags,
+  // so every tab groups posts instead of matching a single one.
+  const topicTabs = useMemo(() => topicCounts(posts), [posts]);
+  const filterTabs = useMemo(() => ["All Topics", ...topicTabs.map((t) => t.topic)], [topicTabs]);
+  const tabCount = (tab: string) => (tab === "All Topics" ? posts.length : topicTabs.find((t) => t.topic === tab)?.count ?? 0);
 
   // Filter posts based on active filter and search query
   const filteredPosts = useMemo(() => {
@@ -242,7 +236,9 @@ export default function BlogClient() {
                           className="absolute inset-0 bg-primary dark:bg-primary rounded-2xl shadow-sm z-0"
                         />
                       )}
-                      <span className="relative z-10">{tab}</span>
+                      <span className="relative z-10">
+                        {tab} <span className="opacity-60 font-medium">{tabCount(tab)}</span>
+                      </span>
                     </button>
                   );
                 })}

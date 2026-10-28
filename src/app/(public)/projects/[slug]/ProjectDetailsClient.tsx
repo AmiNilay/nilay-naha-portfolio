@@ -402,7 +402,7 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
             transition={appleSpring}
-            className="fixed top-16 left-0 right-0 z-40 px-4 pointer-events-none"
+            className="fixed top-[84px] sm:top-[92px] left-0 right-0 z-40 px-4 pointer-events-none"
           >
             <div className="max-w-4xl mx-auto flex items-center justify-between p-2.5 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-xl pointer-events-auto">
               <div className="flex items-center gap-3">
@@ -728,7 +728,7 @@ export default function ProjectDetailsClient({ initialData = null }: ProjectDeta
           {/* SIDEBAR (Hidden in Focus Mode) */}
           {!focusMode && (
             <aside className="space-y-6">
-              <div className="sticky top-28 space-y-6">
+              <div className="sticky top-40 max-h-[calc(100dvh-11rem)] overflow-y-auto no-scrollbar overscroll-contain space-y-6 pb-2">
                 
                 {/* DELIVERABLES RESOURCE DOCK */}
                 <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-3">

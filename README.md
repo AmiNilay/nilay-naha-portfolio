@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-29 00:14 IST** — Project pages: the floating title bar and sidebar no longer overlap the navbar. The portfolio itself is now listed as a project.
 - **2026-10-29 00:05 IST** — Topic filters on Blog and Projects scroll left/right (arrow buttons, mouse wheel, swipe) so no topic is hidden.
 - **2026-10-28 23:59 IST** — Blog and project filters now use 7 shared topics with counts, and every post and project has topics. The admin editor adds topics with one click.
 - **2026-10-28 23:54 IST** — Easier reading on blog and project pages: wider text column on laptops/desktops, comfortable line length, larger text on phones, cleaner list indentation.

@@ -143,6 +143,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📝 Changelog
 
+- **2026-10-28 23:37 IST** — Fixed: publishing a blog post from the admin panel now actually makes it public (tags save too).
 - **2026-10-28 23:31 IST** — Chatbot mascot is now one simple image (3D model and animations removed) so the site loads faster in every browser.
 - **2026-10-28 23:20 IST** — Chatbot shows Claude-style playful loading words ("Pondering…", "Connecting the dots…") while preparing an answer.
 - **2026-10-28 23:05 IST** — Chatbot: answers "tell me about him" and "quick overview" correctly, always offers a résumé (generated one-page résumé when no PDF is uploaded), mascot no longer shows a broken image on phones, and the chat window is full-screen on mobile and sized for tablets, desktops and TVs.

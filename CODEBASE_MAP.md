@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-28 23:31 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-28 23:37 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -503,6 +503,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-28 23:37 | Fix: Admin → Blog "Publishing State" never saved — `POST`/`PUT /api/blog` ignored `published` and `tags`, so every admin-created post stayed a draft. Both now persist them (`parseTags`). Verified: `tsc`. |
 | 2026-10-28 23:31 | Chatbot mascot is now a single static image (`MASCOT_IMAGE`); removed the 3D GLB, MascotScene, MascotFallback, expression renders, `preloadMascot`, `public/models/` and `MASCOT_PIPELINE.md` — faster loads in all browsers. Verified: `tsc`. |
 | 2026-10-28 23:20 | Chatbot: Claude-style spinner verbs — `SPINNER_VERBS` + `SpinnerVerb` in `Chatbot.tsx` rotate playful loading words ("Pondering…", "Rummaging through projects…") beside the typing dots while waiting (random start, ~1.4 s rotation, crossfade off under reduced motion). Verified: `tsc`. |
 | 2026-10-28 23:05 | Chatbot fixes: "tell me about him" / "quick overview" now map to the summary intent; résumé request waits for hero data and falls back to `/resume/tailored` when no PDF is uploaded; mascot 3D only for animated ≥40 px instances + `webglcontextlost` → 2D fallback (fixes broken-image icons on mobile); chat panel is a full-screen sheet on phones/short screens, floating on `float` screens (≥640 px wide and ≥600 px tall), larger on `2xl` and `tv` (≥2400 px) — new Tailwind screens. Verified: `tsc`, `next build`, live answers via `next start`. |

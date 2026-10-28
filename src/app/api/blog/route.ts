@@ -14,6 +14,10 @@ export const revalidate = 0;
 // Drive share links → lh3 image URLs (deprecated uc?export=view no longer renders).
 const formatGDriveUrl = (url: string | null) => (url ? driveImageUrl(url) : "");
 
+// Admin editor sends tags as a comma list.
+const parseTags = (raw: FormDataEntryValue | null) =>
+  typeof raw === "string" ? raw.split(",").map((t) => t.trim()).filter(Boolean) : [];
+
 // Public post list, served from the data cache. Omits the full article body —
 // list views only need the card fields (fetch ?slug= / ?id= for content).
 const getPublicPosts = cachedPublic("posts", async () => {
@@ -77,6 +81,9 @@ export async function POST(req: Request) {
       title, slug, excerpt, content, coverImage,
       gDriveImage: formatGDriveUrl(gDriveImage),
       relatedProject: relatedProject || "", // ✅ Save
+      // Editor's "Publishing State": drafts unless explicitly published.
+      published: formData.get("published") === "true",
+      tags: parseTags(formData.get("tags")),
       publishDate: publishDate ? new Date(publishDate) : new Date(),
       readTime: Math.ceil(content.split(/\s+/).length / 200) || 5,
     });
@@ -107,6 +114,8 @@ export async function PUT(req: Request) {
     post.content = formData.get("content") || post.content;
 
     if (formData.has("relatedProject")) post.relatedProject = formData.get("relatedProject") as string; // ✅ Update
+    if (formData.has("published")) post.published = formData.get("published") === "true";
+    if (formData.has("tags")) post.tags = parseTags(formData.get("tags"));
 
     const gDriveImage = formData.get("gDriveImage") as string;
     if (gDriveImage !== null) post.gDriveImage = formatGDriveUrl(gDriveImage);

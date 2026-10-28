@@ -1,6 +1,6 @@
 # 🗺️ Codebase Map & Logic Reference Guide
 
-> **Last updated:** 2026-10-28 23:44 IST — see [Change Log](#change-log).
+> **Last updated:** 2026-10-28 23:51 IST — see [Change Log](#change-log).
 >
 > **Purpose:** This document is the definitive technical directory and logic manual for the **Nilay Naha Portfolio & CMS** application. It serves as an exhaustive reference for both human engineers and AI coding agents to immediately understand every directory, file, data model, API endpoint, and architectural sub-system without having to scan the entire codebase.
 
@@ -504,6 +504,7 @@ my-portfolio/
 
 | Date & time (IST) | Change |
 | :--- | :--- |
+| 2026-10-28 23:51 | Content (CMS data, no code): rewrote 6 older blog posts and 5 project write-ups into native format — removed per-article `<style>` blocks/`portfolio-post` wrappers that broke dark mode, Markdown `##` headings (TOC works), design classes; filled empty project case-study fields (problem/approach/results/metrics) from existing text only; PyPass placeholder `#` links → real GitHub/release URLs. Facts unchanged; pre-rewrite JSON backup kept locally. |
 | 2026-10-28 23:44 | Fix: `Post` schema lacked `publishDate`, so Mongoose dropped it on create and new posts sorted last — added (`default: Date.now`). New `ChunkErrorReload` provider (root layout) reloads once on `ChunkLoadError` when a tab/PWA cache holds HTML from a previous deploy (30 s sessionStorage guard; no reload if storage is blocked). Published blog post "How I Built My Portfolio…". Verified: `tsc`. |
 | 2026-10-28 23:37 | Fix: Admin → Blog "Publishing State" never saved — `POST`/`PUT /api/blog` ignored `published` and `tags`, so every admin-created post stayed a draft. Both now persist them (`parseTags`). Verified: `tsc`. |
 | 2026-10-28 23:31 | Chatbot mascot is now a single static image (`MASCOT_IMAGE`); removed the 3D GLB, MascotScene, MascotFallback, expression renders, `preloadMascot`, `public/models/` and `MASCOT_PIPELINE.md` — faster loads in all browsers. Verified: `tsc`. |

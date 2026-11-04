@@ -30,12 +30,18 @@
 # TypeScript Build Info Cache
 # ==============================================================================
 *.tsbuildinfo
+.eslintcache
+*.tgz
+/playwright-report/
+/test-results/
 next-env.d.ts.bak
 
 # ==============================================================================
 # Environment Variables & Secrets (CRITICAL FOR SECURITY)
 # ==============================================================================
 .env
+.env.*
+!.env.example
 .env*.local
 .env.local
 .env.development.local
@@ -49,6 +55,13 @@ next-env.d.ts.bak
 *.crt
 *.pfx
 *.p12
+*.p8
+*.jks
+*.keystore
+service-account*.json
+credentials*.json
+client_secret*.json
+.npmrc
 
 # ==============================================================================
 # Vercel & Deployment Artifacts
@@ -112,3 +125,6 @@ Desktop.ini
 .claude/
 .cursor/
 .windsurf/
+.gemini/
+.agent/
+.agents/

@@ -5,6 +5,18 @@ import { rateLimit, HOUR } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
+// Only real browser push services are accepted: the broadcast route POSTs to every
+// stored endpoint, so an arbitrary https URL would turn it into a blind SSRF relay.
+const PUSH_HOSTS = /^(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com|updates-autopush\.(stage\.)?mozaws\.net|web\.push\.apple\.com|([\w-]+\.)*push\.apple\.com|([\w-]+\.)*notify\.windows\.com)$/i;
+const isPushEndpoint = (endpoint: string) => {
+  try {
+    const u = new URL(endpoint);
+    return u.protocol === "https:" && PUSH_HOSTS.test(u.hostname);
+  } catch {
+    return false;
+  }
+};
+
 export async function POST(req: Request) {
   const limited = rateLimit(req, "push-subscribe", 10, HOUR);
   if (limited) return limited;
@@ -16,7 +28,7 @@ export async function POST(req: Request) {
 
     // Only accept a well-formed https push endpoint with string keys (no operator objects).
     if (
-      typeof endpoint !== "string" || !/^https:\/\//.test(endpoint) || endpoint.length > 1000 ||
+      typeof endpoint !== "string" || endpoint.length > 1000 || !isPushEndpoint(endpoint) ||
       typeof p256dh !== "string" || p256dh.length > 200 || typeof auth !== "string" || auth.length > 100
     ) {
       return NextResponse.json({ error: "Invalid subscription data" }, { status: 400 });

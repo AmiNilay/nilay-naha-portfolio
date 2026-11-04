@@ -132,6 +132,8 @@ const toDriveView = (url: string) => {
 };
 
 function LinkChip({ link }: { link: LinkItem }) {
+  // Render only site-relative or http(s) links; anything else (e.g. javascript:) is dropped.
+  if (!/^\/(?!\/)/.test(link.url) && !/^https?:\/\//i.test(link.url)) return null;
   const internal = link.url.startsWith("/");
   const className =
     "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] border border-[#D97757]/35 text-[#B4532F] dark:text-[#E8957A] hover:bg-[#D97757]/10 transition-colors";

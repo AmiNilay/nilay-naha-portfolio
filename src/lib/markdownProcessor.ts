@@ -153,7 +153,10 @@ const DROP_TAGS = new Set([
 const IFRAME_HOSTS =
   /^https:\/\/(drive\.google\.com\/file\/d\/[-\w]+\/preview|docs\.google\.com\/|www\.youtube(-nocookie)?\.com\/embed\/|youtube(-nocookie)?\.com\/embed\/|player\.vimeo\.com\/video\/|codepen\.io\/|codesandbox\.io\/embed\/|stackblitz\.com\/)/i;
 
-const BAD_URL = /^\s*(javascript|vbscript|data:(?!image\/(png|jpe?g|gif|webp|avif|svg\+xml)))/i;
+const BAD_URL = /^(javascript|vbscript|data:(?!image\/(png|jpe?g|gif|webp|avif|svg\+xml)))/i;
+// Browsers ignore tabs/newlines/control chars inside a URL scheme ("java\tscript:"),
+// so strip them before testing or the check can be bypassed.
+const isBadUrl = (url: string) => BAD_URL.test(url.replace(/[\u0000- \u007f-\u009f​-‍﻿]/g, ""));
 
 function cleanStyle(style: string): string {
   return style
@@ -240,7 +243,7 @@ function rehypeRichContent() {
         if (k.startsWith("on") || k === "srcdoc" || k === "formaction" || k === "action") delete props[key];
       }
       for (const key of ["href", "src", "poster", "xLinkHref"]) {
-        if (typeof props[key] === "string" && BAD_URL.test(props[key])) delete props[key];
+        if (typeof props[key] === "string" && isBadUrl(props[key])) delete props[key];
       }
       if (typeof props.style === "string") props.style = cleanStyle(props.style);
 

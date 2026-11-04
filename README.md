@@ -32,7 +32,7 @@
 - 🏢 **Rich Experience Timeline:** Company logos (uploaded or linked, never cropped) and LinkedIn links per role.
 - 🧠 **AI Tools Stack:** 20+ AI tools (Claude, Claude Code, Cursor, Copilot, Gemini, DeepSeek, Qwen…) selectable in the CMS, with theme-aware icon contrast.
 - 🔎 **Discoverable:** schema.org Person JSON-LD, a generated social preview image, and `/llms.txt` so AI assistants get accurate, current facts; robots.txt explicitly welcomes AI crawlers (GPTBot, ClaudeBot, PerplexityBot…).
-- 🔌 **Admin MCP Server:** `/api/mcp` lets AI agents (Claude, Cursor…) list, create, update, publish and delete projects and blog posts and edit About/Hero on your behalf — free, token-protected, no SDK. Connect with `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <ADMIN_SECRET>"`.
+- 🔌 **Admin MCP Server:** `/api/mcp` lets AI agents (Claude, Cursor…) list, create, update, publish and delete projects and blog posts and edit About/Hero on your behalf — free, token-protected, no SDK. Connect with `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <MCP_TOKEN>"` (set `MCP_TOKEN` in your env first).
 - 🧑‍🚀 **3D Assistant Avatar & Auto-Navigation:** the chatbot's 3D-shaded avatar turns toward your cursor; ask about a project or article and it opens that page for you, then suggests fresh follow-up questions.
 - 🔄 **Reload-Safe Sections:** refreshing keeps you on the same home section and scroll position (`/#about`, `/#projects`…).
 
@@ -126,6 +126,7 @@ GITHUB_REPO=your_repo_name
 ADMIN_EMAIL=your_admin_email
 ADMIN_PASSWORD=your_admin_password
 ADMIN_SECRET=your_jwt_secret_key
+MCP_TOKEN=your_separate_mcp_token_16plus_chars
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
 VAPID_PRIVATE_KEY=your_vapid_private_key
 VAPID_SUBJECT=mailto:your_email@example.com

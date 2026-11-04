@@ -87,10 +87,10 @@ Admin panel: `http://localhost:3000/admin`. Log in with `ADMIN_EMAIL` and `ADMIN
 
 ```bash
 claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp \
-  --header "Authorization: Bearer <ADMIN_SECRET>"
+  --header "Authorization: Bearer <MCP_TOKEN>"
 ```
 
-Then ask your agent things like *"Create a draft blog post about my sign-language research"* or *"Mark ShortDesk as featured"*. Keep `ADMIN_SECRET` private: anyone with it can edit your site.
+Then ask your agent things like *"Create a draft blog post about my sign-language research"* or *"Mark ShortDesk as featured"*. Keep `MCP_TOKEN` private: anyone with it can edit your site.
 
 ## 5. AI Discoverability
 
@@ -329,6 +329,12 @@ Same format: **What · Why I added it · Why it stands out · How to use.**
 | **Why it stands out** | Portfolios now expose AI agents with write access (MCP), so guardrails and an audit trail are a senior-engineering signal. |
 | **How to use** | Log in again after this deploy, because old cookies are rejected. Make ADMIN_SECRET at least 16 characters. Review activity at **Admin → Security**. |
 
+**Update (2026-11-05, security review):**
+- The admin MCP server now uses its own `MCP_TOKEN` instead of `ADMIN_SECRET`. A leaked agent config can no longer forge admin sessions. It refuses all calls until `MCP_TOKEN` (16+ characters) is set.
+- Push subscriptions only accept real browser push services (Google, Mozilla, Apple, Windows), which closes a blind SSRF route through the broadcast.
+- The content sanitizer now strips tabs and control characters before checking link schemes, so `java&#9;script:` links are blocked.
+- Chatbot rule links must be `/path` or http(s). Chat questions are capped at 1000 characters. The broadcast route re-checks the admin session itself.
+
 ## 33. Drafts Hidden Everywhere + Content Protection On
 
 | | |
@@ -517,7 +523,8 @@ Add each one to **Production**, **Preview** and **Development**, then **redeploy
 | :--- | :--- | :--- |
 | `MONGODB_URI` | Database connection | MongoDB Atlas → Database → Connect → Drivers → copy the URI. Under Network Access, allow `0.0.0.0/0`, because Vercel's IP addresses change. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin login | Choose them yourself. Use a strong password. |
-| `ADMIN_SECRET` | Signs admin sessions **and** is the admin MCP bearer token (must be 16+ characters; after changing it, log in again) | Generate a long random value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never share it. |
+| `ADMIN_SECRET` | Signs admin sessions (must be 16+ characters; after changing it, log in again) | Generate a long random value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never share it. |
+| `MCP_TOKEN` | Bearer token for the admin MCP server (`/api/mcp`); must be 16+ characters and different from `ADMIN_SECRET`. Without it the admin MCP stays disabled. | Same command as above. Paste it only into your MCP client config. |
 | `GITHUB_TOKEN` | Uploads images to the assets repo | GitHub → Settings → Developer settings → **Fine-grained token** → Repository access: `my-portfolio-assets` only → Permissions: **Contents: Read and write**. Set a reminder before it expires. |
 | `GITHUB_USERNAME` / `GITHUB_REPO` | Asset repo location | `AmiNilay` / `my-portfolio-assets` |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push public key | See step 2 |
@@ -541,7 +548,7 @@ It prints a **Public Key** and a **Private Key**.
 4. Videos play in Drive's player. Large videos can take a few minutes after upload before they will play.
 
 ### 4. Connect AI agents
-- **Admin (write access):** `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <ADMIN_SECRET>"`
+- **Admin (write access):** `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <MCP_TOKEN>"`
 - **Public (read-only):** `claude mcp add --transport http nilay-portfolio https://nilay-naha-portfolio.vercel.app/api/mcp/public`
 
 ### 5. Content to fill in (Admin panel)

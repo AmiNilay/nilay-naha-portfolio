@@ -25,7 +25,9 @@ function parseRule(body: any) {
   const keywords = str(body?.keywords, 2000).split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
   const quickReplies = str(body?.quickReplies, 2000).split(",").map((k) => k.trim()).filter(Boolean);
   const links = Array.isArray(body?.links)
-    ? body.links.slice(0, 10).map((l: any) => ({ label: str(l?.label, 100), url: str(l?.url, 500) })).filter((l: any) => l.label && l.url)
+    ? body.links.slice(0, 10).map((l: any) => ({ label: str(l?.label, 100), url: str(l?.url, 500).trim() }))
+        // Only site-relative or http(s) links (blocks javascript:/data: URLs).
+        .filter((l: any) => l.label && (/^\/(?!\/)/.test(l.url) || /^https?:\/\//i.test(l.url)))
     : [];
   return { keywords, answer: str(body?.answer, 5000), quickReplies, links };
 }

@@ -32,6 +32,10 @@ export async function GET(req: Request) {
 
 // POST: Send a broadcast notification to all subscribers
 export async function POST(req: Request) {
+  // Defence in depth: middleware already requires an admin session for this route.
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: "Unauthorized Access" }, { status: 401 });
+  }
   try {
     await connectToDB();
     const input = await req.json();

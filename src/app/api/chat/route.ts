@@ -47,8 +47,10 @@ export async function POST(req: NextRequest) {
     if (typeof question !== "string" || !question.trim()) {
       return NextResponse.json({ error: "A question is required" }, { status: 400 });
     }
-    const answer = await answerQuestion(question, typeof context === "string" ? context : undefined);
-    logQuestion(question, answer, ip, body);
+    // Cap input so oversized text can't make the answer engine do unbounded work.
+    const q = question.slice(0, 1000);
+    const answer = await answerQuestion(q, typeof context === "string" ? context.slice(0, 200) : undefined);
+    logQuestion(q, answer, ip, body);
     return NextResponse.json(answer);
   } catch (error) {
     console.error("Chat engine error:", error);

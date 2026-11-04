@@ -12,12 +12,14 @@ export const dynamic = "force-dynamic";
 /**
  * Admin MCP server (Streamable HTTP, stateless JSON-RPC).
  * Lets AI agents (Claude, Cursor, …) manage portfolio content on Nilay's behalf.
- * Auth: `Authorization: Bearer <ADMIN_SECRET>`. Whitelisted in middleware
+ * Auth: `Authorization: Bearer <MCP_TOKEN>`. Whitelisted in middleware
  * because agents can't hold the admin cookie; this route checks the token itself.
  */
 
 function authorized(req: NextRequest) {
-  const secret = process.env.ADMIN_SECRET;
+  // Dedicated token (never ADMIN_SECRET, which signs admin sessions). Fails closed.
+  const secret = process.env.MCP_TOKEN;
+  if (!secret || secret.length < 16) return false;
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
   if (!secret || !token) return false;
   const a = Buffer.from(token);

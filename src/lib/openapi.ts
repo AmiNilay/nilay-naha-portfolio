@@ -67,7 +67,7 @@ export function buildOpenApiSpec(): Json {
         "Free, self-hosted backend for the portfolio (Next.js 14 route handlers + MongoDB).\n\n" +
         "* **Public** endpoints are rate-limited per IP (limits listed per operation; counters are per serverless instance).\n" +
         "* **Admin** endpoints need the signed `admin_token` session cookie (log in at `/admin/login`). Cookie-authenticated writes must be same-origin.\n" +
-        "* **MCP**: `/api/mcp/public` (read-only, no auth) and `/api/mcp` (admin, `Authorization: Bearer <ADMIN_SECRET>`) speak MCP JSON-RPC over Streamable HTTP.\n" +
+        "* **MCP**: `/api/mcp/public` (read-only, no auth) and `/api/mcp` (admin, `Authorization: Bearer <MCP_TOKEN>`) speak MCP JSON-RPC over Streamable HTTP.\n" +
         "* Drafts are never returned publicly.",
       contact: { name: "Nilay Naha", url: `${SITE_URL}/contact` },
     },
@@ -175,7 +175,7 @@ export function buildOpenApiSpec(): Json {
       "/api/mcp": {
         post: {
           tags: ["AI/MCP"], summary: "Admin MCP server (write access)",
-          description: "Same protocol as the public server, but tools can create/update/delete projects and posts and edit About/Hero. Bearer `ADMIN_SECRET`; 10 failed tokens / 15 min locks the IP; **300 calls / hour**. Every write is audit-logged.",
+          description: "Same protocol as the public server, but tools can create/update/delete projects and posts and edit About/Hero. Bearer `MCP_TOKEN`; 10 failed tokens / 15 min locks the IP; **300 calls / hour**. Every write is audit-logged.",
           security: [{ mcpBearer: [] }],
           requestBody: {
             required: true,
@@ -250,7 +250,7 @@ export function buildOpenApiSpec(): Json {
     components: {
       securitySchemes: {
         adminSession: { type: "apiKey", in: "cookie", name: "admin_token", description: "Signed session cookie set by /api/auth/login" },
-        mcpBearer: { type: "http", scheme: "bearer", description: "ADMIN_SECRET (admin MCP only)" },
+        mcpBearer: { type: "http", scheme: "bearer", description: "MCP_TOKEN (admin MCP only)" },
       },
       responses: {
         BadRequest: { description: "Invalid input", content: json(schemaRef("Error"), { error: "A question is required" }) },

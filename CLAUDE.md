@@ -70,7 +70,7 @@ When Claude Code or any agent compacts or summarizes conversation context, the f
      - Destructive Git commands (`git reset --hard`, `git push --force`, deleting remote branches).
      - Deleting critical project directories or files outside normal refactoring.
 3. **Environment Variable Security:**
-   - **NEVER** hardcode, echo, log, or commit secret values from `.env.local` (`MONGODB_URI`, `GITHUB_TOKEN`, `ADMIN_SECRET`, `VAPID_PRIVATE_KEY`).
+   - **NEVER** hardcode, echo, log, or commit secret values from `.env.local` (`MONGODB_URI`, `GITHUB_TOKEN`, `ADMIN_SECRET`, `MCP_TOKEN`, `VAPID_PRIVATE_KEY`).
 
 ---
 

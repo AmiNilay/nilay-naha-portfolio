@@ -212,9 +212,9 @@ my-portfolio/
 ### 13. Admin MCP Server (AI agents manage the CMS) — added 2026-10-22
 * **Location:** [`src/app/api/mcp/route.ts`](file:///e:/my-portfolio/src/app/api/mcp/route.ts), [`src/lib/mcpTools.ts`](file:///e:/my-portfolio/src/lib/mcpTools.ts)
 * **Protocol:** Model Context Protocol over Streamable HTTP, stateless JSON responses (`initialize`, `ping`, `tools/list`, `tools/call`; notifications get `202`; `GET` is `405`). No SDK dependency, no cost.
-* **Auth:** `Authorization: Bearer <ADMIN_SECRET>`, compared with `timingSafeEqual`; refused when `ADMIN_SECRET` is unset. `/api/mcp` is in `publicApiRoutes` only because agents can't hold the `admin_token` cookie — the route enforces auth itself.
+* **Auth:** `Authorization: Bearer <MCP_TOKEN>` (separate from `ADMIN_SECRET`, 16+ chars, since 2026-11-05), compared with `timingSafeEqual`; refused when `MCP_TOKEN` is unset or too short. `/api/mcp` is in `publicApiRoutes` only because agents can't hold the `admin_token` cookie — the route enforces auth itself.
 * **Tools:** `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`, `list_posts`, `get_post`, `create_post`, `update_post`, `delete_post`, `get_about`, `update_about`, `get_hero`, `update_hero`. Ids accept a Mongo `_id` or slug; images are URLs / Google Drive links (Drive links converted to thumbnail URLs). Every write calls `revalidatePublicPages()`.
-* **Connect (Claude Code):** `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <ADMIN_SECRET>"`.
+* **Connect (Claude Code):** `claude mcp add --transport http portfolio https://nilay-naha-portfolio.vercel.app/api/mcp --header "Authorization: Bearer <MCP_TOKEN>"`.
 * **Shared protocol:** [`src/lib/mcpProtocol.ts`](file:///e:/my-portfolio/src/lib/mcpProtocol.ts) holds JSON-RPC handling for both MCP routes.
 * **Public read-only MCP (2026-10-22):** `POST /api/mcp/public` (no auth, 120 req/IP/hour via [`rateLimit.ts`](file:///e:/my-portfolio/src/lib/rateLimit.ts)) — `get_profile`, `list_projects`, `get_project`, `list_posts`, `get_post`, `search_portfolio`, `match_job_description`. Published content only. Recruiters' AI agents connect with `claude mcp add --transport http nilay-portfolio https://nilay-naha-portfolio.vercel.app/api/mcp/public`.
 
